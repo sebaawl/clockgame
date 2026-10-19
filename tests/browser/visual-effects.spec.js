@@ -1,9 +1,10 @@
+import { backdropColors } from '../../src/ambience.js';
 import { test, expect } from '@playwright/test';
 import { installClock, play, solve } from './helpers.js';
 
 test.beforeEach(async ({ page }) => { await installClock(page); await page.goto('/'); });
 
-test('five consecutive solves show a large combo with a sky blue flash', async ({ page }) => {
+test('five consecutive solves show a large combo with a white flash on black', async ({ page }) => {
   await play(page);
   for (let i = 0; i < 5; i++) {
     await solve(page);
@@ -12,7 +13,7 @@ test('five consecutive solves show a large combo with a sky blue flash', async (
   await expect(page.locator('#combo-big')).toHaveText('5×');
   await expect(page.locator('#combo-celebration')).toBeVisible();
   expect(parseFloat(await page.locator('#combo-big').evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThan(90);
-  await expect(page.locator('#success-glow')).toHaveCSS('background-color', 'rgb(84, 216, 255)');
+  await expect(page.locator('#success-glow')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
   await expect(page.locator('#success-glow')).toHaveCSS('z-index', '4');
   await expect(page.locator('#resources')).toHaveCSS('mix-blend-mode', 'normal');
   await expect(page.locator('#resources')).toHaveCSS('color', 'rgb(0, 0, 0)');
@@ -26,7 +27,7 @@ test('five consecutive solves show a large combo with a sky blue flash', async (
   for (let i = 0; i < 5; i++) { await solve(page); if (i < 4) await page.clock.runFor(1000); }
   await expect(page.locator('#combo-big')).toHaveText('10×');
   await expect(page.locator('#success-glow')).toHaveAttribute('data-combo', 'false');
-  await expect(page.locator('#resources')).toHaveCSS('mix-blend-mode', 'difference');
+  await expect(page.locator('#resources')).toHaveCSS('mix-blend-mode', 'normal');
   expect(await page.locator('#success-glow').evaluate(el => el.getAnimations().length)).toBe(0);
 });
 
@@ -36,6 +37,19 @@ test('backdrops change with active time and stay frozen while paused', async ({ 
   await page.clock.runFor(10020);
   const color = await page.locator('body').getAttribute('data-backdrop');
   expect(color).not.toBe('0');
+  const colors = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    return { accent: root.getPropertyValue('--accent').trim(), flash: root.getPropertyValue('--combo-flash').trim() };
+  });
+  expect(colors.accent).toBe(backdropColors(Number(color)).accent);
+  expect(colors.flash).toBe(backdropColors(Number(color)).flash);
+  await page.evaluate(() => { document.body.dataset.nitro = 'true'; document.body.dataset.hot = 'true'; });
+  const accents = await page.evaluate(() => ['.hand-line', '.trail-mark line', '#nitro-fill', '.combo-count'].map(selector => {
+    const element = document.querySelector(selector), style = getComputedStyle(element);
+    return selector.includes('line') ? style.stroke : selector === '#nitro-fill' ? style.backgroundColor : style.color;
+  }));
+  expect(new Set(accents).size).toBe(1);
+
   await page.keyboard.press('Space');
   await page.clock.runFor(30000);
   await expect(page.locator('body')).toHaveAttribute('data-backdrop', color);

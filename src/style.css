@@ -212,13 +212,13 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
 .format-option { min-height: 42px; padding: 10px 8px; color: var(--foreground); background: var(--background); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; cursor: pointer; }
 .format-option[aria-pressed='true'] { border-color: var(--foreground); }
 .arcade-future { margin: 18px 0 0; font-size: 8px; font-weight: 300; letter-spacing: .16em; opacity: .55; }
-.resources { position: absolute; z-index: 4; top: calc(54% + var(--dial-size) / 2 + 25px); left: 50%; width: min(42vw, 170px); transform: translateX(-50%); color: #fff; mix-blend-mode: difference; pointer-events: none; }
+.resources { position: absolute; z-index: 4; top: calc(54% + var(--dial-size) / 2 + 25px); left: 50%; width: min(42vw, 170px); transform: translateX(-50%); color: var(--foreground); mix-blend-mode: normal; pointer-events: none; }
 .resource-labels { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; font-size: 8px; font-weight: 300; letter-spacing: .1em; }
 .combo-count { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
 .nitro-meter { width: 100%; height: 3px; border-radius: 3px; background: rgb(128 128 128 / 30%); overflow: hidden; }
 #nitro-fill { display: block; width: 100%; height: 100%; background: currentColor; transform-origin: left center; transition: transform 70ms linear; }
 .nitro-message { display: block; min-height: 14px; margin-top: 9px; text-align: center; font-size: 8px; font-weight: 300; letter-spacing: .12em; }
-body[data-hot='true'] .combo-count { color: #54d8ff; }
+body[data-hot='true'] .combo-count { color: var(--accent); }
 body[data-hot='true'] .tick:nth-child(3n) { stroke: var(--accent); }
 body[data-hot='true'] .clock-face { animation: combo-breathe 1.6s ease-in-out infinite; }
 .nitro-trail { opacity: 0; transition: opacity 100ms ease; }
@@ -231,7 +231,7 @@ body[data-nitro='true'] .active-hand { transition: transform 18ms linear; }
 body[data-nitro='true'] .hand-line, body[data-nitro='true'] .center { stroke: var(--accent); }
 body[data-nitro='true'] .center { fill: var(--accent); }
 body[data-nitro='true'] .nitro-trail { opacity: 1; }
-body[data-nitro='true'] #nitro-fill { background: #54d8ff; }
+body[data-nitro='true'] #nitro-fill { background: var(--accent); }
 body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out infinite; }
 .best-score { margin: -10px 0 20px; font-size: 9px; font-weight: 300; letter-spacing: .12em; }
 .guide-nitro { position: absolute; bottom: max(8svh, 45px); width: 100%; margin: 0; text-align: center; font-size: 8px; line-height: 1.8; font-weight: 300; letter-spacing: .06em; }
@@ -252,10 +252,6 @@ body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out inf
   body[data-danger='true'] .timer, body[data-hot='true'] .clock-face { animation: none; }
 }
 .combo-count::before { content: 'COMBO '; font-size: 7px; font-weight: 300; letter-spacing: .05em; vertical-align: middle; }
-/* Compensate difference blending so accents remain sky blue on the light background. */
-:root[data-theme='light'] body[data-hot='true'] .combo-count,
-:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { color: #ff8057; }
-:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { background: #ff8057; }
 @media (orientation: portrait) and (max-height: 700px) {
   .guide-control { bottom: 76px; gap: 5px; }
   .guide-arrow { width: 30px; height: 30px; }

@@ -5,7 +5,7 @@ import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resu
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
-import { BACKDROP_MS, DARK_BACKDROPS, LIGHT_BACKDROPS, nextBackdrop } from './ambience.js';
+import { BACKDROP_MS, DARK_BACKDROPS, LIGHT_BACKDROPS, nextBackdrop, backdropColors } from './ambience.js';
 
 const SUCCESS_MS = 1000;
 const BREAK_MS = 3000;
@@ -177,6 +177,9 @@ function savePreferences() {
 function announce(message) { $('announcer').textContent = message; }
 function applyTheme() {
   const background = (preferences.theme === 'light' ? LIGHT_BACKDROPS : DARK_BACKDROPS)[backdropIndex];
+  const colors = backdropColors(backdropIndex, preferences.theme === 'light');
+  document.documentElement.style.setProperty('--accent', colors.accent);
+  document.documentElement.style.setProperty('--combo-flash', colors.flash);
   document.body.dataset.backdrop = String(backdropIndex);
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.style.setProperty('--background', background);
@@ -319,7 +322,7 @@ function positionGlow() {
 function animateGlow(frames, options, color = 'var(--success-color)') {
   glowAnimation?.cancel();
   glow.style.background = color;
-  glow.dataset.combo = String(preferences.flash && !reducedMotion.matches && color === 'var(--accent)');
+  glow.dataset.combo = String(preferences.flash && !reducedMotion.matches && color === 'var(--combo-flash)');
   glowAnimation = preferences.flash ? glow.animate(frames, options) : null;
 }
 function celebrate() {
@@ -337,7 +340,7 @@ function celebrate() {
     { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ];
   const milestone = game.combo > 0 && game.combo % 5 === 0;
-  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' }, milestone ? 'var(--accent)' : 'var(--success-color)');
+  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' }, milestone ? 'var(--combo-flash)' : 'var(--success-color)');
   if (milestone) showCombo();
   transitionRemaining = SUCCESS_MS;
   scheduleAdvance();

@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.1.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.2.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -100,4 +100,4 @@ Resolver recarga 4%; el recorrido perfecto añade 4%; los múltiplos de cinco da
 
 Un indicador pequeño bajo el reloj muestra carga y combo. A partir de ×5 aparecen acentos celeste y un pulso suave; Nitro colorea la manecilla, deja una estela corta y usa un sonido mecánico atenuado. Los últimos tres segundos activan un pulso del contador, tics discretos y una sola advertencia háptica por reloj. Sonido y vibración respetan los ajustes; movimiento reducido elimina la estela y los pulsos. No se añaden botones de Nitro ni sacudidas de pantalla.
 
-Los múltiplos de cinco del combo muestran un contador grande con un destello celeste (si está habilitado). Nitro y los acentos del combo usan celeste. La entrada de game over cubre toda la pantalla en rojo con controles blancos; movimiento reducido evita el desplazamiento.
+Los múltiplos de cinco del combo muestran un contador grande con un destello blanco sobre negro (si está habilitado). Nitro usa celeste sobre negro. En los fondos de color, el destello y los acentos usan un tono complementario con contraste adaptado al modo claro u oscuro. La entrada de game over cubre toda la pantalla en rojo con controles blancos; movimiento reducido evita el desplazamiento.
