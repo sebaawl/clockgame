@@ -2,6 +2,7 @@ import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
 import './style.css';
 import './store.css';
+import './home.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, hasBoost } from './game.js';
@@ -106,16 +107,18 @@ document.querySelector('#app').innerHTML = `
     </div>
     <section id="start-menu" class="start-menu" aria-labelledby="start-title">
       <div class="start-content">
-        <p class="menu-kicker">ELIGE EL MODO</p><h1 id="start-title">clocking</h1>
-        <div class="format-options" role="group" aria-label="Tipo de partida"><button id="format-classic" class="format-option" aria-pressed="true" type="button">Clásico</button><button id="format-survival" class="format-option" aria-pressed="false" type="button">Supervivencia</button></div>
-        <div class="difficulty-picker" role="group" aria-label="Dificultad"><span class="difficulty-marker"></span>${Object.entries(DIFFICULTIES).map(([id, d]) => `<button data-difficulty="${id}" type="button" aria-pressed="false">${d.name}</button>`).join('')}</div>
-        <div class="mode-options" role="group" aria-label="Recorrido">
-          <svg id="mode-selector" class="mode-selector" aria-hidden="true"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="12" pathLength="100"/></svg>
-          <button id="mode-normal" class="mode-option" type="button" aria-pressed="true"><strong>Normal</strong><span>Gira hasta las doce.</span></button>
-          <button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Contraintuitivo</strong><span>Ve por el camino largo.</span></button>
+        <header class="home-header"><h1 id="start-title">clocking</h1><div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div></header>
+        <div class="home-selection">
+          <section class="home-setting" aria-labelledby="format-label"><h2 id="format-label">PARTIDA</h2><div class="format-options" role="group" aria-label="Tipo de partida"><button id="format-classic" class="format-option" aria-pressed="true" type="button">Clásico</button><button id="format-survival" class="format-option" aria-pressed="false" type="button">Supervivencia</button></div></section>
+          <section class="home-setting" aria-labelledby="difficulty-label"><h2 id="difficulty-label">DIFICULTAD</h2><div class="difficulty-picker" role="group" aria-label="Dificultad"><span class="difficulty-marker"></span>${Object.entries(DIFFICULTIES).map(([id, d], index) => `<button data-difficulty="${id}" type="button" aria-pressed="false"><span class="difficulty-dots" aria-hidden="true">${'<i></i>'.repeat(index + 1)}</span><span>${d.name}</span></button>`).join('')}</div></section>
+          <section class="home-setting" aria-labelledby="route-label"><h2 id="route-label">RECORRIDO</h2><div class="mode-options" role="group" aria-label="Recorrido">
+            <svg id="mode-selector" class="mode-selector" aria-hidden="true"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="24" pathLength="100"/></svg>
+            <button id="mode-normal" class="mode-option" type="button" aria-pressed="true"><strong>Normal</strong></button><button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Contraintuitivo</strong></button>
+          </div></section>
+          <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
         </div>
-        <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
-        <div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div><button id="start-game" class="primary-action" type="button">Jugar</button><div class="progress-actions"><button id="open-store" type="button">Tienda <span id="menu-coins">0</span></button><button id="open-daily" type="button">${gear} Metas <span id="daily-ready"></span></button></div><p class="equipped-note" id="equipped-note"></p>
+        <div class="home-play"><p class="equipped-note" id="equipped-note"></p><button id="start-game" class="primary-action" type="button">Jugar</button></div>
+        <nav class="progress-actions" aria-label="Progreso"><button id="open-store" type="button">${icon('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}<span>Tienda</span><span id="menu-coins" class="home-badge"></span></button><button id="open-daily" type="button">${icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9 12 2 2 4-5"/>')}<span>Misiones</span><span id="daily-ready" class="home-badge"></span></button></nav>
       </div>
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
@@ -163,7 +166,7 @@ if (import.meta.env.VITE_DESIGNER === 'true') {
   import('./designer.js').then(({ installDesigner }) => { designer = installDesigner({ progress, storage, changed: updateProgressMenu, gear, reducedMotion, feedback }); });
 }
 function updateProgressMenu() {
-  $('menu-coins').textContent = progress.coins.toLocaleString('es-CL');
+  $('menu-coins').textContent = progress.coins ? progress.coins.toLocaleString('es-CL') : '';
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
   $('result-daily').textContent = ready ? `Metas diarias · ${ready} por recoger` : 'Metas diarias';

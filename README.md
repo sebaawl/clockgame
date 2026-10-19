@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.2.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.3.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -151,3 +151,8 @@ Ambos se compran o desbloquean por récord como el resto de boosts y respetan la
 ### Doble ranura (0.3.2)
 
 Mejora general permanente de 600 monedas, con alternativa de récord de 20 000 puntos en una partida. Aparece en la sección Boosts y no consume una ranura. Permite equipar o quitar hasta dos boosts distintos; un tercero exige liberar una ranura. Todos sus efectos se aplican juntos al iniciar la próxima partida. Se conserva el equipamiento antiguo de un boost y se migran las selecciones a una lista persistente. Recarga ×2 con Nitro Lock mantiene el ciclo de 3 usos/3 ajustes; Doble depósito y Un respiro combinan capacidad y tiempo.
+
+
+### Inicio (0.3.3)
+
+Inicio reorganizado en tres zonas: título y récord, configuración de partida con dificultad de uno/dos/tres puntos, y acción principal seguida de accesos con iconos para Tienda y Misiones. Los contadores vacíos se ocultan; las selecciones conservan sus transiciones y el menú de diseñador mantiene el gesto de siete toques. El diseño se adapta a teléfonos pequeños y a orientación horizontal.
