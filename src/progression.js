@@ -1,5 +1,6 @@
 export const PROGRESS_KEY = 'clocking:progress:v1';
 export const ITEMS = [
+  { id: 'dual', kind: 'upgrade', name: 'Doble ranura', detail: 'Mejora permanente: equipa dos boosts distintos a la vez.', price: 600, target: 20000 },
   { id: 'original', kind: 'cosmetic', name: 'Original', detail: 'El reloj de siempre.', price: 0, target: 0 },
   { id: 'dots', kind: 'cosmetic', name: 'Órbita', detail: 'Doce puntos. Un círculo limpio.', price: 60, target: 3500 },
   { id: 'rail', kind: 'cosmetic', name: 'Doble trazo', detail: 'Dos aros y marcas finas.', price: 100, target: 5500 },
@@ -20,7 +21,7 @@ export function localDay(now = new Date()) {
 }
 function dayState(day) { return { day, best: 0, classic: 0, survival: 0, clocks: 0, perfect: 0, claimed: [] }; }
 export function createProgress(now = new Date()) {
-  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original'], cosmetic: 'original', boost: null, daily: dayState(localDay(now)) };
+  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original'], cosmetic: 'original', boost: null, boosts: [], daily: dayState(localDay(now)) };
 }
 export function refreshDaily(state, now = new Date()) {
   const day = localDay(now);
@@ -35,7 +36,9 @@ export function loadProgress(storage, now = new Date()) {
     for (const field of ['points', 'coins', 'best']) state[field] = integer(saved[field]);
     state.owned = ['original', ...ITEMS.filter(item => item.id !== 'original' && saved.owned?.includes(item.id)).map(item => item.id)];
     if (state.owned.includes(saved.cosmetic) && ITEMS.some(i => i.id === saved.cosmetic && i.kind === 'cosmetic')) state.cosmetic = saved.cosmetic;
-    if (state.owned.includes(saved.boost) && ITEMS.some(i => i.id === saved.boost && i.kind === 'boost')) state.boost = saved.boost;
+    const candidates = Array.isArray(saved.boosts) && saved.boosts.length ? saved.boosts : [saved.boost];
+    state.boosts = [...new Set(candidates)].filter(id => state.owned.includes(id) && ITEMS.some(i => i.id === id && i.kind === 'boost')).slice(0, boostSlots(state));
+    state.boost = state.boosts[0] || null;
     if (saved.daily?.day === localDay(now)) {
       for (const field of ['best', 'classic', 'survival', 'clocks', 'perfect']) state.daily[field] = integer(saved.daily[field]);
       state.daily.claimed = Array.isArray(saved.daily.claimed) ? saved.daily.claimed.filter(id => ['score', 'mode', 'precision'].includes(id)) : [];
@@ -87,10 +90,20 @@ export function buyItem(state, id, method = 'coins') {
   state.owned.push(id);
   return true;
 }
+export const boostSlots = state => state.owned.includes('dual') ? 2 : 1;
+export function equippedBoosts(state) {
+  return (state.boosts?.length ? state.boosts : state.boost ? [state.boost] : []).slice(0, boostSlots(state));
+}
 export function equipItem(state, id) {
-  if (id === 'none') { state.boost = null; return true; }
+  if (id === 'none') { state.boost = null; state.boosts = []; return true; }
   const item = ITEMS.find(item => item.id === id);
-  if (!item || !state.owned.includes(id)) return false;
-  state[item.kind === 'cosmetic' ? 'cosmetic' : 'boost'] = id;
+  if (!item || !state.owned.includes(id) || item.kind === 'upgrade') return false;
+  if (item.kind === 'cosmetic') { state.cosmetic = id; return true; }
+  let equipped = equippedBoosts(state);
+  if (boostSlots(state) === 1) equipped = [id];
+  else if (equipped.includes(id)) equipped = equipped.filter(value => value !== id);
+  else if (equipped.length < 2) equipped.push(id);
+  else return false;
+  state.boosts = equipped; state.boost = equipped[0] || null;
   return true;
 }

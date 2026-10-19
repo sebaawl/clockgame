@@ -3,8 +3,8 @@ import '@fontsource/poppins/latin-700.css';
 import './style.css';
 import './store.css';
 import { createStore } from './store.js';
-import { loadProgress, saveProgress, recordSolve, dailyGoals } from './progression.js';
-import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity } from './game.js';
+import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts } from './progression.js';
+import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, hasBoost } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
@@ -167,7 +167,7 @@ function updateProgressMenu() {
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
   $('result-daily').textContent = ready ? `Metas diarias · ${ready} por recoger` : 'Metas diarias';
-  $('equipped-note').textContent = progress.boost ? `BOOST · ${{ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' }[progress.boost]}` : '';
+  $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
   document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
 }
 function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocking:best:${format}:${mode}${difficulty === 'easy' ? '' : ':' + difficulty}`; }
@@ -181,7 +181,7 @@ function chooseDifficulty(difficulty) {
 const input = createNitroControl({
   now: () => performance.now(), schedule: (fn, ms) => setTimeout(fn, ms), unschedule: clearTimeout,
   canPlay: () => game.status === 'playing' && !settings.open && !document.hidden,
-  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), speed: () => NITRO_SPEED[game.stage] * (game.boost === 'speed' ? 2 : 1),
+  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), speed: () => NITRO_SPEED[game.stage] * (hasBoost(game, 'speed') ? 2 : 1),
   step: direction => tap(direction, { accelerated: true }), shortTap: direction => tap(direction),
   released: exact => { if (settleGame(game, performance.now(), { perfectNitro: exact })) finishAdjustment(); else render(); },
   activeChanged: (value, direction) => {
@@ -202,7 +202,7 @@ function updateResources() {
   $('combo').setAttribute('aria-label', `Combo: ${game.combo}`);
   document.body.dataset.hot = String(game.combo >= 5);
   let message = game.status === 'cleared' ? game.perfectNitro ? 'PERFECT NITRO' : game.perfect ? 'PERFECTO' : '' : nitroRunning ? 'NITRO' : value <= 0 ? 'SIN CARGA' : '';
-  if (game.boost === 'lock') message = game.nitroLocked && game.status === 'cleared' ? `LOCK · ${game.lockUses ? game.lockUses + '/3' : 'RECARGA 3'}` : game.lockCooldown > 0 ? `LOCK · FALTAN ${game.lockCooldown} AJUSTES` : `LOCK · ${game.lockUses}/3`;
+  if (hasBoost(game, 'lock')) message = game.nitroLocked && game.status === 'cleared' ? `LOCK · ${game.lockUses ? game.lockUses + '/3' : 'RECARGA 3'}` : game.lockCooldown > 0 ? `LOCK · FALTAN ${game.lockCooldown} AJUSTES` : `LOCK · ${game.lockUses}/3`;
   if (game.status === 'cleared' && game.format === 'survival') message += `${message ? ' · ' : ''}+${game.lastTimeGain.toFixed(1)} S`;
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
@@ -259,7 +259,7 @@ function updateBest() {
 }
 function render() {
   updateBest(); updateProgressMenu();
-  Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
+  Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', boosts: game.boosts.join(' '), state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
   applyTheme();
   const inMenu = game.status === 'menu';
   const inBreak = game.status === 'break' || (game.status === 'paused' && game.resumeStatus === 'break');
@@ -358,7 +358,7 @@ function startRun(mode = selectedMode) {
   clearRun();
   needsControlGuide = true;
   runCosmetic = progress.cosmetic;
-  startGame(game, performance.now(), Math.random, mode, selectedFormat, { difficulty: selectedDifficulty, boost: progress.boost });
+  startGame(game, performance.now(), Math.random, mode, selectedFormat, { difficulty: selectedDifficulty, boosts: equippedBoosts(progress) });
   prepareAttempt();
   feedback.unlock();
   startBreak('first');

@@ -53,3 +53,17 @@ test('persistence retains equipped purchases and rejects corrupt/negative balanc
   const blocked = { getItem() { throw Error(); }, setItem() { throw Error(); } };
   assert.deepEqual(loadProgress(blocked, today), createProgress(today)); assert.equal(saveProgress(p, blocked), false);
 });
+
+test('double slot is a permanent expensive purchase, permits two distinct boosts, and rejects a third', () => {
+  const p = createProgress(today); p.owned.push('speed', 'lock', 'tank');
+  equipItem(p, 'speed'); equipItem(p, 'lock');
+  assert.deepEqual(p.boosts, ['lock']);
+  p.coins = 599; assert.equal(buyItem(p, 'dual'), false);
+  p.coins = 600; assert.equal(buyItem(p, 'dual'), true); assert.equal(p.coins, 0);
+  assert.equal(equipItem(p, 'speed'), true); assert.deepEqual(p.boosts, ['lock', 'speed']);
+  assert.equal(equipItem(p, 'tank'), false); assert.deepEqual(p.boosts, ['lock', 'speed']);
+  assert.equal(equipItem(p, 'dual'), false);
+  const storage = memory(); saveProgress(p, storage); assert.deepEqual(loadProgress(storage, today).boosts, ['lock', 'speed']);
+  assert.equal(equipItem(p, 'lock'), true); assert.deepEqual(p.boosts, ['speed']);
+  equipItem(p, 'none'); assert.deepEqual(p.boosts, []);
+});

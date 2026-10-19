@@ -6,7 +6,8 @@ export const HARD_TIME_FACTOR = 0.8;
 export const NITRO_INITIAL = 40;
 export const NITRO_DRAIN = 32;
 export const DIFFICULTIES = { easy: { name: 'Fácil', time: 1, recharge: 1 }, medium: { name: 'Media', time: .82, recharge: .75 }, hard: { name: 'Difícil', time: .65, recharge: .5 } };
-export const nitroCapacity = game => game.boost === 'tank' ? 200 : 100;
+export const hasBoost = (game, id) => game.boosts?.includes(id) || game.boost === id;
+export const nitroCapacity = game => hasBoost(game, 'tank') ? 200 : 100;
 export const SURVIVAL_CAP = 25;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
@@ -16,7 +17,7 @@ export const phaseBudget = (round, phase, mode = 'normal', stage = 0, difficulty
 };
 export function createGame() {
   return {
-    status: 'menu', difficulty: 'easy', boost: null, mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
+    status: 'menu', difficulty: 'easy', boost: null, boosts: [], mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
     completed: 0, taps: 0, position: 0, rotation: 0,
     budget: 15, remaining: 15, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
@@ -48,7 +49,7 @@ function preparePhase(game, now, random) {
   game.hardProgress = 0;
   if (game.format === 'classic') {
     // Nine deliberate taps per second remains a viable route without spending Nitro.
-    game.budget = Math.max(phaseBudget(game.round, game.phase, game.mode, game.stage, game.difficulty), (game.optimalSteps / 9 + .75) * DIFFICULTIES[game.difficulty].time) + (game.boost === 'time' ? 1.5 : 0);
+    game.budget = Math.max(phaseBudget(game.round, game.phase, game.mode, game.stage, game.difficulty), (game.optimalSteps / 9 + .75) * DIFFICULTIES[game.difficulty].time) + (hasBoost(game, 'time') ? 1.5 : 0);
     game.remaining = game.budget;
   } else game.budget = game.remaining;
   game.deadline = now + game.remaining * 1000;
@@ -58,8 +59,9 @@ function preparePhase(game, now, random) {
 export function startGame(game, now, random = Math.random, mode = 'normal', format = 'classic', options = {}) {
   Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: format === 'survival' ? 'survival' : 'classic' });
   game.difficulty = Object.hasOwn(DIFFICULTIES, options.difficulty) ? options.difficulty : 'easy';
-  game.boost = ['speed', 'tank', 'time', 'recharge', 'lock'].includes(options.boost) ? options.boost : null;
-  if (game.format === 'survival') game.remaining = 15 * DIFFICULTIES[game.difficulty].time + (game.boost === 'time' ? 1.5 : 0);
+  game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock'].includes(id)).slice(0, 2);
+  game.boost = game.boosts[0] || null;
+  if (game.format === 'survival') game.remaining = 15 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
   return preparePhase(game, now, random);
 }
 export function tickGame(game, now) {
@@ -76,9 +78,9 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   game.solveBudget = game.budget;
   game.solveRemaining = game.remaining;
   game.perfect = game.perfectRoute && game.attemptSteps === game.optimalSteps;
-  game.nitroLocked = nitroLock && game.boost === 'lock' && game.lockUses > 0;
+  game.nitroLocked = nitroLock && hasBoost(game, 'lock') && game.lockUses > 0;
   game.perfectNitro = perfectNitro && !game.nitroLocked;
-  if (game.boost === 'lock') {
+  if (hasBoost(game, 'lock')) {
     if (game.nitroLocked) {
       game.lockUses -= 1;
       if (game.lockUses === 0) game.lockCooldown = 3;
@@ -90,12 +92,12 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   game.combo += 1;
   const milestone = game.combo % 10 === 0 ? 6 : game.combo % 5 === 0 ? 4 : 0;
   game.lastNitroGain = 2 + (game.perfect ? 3 : 0) + milestone + (game.perfectNitro ? 3 : 0);
-  game.lastNitroGain *= DIFFICULTIES[game.difficulty].recharge * (game.boost === 'recharge' ? 2 : 1);
+  game.lastNitroGain *= DIFFICULTIES[game.difficulty].recharge * (hasBoost(game, 'recharge') ? 2 : 1);
   const previousNitro = game.nitro;
   if (game.stage === 0) {
     game.hourPerfectStreak = game.perfect ? game.hourPerfectStreak + 1 : 0;
     // Unlock six percentage points per consecutive perfect hour, without deleting earned charge.
-    const ceiling = Math.max(previousNitro, Math.min(100, NITRO_INITIAL + 6 * game.hourPerfectStreak * (game.boost === 'recharge' ? 2 : 1)));
+    const ceiling = Math.max(previousNitro, Math.min(100, NITRO_INITIAL + 6 * game.hourPerfectStreak * (hasBoost(game, 'recharge') ? 2 : 1)));
     game.nitro = clamp(previousNitro + game.lastNitroGain, 0, ceiling);
   } else game.nitro = clamp(previousNitro + game.lastNitroGain, 0, nitroCapacity(game));
   game.lastNitroGain = game.nitro - previousNitro;
@@ -126,7 +128,7 @@ export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   game.attemptSteps += 1;
   game.hardProgress += direction * game.requiredDirection;
   if (!deferSolve) settleGame(game, now);
-  else if (game.boost === 'lock' && game.lockUses > 0 && game.position === 0) settleGame(game, now, { nitroLock: true });
+  else if (hasBoost(game, 'lock') && game.lockUses > 0 && game.position === 0) settleGame(game, now, { nitroLock: true });
   return true;
 }
 export function consumeNitro(game, amount) {

@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.1.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.2.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -111,7 +111,7 @@ El acierto al llegar a las doce reproduce el archivo aportado `audio/clockadj.wa
 
 Las partidas mantienen su puntaje. Las tres metas diarias conceden **puntos de metas** representados por engranajes; deben recogerse en Metas. Estos engranajes se canjean por monedas: 300 → 20 monedas, o 1200 → 90. No hay pagos reales. Las metas se renuevan a medianoche local y alternan objetivos de Clásico/Supervivencia y precisión/relojes completados. Los premios son 600, 450 y 350 puntos. Cada premio se recoge una vez por día; saldos, colección y equipamiento persisten en el dispositivo.
 
-La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desbloquea gratuitamente con el récord indicado de una sola partida. El récord no se gasta. Se puede equipar un cosmético y un boost a la vez. Los boosts son permanentes y se aplican al iniciar la próxima partida.
+La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desbloquea gratuitamente con el récord indicado de una sola partida. El récord no se gasta. Se puede equipar un cosmético y, al principio, un boost a la vez; Doble ranura permite dos boosts distintos. Los boosts son permanentes y se aplican al iniciar la próxima partida.
 
 | Objeto | Monedas | Récord para desbloquear |
 | --- | ---: | ---: |
@@ -123,8 +123,9 @@ La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desb
 | Un respiro | 180 | 9000 |
 | Recarga ×2 | 150 | 8000 |
 | Nitro Lock | 200 | 10000 |
+| Doble ranura (mejora general) | 600 | 20000 |
 
-Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. Doble depósito almacena 200 y divide el indicador en dos barras: empieza con 40 y respeta el techo de precisión de horas. Un respiro añade 1,5 s a cada reloj de Clásico o al tiempo inicial de Supervivencia. No se apilan boosts.
+Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. Doble depósito almacena 200 y divide el indicador en dos barras: empieza con 40 y respeta el techo de precisión de horas. Un respiro añade 1,5 s a cada reloj de Clásico o al tiempo inicial de Supervivencia. Doble ranura permite combinar dos boosts distintos; no duplica el mismo boost.
 
 La dificultad se elige independientemente del recorrido Normal/Contraintuitivo. **Fácil conserva el equilibrio anterior**. Media multiplica el tiempo por 0,82 y la recarga por 0,75; Difícil por 0,65 y 0,5. En Supervivencia también cambia el tiempo recuperado. Los récords de fácil usan las claves previas y los de media/difícil se guardan por separado. Las compras no cambian las reglas de una partida ya iniciada.
 
@@ -144,4 +145,9 @@ La compilación normal (`npm run build`) elimina el código del menú. No publiq
 
 **Nitro Lock** frena y resuelve automáticamente al alcanzar las doce con Nitro, conservando el combo si el recorrido es perfecto. Tiene tres usos por partida; solo se gasta un uso cuando interviene. Al agotar los tres, los siguientes tres relojes completados recargan el bloqueo. El tercer uso no cuenta como recuperación; esperar, pausar y cambiar de ciclo tampoco recargan el bloqueo. Se muestra el saldo de usos y los ajustes pendientes bajo la barra. No valida un atajo contraintuitivo ni concede el bono de soltar manualmente un Perfect Nitro. El dedo que sigue apoyado no activa el siguiente reloj.
 
-Ambos se compran o desbloquean por récord como el resto de boosts y respetan un único boost equipado. La versión de diseñador sigue siendo una compilación separada con su menú oculto.
+Ambos se compran o desbloquean por récord como el resto de boosts y respetan la capacidad de ranuras desbloqueada. La versión de diseñador sigue siendo una compilación separada con su menú oculto.
+
+
+### Doble ranura (0.3.2)
+
+Mejora general permanente de 600 monedas, con alternativa de récord de 20 000 puntos en una partida. Aparece en la sección Boosts y no consume una ranura. Permite equipar o quitar hasta dos boosts distintos; un tercero exige liberar una ranura. Todos sus efectos se aplican juntos al iniciar la próxima partida. Se conserva el equipamiento antiguo de un boost y se migran las selecciones a una lista persistente. Recarga ×2 con Nitro Lock mantiene el ciclo de 3 usos/3 ajustes; Doble depósito y Un respiro combinan capacidad y tiempo.

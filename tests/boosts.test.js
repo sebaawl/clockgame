@@ -50,3 +50,12 @@ test('Lock does not validate the counterintuitive shortcut; no boost still passe
   assert.equal(plain.status, 'playing'); moveGame(plain, 1, 1, { deferSolve: true });
   assert.equal(plain.position, 1); assert.equal(plain.combo, 0);
 });
+
+test('paired boosts apply together and survive cycle changes without duplication', () => {
+  const g = startGame(createGame(), 0, near, 'normal', 'classic', { boosts: ['recharge', 'lock', 'time'] });
+  assert.deepEqual(g.boosts, ['recharge', 'lock']);
+  solve(g, true); assert.equal(g.nitroLocked, true); assert.equal(g.nitro, 50); assert.equal(g.lockUses, 2);
+  advanceGame(g, 1, near); assert.deepEqual(g.boosts, ['recharge', 'lock']);
+  const tank = startGame(createGame(), 0, near, 'normal', 'survival', { boosts: ['tank', 'time', 'tank'] });
+  assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 16.5);
+});
