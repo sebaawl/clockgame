@@ -4,3 +4,14 @@ dist/
 *.local
 test-results/
 playwright-report/
+
+# Android outputs and private release signing material
+android/build/
+android/local.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pass
+signing-private/
+*.apk.idsig

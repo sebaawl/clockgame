@@ -3,66 +3,55 @@ import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { installClock, play, solve } from './helpers.js';
 
 let folder;
 test.beforeEach(async ({ page, context }) => {
   folder = await mkdtemp(join(tmpdir(), 'clocking sin conexión '));
   await copyFile(new URL('../../index.html', import.meta.url), join(folder, 'mi reloj.html'));
   await context.setOffline(true);
-  await page.addInitScript(() => { Math.random = () => 0.4; });
-  const instant = new Date('2026-10-19T12:00:00Z');
-  await page.clock.install({ time: instant });
-  await page.clock.pauseAt(instant);
+  await installClock(page);
 });
-test.afterEach(async () => {
-  if (folder) await rm(folder, { recursive: true, force: true });
-});
-
+test.afterEach(async () => { if (folder) await rm(folder, { recursive: true, force: true }); });
 async function openPortable(page) {
   await page.goto('about:blank');
   await page.setContent(await readFile(join(folder, 'mi reloj.html'), 'utf8'));
-  await expect(page.locator('#time')).toHaveText('10.0');
-  await expect(page.locator('#clock')).toBeVisible();
+  await expect(page.locator('#start-menu')).toBeVisible();
 }
 
-test('single HTML plays and celebrates offline with no external assets', async ({ page, isMobile }) => {
+test('single HTML includes fonts, menu, gameplay and settings without any external request', async ({ page }) => {
   const errors = [];
   const requests = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
   await openPortable(page);
-  expect(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(0, 0, 0)');
-  if (isMobile) await page.locator('#tap-right').tap();
-  else await page.locator('#tap-right').click();
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-  expect(await page.locator('#success-glow').evaluate(el => el.getAnimations()[0].effect.getTiming().duration)).toBe(1000);
+  await page.evaluate(() => document.fonts.ready);
+  expect(await page.evaluate(() => document.fonts.check('700 48px Poppins'))).toBe(true);
+  await play(page);
+  await solve(page);
+  await expect(page.locator('#score')).toHaveText('8');
   await page.clock.runFor(1000);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await page.locator('#settings-button').click();
+  await expect(page.locator('#settings')).toBeVisible();
   expect(errors).toEqual([]);
   expect(requests).toEqual([]);
 });
 
-test('single HTML works even when all local storage is blocked', async ({ page }) => {
-  await page.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage disabled', 'SecurityError'); } });
-  });
+test('hard mode still works in a downloaded file with local storage denied', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage disabled', 'SecurityError'); } }); });
   await openPortable(page);
-  await page.keyboard.press('ArrowRight');
-  await page.clock.runFor(1000);
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
+  await play(page, 'hard');
+  await solve(page);
+  await expect(page.locator('#score')).toHaveText('12');
 });
 
 test('a renamed local HTML file opens directly', async ({ page }) => {
-  try {
-    await page.goto(pathToFileURL(join(folder, 'mi reloj.html')).href);
-  } catch (error) {
-    if (error.message.includes('net::ERR_BLOCKED_BY_ADMINISTRATOR')) {
-      test.skip(true, 'Managed browser blocks file://; offline standalone content is tested separately.');
-    }
+  try { await page.goto(pathToFileURL(join(folder, 'mi reloj.html')).href); }
+  catch (error) {
+    if (error.message.includes('net::ERR_BLOCKED_BY_ADMINISTRATOR')) test.skip(true, 'Managed browser blocks file://; offline content is verified separately.');
     throw error;
   }
-  await expect(page.locator('#time')).toHaveText('10.0');
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
+  await play(page);
+  await solve(page);
+  await expect(page.locator('#score')).toHaveText('8');
 });

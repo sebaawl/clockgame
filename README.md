@@ -1,54 +1,85 @@
-# clocking
+# clocking · Android y HTML
 
-Solo un reloj analógico blanco y un contador de segundos grande sobre negro. Sin menús, textos, colores de acento ni botones visibles. Trazos gruesos y redondeados; las manecillas se mueven con un pequeño rebote y el reloj responde a cada toque. Al llegar a las doce, un círculo sólido blanco nace detrás del reloj, alcanza todas las esquinas y después desaparece en fade out. El efecto completo dura **un segundo**, sin degradados.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.0.apk)** · Android 8.0 o posterior · sin conexión.
 
-## Jugar sin instalar nada
+[Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
-1. Descarga el ZIP del repositorio desde **Code → Download ZIP**.
-2. Extrae el ZIP.
-3. Abre el **index.html de la carpeta principal** en tu navegador.
 
-El archivo ya incluye todo el juego. No necesita conexión, fuentes externas, Node.js ni servidor. Puedes copiarlo o renombrarlo. En móvil utiliza un navegador que ejecute HTML local: algunas aplicaciones de archivos solo muestran una vista previa.
+Juego móvil minimalista de reloj analógico. Poppins Bold para el tiempo y el puntaje, ciclo a la izquierda y botón de ajustes a la derecha. Reloj grueso, manecillas con rebote y respuesta táctil y sonora opcional.
 
-## Controles
+## Abrir el juego
 
-- Toca la mitad izquierda para retroceder y la derecha para avanzar. El primer toque inicia el ensayo y mueve el reloj.
-- Toca el contador para pausar o continuar. Al volver de otra pestaña, el tiempo permanece pausado hasta que toques.
-- Si llegas a cero, toca para repetir la fase sin perder el avance.
-- En ordenador también funcionan las flechas, Espacio para iniciar/pausar y Escape para pausar.
-- Durante el resplandor, los giros quedan bloqueados para evitar mover accidentalmente el reloj de la siguiente fase.
-- Al completar las 270 fases, otro toque inicia una nueva partida.
+Descarga el HTML entregado en el chat y ábrelo en un navegador que ejecute archivos HTML. Es un único archivo: incluye juego, estilos, Poppins y su licencia. No requiere red, servidor ni instalaciones. Algunas vistas previas de archivos móviles no ejecutan JavaScript; utiliza un navegador.
 
-## Progresión
+Las nuevas versiones se entregan como HTML en el chat. No se suben automáticamente a GitHub.
 
-Ensayo de 10 segundos. Después, tres tandas de horas → minutos → segundos, con 30 fases por etapa: 270 ajustes en total. Cada fase tiene su propio límite: la primera de cada etapa empieza en 15 segundos y disminuye linealmente hasta 7, 5 o 3 según la tanda. Un paso mueve una hora (30°), un minuto (6°) o un segundo (6°). La manecilla móvil es la que se ajusta; la otra señala las doce.
+## Inicio y modos
 
-El temporizador se detiene durante el resplandor. La siguiente fase empieza después del segundo completo de animación. Con movimiento reducido, el efecto se sustituye por una iluminación suave de un segundo, sin expansión ni bump.
+Primero aparece el selector de modo. Al pulsar **Jugar**, se muestra **FASE 1 · HORA** durante tres segundos y comienza el primer ajuste con cero puntos. No hay ensayo ni jugada previa.
 
-## Desarrollo
+- **Normal:** cualquier dirección sirve para llegar a las doce. Cada ciclo empieza con 15 segundos.
+- **Difícil:** solo cuenta completar el recorrido más largo, con un 20 % menos de tiempo. Si marca las 3, hay que avanzar en sentido horario durante nueve pasos. Llegar por el atajo antihorario no da puntos ni supera el ajuste. El progreso neto impide saltarse la regla invirtiendo el último toque. Los empates a las seis se excluyen de este modo para que el recorrido largo sea inequívoco. Los aciertos válidos reciben ×1,5 puntos.
+
+Las posiciones iniciales se eligen de toda la esfera: cerca o lejos de las doce, desde el primer ajuste y en todos los ciclos.
+
+## Controles y ajustes
+
+Toca la mitad izquierda para girar en sentido antihorario y la derecha para girar en sentido horario. Tocar el propio reloj también gira: los ajustes se abren con el botón dedicado de engranaje.
+
+El contador permite pausar. En ordenador funcionan las flechas, Espacio para pausar/continuar y Escape para pausar. Ocultar la pestaña pausa el juego y conserva el tiempo restante.
+
+El panel de ajustes entra desde abajo y sale hacia abajo; la partida permanece pausada hasta que termina de cerrarse. Permite activar/desactivar sonido y vibración y cambiar entre modo claro y oscuro. Las preferencias y el último modo se conservan cuando el navegador permite almacenamiento local.
+
+El clic usa un recorte de 90 ms del audio proporcionado por el usuario, integrado en el HTML como PCM y reproducido a volumen bajo. No requiere descargas de audio. La vibración es de 8 ms por ajuste y más larga al abrir ajustes. Si el navegador no admite vibración, el control se desactiva con una explicación.
+
+## Aciertos, fases y final
+
+Cada acierto dispara un círculo sólido que alcanza los bordes y se desvanece en un segundo: blanco en modo oscuro, negro en modo claro. Durante el efecto se bloquean giros accidentales.
+
+Hay tres fases; cada una tiene los ciclos HORA → MINUTO → SEGUNDO, con 10 ajustes por ciclo: 90 ajustes en total. El límite de cada ajuste disminuye de 15 segundos hasta 7, 5 o 3 según la fase. El modo difícil aplica el factor 0,8 a todos esos límites. Cambiar de ciclo o fase muestra su nombre durante tres segundos, sin consumir tiempo de juego.
+
+El fondo se mantiene negro puro; el modo claro usa blanco puro. Si ambos cambian a la vez, fase y ciclo se anuncian en un único descanso.
+
+Al agotarse el tiempo aparecen inmediatamente el puntaje y **Reintentar**, con un único destello rojo. No hay texto flotante ni espera adicional. Reintentar conserva el modo y vuelve a FASE 1 · HORA con cero puntos; **Cambiar modo** vuelve al menú.
+
+## Puntaje
+
+Cada acierto da 3 puntos base, hasta 4 por tiempo restante y hasta 1 por precisión. En normal, precisión es distancia mínima dividida por toques; en difícil se utiliza la longitud del recorrido obligatorio.
+
+El multiplicador de dificultad es `1 + ciclo × 0,15 + fase × 0,2`, contando desde cero. La racha crece un 2 % por acierto consecutivo hasta ×1,2. Difícil añade ×1,5. Los toques extra no suman puntos y reducen la precisión.
+
+## Desarrollo y validación
 
 Node.js 20.19+ o 22.12+; validado con Node.js 24.
 
 ```sh
 npm ci
 npm run dev -- --port 5173
-```
-
-En Codex, si la caché predeterminada no es escribible: `npm ci --cache /workspace/.cache/npm`.
-
-El código editable está en `src/`. La plantilla es `src/index.html`. `npm run build` genera `dist/index.html` y actualiza la versión autónoma `index.html` de la carpeta principal. Vuelve a compilar antes de subir cambios; no edites el archivo generado.
-
-## Validación
-
-```sh
 npm test
 npm run build
+```
+
+En Codex: `npm ci --cache /workspace/.cache/npm` si la caché predeterminada no es escribible. Edita `src/`, incluida la plantilla `src/index.html`. La compilación genera `dist/index.html` y actualiza el HTML autónomo `index.html` de la raíz; no edites ese archivo generado.
+
+```sh
 npx playwright install chromium
 npm run test:e2e
 ```
 
 Con Chromium del sistema: `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e`.
 
-Los tests del motor recorren las 270 fases y sus límites. Las pruebas de navegador cubren escritorio/móvil, controles, el resplandor de un segundo, pausa, reintentos, progreso y movimiento reducido. También ejecutan el HTML autónomo sin red ni acceso al almacenamiento. La comprobación adicional de `file://` se omite si el navegador administrado bloquea ese protocolo; las pruebas del contenido autónomo se ejecutan igualmente.
+Los tests recorren los 90 ajustes en ambos modos, comprueban el bloqueo de atajos en difícil, límites, pausas, aleatoriedad, puntaje y flujo de inicio. Las pruebas de navegador cubren móvil y escritorio, audio y vibración, ajustes animados, temas, game over inmediato y HTML autónomo sin red ni almacenamiento. La prueba adicional de file:// se omite si la política del navegador administrado impide abrir archivos locales; las pruebas del contenido autónomo se ejecutan igualmente.
 
-Es un prototipo web; no incluye paquetes nativos de iOS/Android.
+Prototipo web; no incluye paquetes nativos de iOS/Android.
+
+Los segundos tienen 120 pasos por vuelta (10 pulsaciones entre marcas); los minutos, 60 (5 entre marcas). Los ajustes permiten volver al menú sin reanudar la partida. El puntaje empieza en un máximo de 8 puntos por resolución normal; la racha se limita a un 20 % adicional.
+
+Los ajustes usan una superficie sólida (negra o blanca) con botones de iconos para volver al menú y reiniciar. El selector de modo comparte un contorno que se desplaza y dibuja su trazo. Botones, iconos, interruptores, cambios de pantalla y contenidos del panel tienen animaciones breves; se desactivan con la preferencia de movimiento reducido del sistema.
+
+Los botones principales tienen forma de pastilla. En ajustes se puede elegir y preescuchar Suave, Gota, Madera, Aire o el clic Reloj proporcionado por el usuario; la selección se guarda. Los controles usan sonidos discretos de pulsación y deslizamiento, con señales breves para aciertos y fin de partida. El interruptor Sonido silencia todo, incluidas las muestras; un compresor y un límite de voces evitan acumulación de volumen al pulsar rápido. Todo el audio funciona sin red.
+
+El audio actual usa exclusivamente el recorte mecánico real del usuario: Amortiguado, Grave y Mecánico son variaciones filtradas y ralentizadas de esa grabación. Se eliminaron los tonos sintetizados. Los botones combinan una presión y una liberación más suave; dos filtros de paso bajo atenúan los agudos, y el audio sigue respetando el silencio global.
+
+Los botones usan ahora el archivo real `emilianodleon-select-button-ui-395763.mp3`. Iniciar, abrir/cerrar ajustes y regresar al menú combinan ese clic con `dishantbabariya-chalk-slide-short-516557.mp3`, con una separación de 25 ms y volumen más bajo para el deslizamiento. Ambos recortes están integrados como PCM en el HTML. Se conserva el sonido previamente aprobado del selector de modo.
+
+Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus sentidos de giro. El tiempo permanece congelado hasta el primer toque. Este inicia un salto con giro completo; al aterrizar, el reloj emite un resplandor y arranca el temporizador. El toque inicial no altera la posición ni suma puntos. La guía vuelve a mostrarse al reiniciar; el movimiento reducido sustituye el salto por un fundido breve.

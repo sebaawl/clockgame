@@ -1,162 +1,118 @@
 import { test, expect } from '@playwright/test';
+import { installClock, play, solve } from './helpers.js';
 
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => { Math.random = () => 0.4; });
-  const instant = new Date('2026-10-19T12:00:00Z');
-  await page.clock.install({ time: instant });
-  await page.clock.pauseAt(instant);
-  await page.goto('/');
-});
+test.beforeEach(async ({ page }) => { await installClock(page); await page.goto('/'); });
 
-async function solve(page) {
-  const label = await page.locator('#clock').getAttribute('aria-label');
-  const position = Number(label.match(/(?:hora|minuto|segundo) (\d+)/)[1]);
-  const count = label.includes('hora ') ? 12 : 60;
-  const key = position <= count / 2 ? 'ArrowLeft' : 'ArrowRight';
-  for (let i = 0; i < Math.min(position, count - position); i++) await page.keyboard.press(key);
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-}
-
-test('only a white clock and counter on black, with no scrolling', async ({ page }) => {
-  await expect(page.locator('#time')).toHaveText('10.0');
-  await expect(page.locator('#clock')).toBeVisible();
-  expect(await page.locator('header, footer, nav, dialog, svg text, a').count()).toBe(0);
-  expect(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(0, 0, 0)');
-  expect(await page.locator('.clock-face').evaluate(el => getComputedStyle(el).stroke)).toBe('rgb(255, 255, 255)');
-  expect(await page.locator('#timer').evaluate(el => getComputedStyle(el).color)).toBe('rgb(255, 255, 255)');
-  expect(await page.evaluate(() => ({ width: document.body.scrollWidth, height: document.body.scrollHeight }))).toEqual(page.viewportSize());
-  await page.clock.runFor(3000);
-  await expect(page.locator('#time')).toHaveText('10.0');
-});
-
-test('first touch starts and moves the clock exactly once in either direction', async ({ page, isMobile }) => {
-  const zone = page.locator('#tap-left');
-  if (isMobile) await zone.tap();
-  else await zone.click();
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 10\./);
+test('mode menu comes first, then phase one and hour for exactly three seconds with no tutorial move', async ({ page }) => {
+  await expect(page.locator('#start-menu')).toBeVisible();
+  await expect(page.locator('#clock-wrap')).not.toBeVisible();
+  await expect(page.locator('#score-panel')).not.toBeVisible();
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'menu');
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
+  await expect(page.locator('#break-title')).toHaveText('HORA');
+  await expect(page.locator('#break-detail')).toHaveText('FASE 1');
+  await expect(page.locator('#clock-wrap')).not.toBeVisible();
+  await page.clock.runFor(2999);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
+  await page.clock.runFor(1);
+  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#score')).toHaveText('0');
+  await expect(page.locator('body')).toHaveAttribute('data-phase', '1');
+  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 5\./);
   await page.keyboard.press('ArrowRight');
-  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 11\./);
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-});
-
-test('success glow is behind the clock, covers the viewport and lasts exactly one second', async ({ page }) => {
+  await page.clock.runFor(560);
   await solve(page);
-  const geometry = await page.locator('#success-glow').evaluate(el => {
-    const animation = el.getAnimations()[0];
-    return {
-      duration: animation.effect.getTiming().duration,
-      width: parseFloat(el.style.width),
-      x: parseFloat(el.style.left), y: parseFloat(el.style.top),
-      layer: Number(getComputedStyle(el).zIndex),
-    };
-  });
-  const clock = await page.locator('#clock-wrap').boundingBox();
-  expect(geometry.duration).toBe(1000);
-  expect(geometry.width).toBeGreaterThan(Math.hypot(page.viewportSize().width, page.viewportSize().height));
-  expect(geometry.x).toBeCloseTo(clock.x + clock.width / 2, 0);
-  expect(geometry.y).toBeCloseTo(clock.y + clock.height / 2, 0);
-  expect(geometry.layer).toBeLessThan(await page.locator('#clock-wrap').evaluate(el => Number(getComputedStyle(el).zIndex)));
-  expect(await page.locator('#success-glow').evaluate(el => ({
-    background: getComputedStyle(el).backgroundColor,
-    image: getComputedStyle(el).backgroundImage,
-    frames: el.getAnimations()[0].effect.getKeyframes().map(frame => ({ opacity: frame.opacity, transform: frame.transform })),
-  }))).toMatchObject({
-    background: 'rgb(255, 255, 255)', image: 'none',
-    frames: [{ opacity: '1' }, { opacity: '1' }, { opacity: '1' }, { opacity: '0' }],
-  });
-  await page.clock.runFor(999);
+  await expect(page.locator('#score')).toHaveText('8');
+  await page.clock.runFor(1000);
+  await expect(page.locator('body')).toHaveAttribute('data-phase', '2');
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+});
+
+test('normal mode turns both ways with a satisfying bump and no scroll', async ({ page, isMobile }) => {
+  await play(page);
+  const zone = page.locator('#tap-right');
+  const bounds = await zone.boundingBox();
+  const options = { position: { x: bounds.width - 12, y: 20 } };
+  if (isMobile) await zone.tap(options); else await zone.click(options);
+  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 6\./);
+  await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 5\./);
+  expect(await page.locator('#clock-wrap').evaluate(el => el.getAnimations()[0].effect.getKeyframes().some(frame => frame.transform.includes('1.018')))).toBe(true);
+  expect(await page.evaluate(() => ({ width: document.body.scrollWidth, height: document.body.scrollHeight }))).toEqual(page.viewportSize());
+});
+
+test('hard mode rejects the intuitive shortcut and any last-tap bypass, then accepts a full long route', async ({ page }) => {
+  await play(page, 'hard');
+  await expect(page.locator('#time')).toHaveText('12.0');
+  await expect(page.locator('body')).toHaveAttribute('data-mode', 'hard');
+  for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft');
+  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 0\./);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  await expect(page.locator('#score')).toHaveText('0');
+  for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowRight');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-  // Inputs cannot skip the glow or change the next clock early.
-  await page.keyboard.press('ArrowRight');
+  expect(Number(await page.locator('#score').textContent())).toBeGreaterThan(0);
+  expect(Number(await page.locator('#score').textContent())).toBeLessThan(12);
+});
+
+test('success remains a solid one-second circle and cannot be skipped', async ({ page }) => {
+  await play(page);
+  await solve(page);
+  const effect = await page.locator('#success-glow').evaluate(el => ({
+    duration: el.getAnimations()[0].effect.getTiming().duration,
+    width: parseFloat(el.style.width), color: getComputedStyle(el).backgroundColor,
+    image: getComputedStyle(el).backgroundImage,
+  }));
+  expect(effect.duration).toBe(1000);
+  expect(effect.width).toBeGreaterThan(Math.hypot(page.viewportSize().width, page.viewportSize().height));
+  expect(effect.color).toBe('rgb(255, 255, 255)');
+  expect(effect.image).toBe('none');
+  await page.clock.runFor(999);
+  await page.keyboard.press('ArrowLeft');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
   await page.clock.runFor(1);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-  await expect(page.locator('#time')).toHaveText('15.0');
-  expect(await page.locator('#success-glow').evaluate(el => el.getAnimations().length)).toBe(0);
 });
 
-test('larger timer and overshooting hand motion preserve rapid alternating taps', async ({ page }) => {
-  expect(await page.locator('#timer').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(48);
-  await page.keyboard.press('ArrowLeft');
-  const bump = await page.locator('#clock-wrap').evaluate(el => el.getAnimations()[0].effect.getKeyframes());
-  expect(bump.some(frame => frame.transform.includes('1.018'))).toBe(true);
-  expect(await page.locator('#active-hand').evaluate(el => getComputedStyle(el).transitionTimingFunction)).toContain('1.55');
-  for (let i = 0; i < 4; i++) {
-    await page.keyboard.press('ArrowLeft');
-    await page.keyboard.press('ArrowRight');
-  }
-  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 10\./);
-  await page.keyboard.press('ArrowRight');
-  await page.keyboard.press('ArrowRight');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-});
-
-test('timer and keyboard pause without consuming time; expiry can be retried by tapping', async ({ page }) => {
-  await page.locator('#timer').click();
-  await page.clock.runFor(2000);
-  await page.locator('#timer').click();
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'paused');
-  const before = await page.locator('#time').textContent();
-  await page.clock.runFor(3000);
-  await expect(page.locator('#time')).toHaveText(before);
-  await page.keyboard.press('Space');
-  await page.clock.runFor(8100);
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'lost');
-  await expect(page.locator('#time')).toHaveText('0.0');
-  await page.locator('#tap-left').click();
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-  await expect(page.locator('#time')).toHaveText('10.0');
-  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 10\./);
-});
-
-test('thirty solves still change hours to minutes and reset the limit to fifteen', async ({ page }) => {
-  await solve(page);
-  await page.clock.runFor(1000);
-  for (let phase = 1; phase <= 30; phase++) {
-    await expect(page.locator('body')).toHaveAttribute('data-phase', String(phase));
-    if (phase === 30) expect(Number(await page.locator('#time').textContent())).toBeLessThanOrEqual(7);
+test('cycle changes and a full phase still pause, reset the timer and keep the background pure black', async ({ page }) => {
+  test.setTimeout(100_000);
+  await play(page);
+  for (let i = 0; i < 30; i++) {
     await solve(page);
     await page.clock.runFor(1000);
+    if (i === 9 || i === 19) {
+      await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
+      await expect(page.locator('#break-title')).toHaveText(i === 9 ? 'MINUTO' : 'SEGUNDO');
+      await page.clock.runFor(3000);
+      await expect(page.locator('#time')).toHaveText('15.0');
+    }
   }
-  await expect(page.locator('body')).toHaveAttribute('data-stage', 'minutos');
-  await expect(page.locator('body')).toHaveAttribute('data-phase', '1');
+  await expect(page.locator('body')).toHaveAttribute('data-round', '2');
+  await expect(page.locator('#break-kicker')).toHaveText('NUEVA FASE');
+  await expect(page.locator('#break-detail')).toHaveText('FASE 2');
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim())).toBe('#000000');
+  await page.clock.runFor(3000);
   await expect(page.locator('#time')).toHaveText('15.0');
 });
 
-test('reduced motion uses a gentle one-second fade instead of an expanding flash', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await solve(page);
-  const frames = await page.locator('#success-glow').evaluate(el => el.getAnimations()[0].effect.getKeyframes());
-  expect(new Set(frames.map(frame => frame.transform)).size).toBe(1);
-  expect(Math.max(...frames.map(frame => Number(frame.opacity)))).toBeLessThanOrEqual(0.12);
+test('backgrounding play and breaks preserves both timers', async ({ page }) => {
+  await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await page.clock.runFor(1000);
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-});
-
-test('switching away pauses both active play and an unfinished success transition', async ({ page, context }) => {
-  await page.locator('#timer').click();
-  const other = await context.newPage();
-  await other.goto('about:blank');
-  await other.bringToFront();
-  // Chromium headless may keep pages visible; dispatch the real handler deterministically.
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'paused');
-  await other.close();
-  await page.bringToFront();
-  await page.locator('#timer').click();
-  await solve(page);
-  await page.clock.runFor(400);
   await page.keyboard.press('Escape');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'paused');
-  await page.clock.runFor(2000);
-  await page.locator('#timer').click();
-  await page.clock.runFor(599);
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
+  await page.clock.runFor(5000);
+  await page.locator('#intermission').dispatchEvent('pointerdown', { button: 0 });
+  await page.clock.runFor(1999);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
   await page.clock.runFor(1);
+  await page.keyboard.press('ArrowRight');
+  await page.clock.runFor(560);
+  await page.clock.runFor(2000);
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange')); });
+  const frozen = await page.locator('#time').textContent();
+  await page.clock.runFor(5000);
+  await expect(page.locator('#time')).toHaveText(frozen);
+  await page.evaluate(() => { Object.defineProperty(document, 'hidden', { configurable: true, value: false }); document.dispatchEvent(new Event('visibilitychange')); });
+  await page.locator('#timer').click();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
 });

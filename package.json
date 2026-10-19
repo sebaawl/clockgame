@@ -8,11 +8,16 @@
     "build": "vite build && node scripts/export-standalone.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --test tests/*.test.js",
-    "test:e2e": "npm run build && playwright test"
+    "test:e2e": "npm run build && playwright test",
+    "android:tools": "python3 scripts/install-android-tools.py",
+    "android:build": "python3 scripts/build-android.py"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "vite": "^7.3.0",
     "vite-plugin-singlefile": "^2.3.4"
+  },
+  "dependencies": {
+    "@fontsource/poppins": "^5.3.0"
   }
 }
