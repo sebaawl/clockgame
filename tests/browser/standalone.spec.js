@@ -29,7 +29,7 @@ test('single HTML includes fonts, menu, gameplay and settings without any extern
   expect(await page.evaluate(() => document.fonts.check('700 48px Poppins'))).toBe(true);
   await play(page);
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('22');
+  await expect(page.locator('#score')).toHaveText('44');
   await page.clock.runFor(1000);
   await page.locator('#settings-button').click();
   await expect(page.locator('#settings')).toBeVisible();
@@ -42,7 +42,7 @@ test('hard mode still works in a downloaded file with local storage denied', asy
   await openPortable(page);
   await play(page, 'hard');
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('33');
+  await expect(page.locator('#score')).toHaveText('66');
 });
 
 test('a renamed local HTML file opens directly', async ({ page }) => {
@@ -53,5 +53,5 @@ test('a renamed local HTML file opens directly', async ({ page }) => {
   }
   await play(page);
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('22');
+  await expect(page.locator('#score')).toHaveText('44');
 });

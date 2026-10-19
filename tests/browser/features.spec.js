@@ -70,7 +70,7 @@ test('light mode has a black solid success circle, retains preferences, and resp
   await expect(page.locator('#settings')).not.toBeVisible();
   await play(page);
   await solve(page);
-  expect(await page.locator('#success-glow').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(0, 0, 0)');
+  expect(await page.locator('#success-glow').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(255, 255, 255)');
   const frames = await page.locator('#success-glow').evaluate(el => el.getAnimations()[0].effect.getKeyframes());
   expect(new Set(frames.map(f => f.transform)).size).toBe(1);
   expect(Math.max(...frames.map(f => Number(f.opacity)))).toBeLessThanOrEqual(0.12);
@@ -84,12 +84,12 @@ test('light mode has a black solid success circle, retains preferences, and resp
 test('timeout immediately presents the exact score and retry button on a red panel sliding up, never floating loss text', async ({ page }) => {
   await play(page);
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('22');
+  await expect(page.locator('#score')).toHaveText('44');
   await page.clock.runFor(1000);
   await page.clock.runFor(14200);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'lost');
   await expect(page.locator('#result-panel')).toBeVisible();
-  await expect(page.locator('#final-score')).toHaveText('22');
+  await expect(page.locator('#final-score')).toHaveText('44');
   await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
   expect(await page.locator('#loss-message, #loss-intro').count()).toBe(0);
   await expect(page.locator('#game-over')).toHaveCSS('background-color', 'rgb(223, 38, 59)');

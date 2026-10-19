@@ -91,7 +91,7 @@ document.querySelector('#app').innerHTML = `
     <div id="control-guide" class="control-guide" hidden aria-hidden="true">
       <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA IZQUIERDA</strong><span>Gira en sentido antihorario</span></div></div>
       <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA DERECHA</strong><span>Gira en sentido horario</span></div></div>
-      <p class="guide-nitro">TOCA: UN PASO · MANTÉN 0,15 S: NITRO<br>SUELTA EN LAS DOCE</p><p class="guide-start">UN TOQUE PARA EMPEZAR</p>
+      <p id="guide-best" class="guide-best"></p><p class="guide-nitro">TOCA: UN PASO · MANTÉN 0,15 S: NITRO<br>SUELTA EN LAS DOCE</p><p class="guide-start">UN TOQUE PARA EMPEZAR</p>
     </div>
     <section id="start-menu" class="start-menu" aria-labelledby="start-title">
       <div class="start-content">
@@ -103,7 +103,7 @@ document.querySelector('#app').innerHTML = `
           <button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Difícil</strong><span>Ve por el camino largo.</span></button>
         </div>
         <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
-        <button id="start-game" class="primary-action" type="button">Jugar</button><p class="arcade-future">ARCADE · PRÓXIMAMENTE</p>
+        <p id="menu-best" class="menu-best"></p><button id="start-game" class="primary-action" type="button">Jugar</button><p class="arcade-future">ARCADE · PRÓXIMAMENTE</p>
       </div>
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
@@ -180,6 +180,7 @@ function applyTheme() {
   const colors = backdropColors(backdropIndex, preferences.theme === 'light');
   document.documentElement.style.setProperty('--accent', colors.accent);
   document.documentElement.style.setProperty('--combo-flash', colors.flash);
+  document.documentElement.style.setProperty('--combo-overlay', preferences.theme === 'light' && backdropIndex !== 0 ? `hsl(${(backdropIndex - 1) * 20} 75% 70%)` : colors.flash);
   document.body.dataset.backdrop = String(backdropIndex);
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.style.setProperty('--background', background);
@@ -213,7 +214,15 @@ function syncSelector(animate = false) {
   }
 }
 let lastScreen;
+function updateBest() {
+  const mode = game.status === 'menu' ? selectedMode : game.mode;
+  const format = game.status === 'menu' ? selectedFormat : game.format;
+  let best = 0;
+  try { best = Math.max(0, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0); } catch {}
+  for (const id of ['menu-best', 'guide-best']) $(id).textContent = `RÉCORD ${best.toLocaleString('es-CL')}`;
+}
 function render() {
+  updateBest();
   Object.assign(document.body.dataset, { state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
   applyTheme();
   const inMenu = game.status === 'menu';
@@ -284,6 +293,7 @@ function chooseMode(mode) {
   $('mode-description').textContent = selectedFormat === 'survival' ? 'Gana tiempo. Supera tu récord.' : selectedMode === 'hard'
     ? 'Menos tiempo, en contra de tu intuición.'
     : '15 segundos. Encuentra las doce.';
+  updateBest();
   syncSelector(changed);
   if (changed && !reducedMotion.matches) {
     descriptionMotion?.cancel();
@@ -319,10 +329,10 @@ function positionGlow() {
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   Object.assign(glow.style, { left: `${x}px`, top: `${y}px`, width: `${radius * 2 + 4}px`, height: `${radius * 2 + 4}px` });
 }
-function animateGlow(frames, options, color = 'var(--success-color)') {
+function animateGlow(frames, options, color = '#ffffff') {
   glowAnimation?.cancel();
   glow.style.background = color;
-  glow.dataset.combo = String(preferences.flash && !reducedMotion.matches && color === 'var(--combo-flash)');
+  glow.dataset.combo = String(preferences.flash && !reducedMotion.matches && game.combo > 0 && game.combo % 5 === 0);
   glowAnimation = preferences.flash ? glow.animate(frames, options) : null;
 }
 function celebrate() {
@@ -340,7 +350,7 @@ function celebrate() {
     { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ];
   const milestone = game.combo > 0 && game.combo % 5 === 0;
-  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' }, milestone ? 'var(--combo-flash)' : 'var(--success-color)');
+  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' }, milestone && backdropIndex !== 0 ? 'var(--combo-overlay)' : '#ffffff');
   if (milestone) showCombo();
   transitionRemaining = SUCCESS_MS;
   scheduleAdvance();
@@ -349,7 +359,7 @@ function showCombo() {
   comboAnimation?.cancel();
   const badge = $('combo-celebration');
   $('combo-big').textContent = `${game.combo}×`;
-  badge.style.color = preferences.flash && !reducedMotion.matches ? 'var(--background)' : 'var(--foreground)';
+  badge.style.color = 'var(--foreground)';
   badge.hidden = false;
   comboAnimation = badge.animate(reducedMotion.matches ? [
     { opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .8 }, { opacity: 0 },

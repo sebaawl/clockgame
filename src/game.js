@@ -4,7 +4,7 @@ export const PHASES = 10;
 export const TOTAL_PHASES = PHASES * STAGES.length * FLOORS.length;
 export const HARD_TIME_FACTOR = 0.8;
 export const NITRO_INITIAL = 40;
-export const NITRO_DRAIN = 40;
+export const NITRO_DRAIN = 32;
 export const SURVIVAL_CAP = 25;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
@@ -73,8 +73,8 @@ export function settleGame(game, now, { perfectNitro = false } = {}) {
   game.perfect = game.perfectRoute && game.attemptSteps === game.optimalSteps;
   game.perfectNitro = perfectNitro;
   game.combo += 1;
-  const milestone = game.combo % 10 === 0 ? 10 : game.combo % 5 === 0 ? 6 : 0;
-  game.lastNitroGain = 4 + (game.perfect ? 4 : 0) + milestone + (game.perfectNitro ? 5 : 0);
+  const milestone = game.combo % 10 === 0 ? 6 : game.combo % 5 === 0 ? 4 : 0;
+  game.lastNitroGain = 2 + (game.perfect ? 3 : 0) + milestone + (game.perfectNitro ? 3 : 0);
   const previousNitro = game.nitro;
   if (game.stage === 0) {
     game.hourPerfectStreak = game.perfect ? game.hourPerfectStreak + 1 : 0;

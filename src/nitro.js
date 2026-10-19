@@ -1,3 +1,4 @@
+import { NITRO_DRAIN } from './game.js';
 export const HOLD_MS = 150;
 export const RAMP_MS = 100;
 export const NITRO_SPEED = [10, 28, 42];
@@ -21,8 +22,8 @@ export function createNitroControl({ now, schedule, unschedule, canPlay, charge,
     const dt = Math.max(0, time - held.last);
     // Never deliver a burst of invisible moves after a stalled/backgrounded frame.
     if (dt > 120) { cancel(); return; }
-    const available = Math.min(dt, charge() / .04);
-    spend(available * .04);
+    const available = Math.min(dt, charge() / (NITRO_DRAIN / 1000));
+    spend(available < dt ? charge() : available * NITRO_DRAIN / 1000);
     held.elapsed += available;
     held.last = time;
     const target = Math.floor(distance(held.elapsed, speed()) + 1e-9);

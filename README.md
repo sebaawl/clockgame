@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.3.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.4.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -44,7 +44,7 @@ Al agotarse el tiempo aparecen inmediatamente el puntaje y **Reintentar**, sobre
 
 ## Puntaje
 
-La clasificación interna usa el tiempo activo absoluto: **excelente** hasta 1 segundo (20–22 puntos base), **bien** hasta 2 segundos (10–14), **insuficiente** hasta 3 segundos (4–6) y **malo** después de 3 segundos (2 puntos; 1 después de 5). La precisión reduce la recompensa si hay pulsaciones extra. Los ciclos y fases añaden un pequeño multiplicador, la racha se limita a un 10 % y difícil conserva ×1,5.
+La clasificación interna usa el tiempo activo absoluto: **excelente** hasta 1 segundo (40–44 puntos base), **bien** hasta 2 segundos (20–28), **insuficiente** hasta 3 segundos (8–12) y **malo** después de 3 segundos (4 puntos; 2 después de 5). La precisión reduce la recompensa si hay pulsaciones extra. Los ciclos y fases añaden un pequeño multiplicador, la racha se limita a un 10 % y difícil conserva ×1,5.
 
 Las resoluciones de más de tres segundos siempre dan 1–2 puntos, sin multiplicadores. En normal, 1000 puntos requieren alrededor de 40 resoluciones excelentes o 60 buenas, según precisión y avance. La espera de los descansos y las pausas no se cuenta.
 
@@ -92,12 +92,14 @@ Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus senti
 - **Supervivencia:** empieza con 15 s en un único cronómetro, hasta un máximo de 25 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(1,3; 3,1 − aciertos × 0,015)` segundos y una solución perfecta añade 0,6 s. Cambia de ciclo cada diez relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
 - **Arcade:** solo aparece como próximo modo. Todavía no cambia direcciones ni introduce movimientos automáticos.
 
-Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **150 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **40 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
+Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **150 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **32 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
 
-Resolver recarga 4%; el recorrido perfecto añade 4%; los múltiplos de cinco dan 6% extra y los de diez 10% extra (en diez se concede solo el bono de diez). El máximo es 100%. En horas, la racha perfecta desbloquea un techo de carga de `40 + 6 × racha` (hasta 100%): hacen falta diez soluciones perfectas consecutivas para llenar la barra desde el 40% inicial sin gastarla. Los bonos de combo y Perfect Nitro respetan ese techo. Los movimientos extra reinician la racha sin quitar carga acumulada; cambia de ciclo y la racha se reinicia. Usar Nitro no resta precisión: se cuentan pasos, no gestos. Normal considera perfecto el camino más corto (ambos en un empate); difícil, el recorrido largo obligatorio. Desviarse del recorrido o pasarse de las doce rompe el combo y la perfección, aunque se puede corregir y resolver el reloj.
+Resolver recarga 2%; el recorrido perfecto añade 3%; los múltiplos de cinco dan 4% extra y los de diez 6% extra (en diez se concede solo el bono de diez). El máximo es 100%. En horas, la racha perfecta desbloquea un techo de carga de `40 + 6 × racha` (hasta 100%): hacen falta diez soluciones perfectas consecutivas para llenar la barra desde el 40% inicial sin gastarla. Los bonos de combo y Perfect Nitro respetan ese techo. Los movimientos extra reinician la racha sin quitar carga acumulada; cambia de ciclo y la racha se reinicia. Usar Nitro no resta precisión: se cuentan pasos, no gestos. Normal considera perfecto el camino más corto (ambos en un empate); difícil, el recorrido largo obligatorio. Desviarse del recorrido o pasarse de las doce rompe el combo y la perfección, aunque se puede corregir y resolver el reloj.
 
-**No se detiene al pasar por las doce.** Mientras el dedo sigue pulsando, no se resuelve el objetivo. Soltar con Nitro todavía activo exactamente en las doce añade **Perfect Nitro: +5%**, además de los otros bonos. Agotar el depósito, cancelar el toque o abrir ajustes no concede ese bono. Si se agota la carga en las doce, se puede completar al soltar, sin Perfect Nitro. Los cambios de aplicación y la pausa cancelan la aceleración.
+**No se detiene al pasar por las doce.** Mientras el dedo sigue pulsando, no se resuelve el objetivo. Soltar con Nitro todavía activo exactamente en las doce añade **Perfect Nitro: +3%**, además de los otros bonos. Agotar el depósito, cancelar el toque o abrir ajustes no concede ese bono. Si se agota la carga en las doce, se puede completar al soltar, sin Perfect Nitro. Los cambios de aplicación y la pausa cancelan la aceleración.
 
 Un indicador pequeño bajo el reloj muestra carga y combo. A partir de ×5 aparecen acentos celeste y un pulso suave; Nitro colorea la manecilla, deja una estela corta y usa un sonido mecánico atenuado. Los últimos tres segundos activan un pulso del contador, tics discretos y una sola advertencia háptica por reloj. Sonido y vibración respetan los ajustes; movimiento reducido elimina la estela y los pulsos. No se añaden botones de Nitro ni sacudidas de pantalla.
 
 Los múltiplos de cinco del combo muestran un contador grande con un destello blanco sobre negro (si está habilitado). Nitro usa celeste sobre negro. En los fondos de color, el destello y los acentos usan un tono complementario con contraste adaptado al modo claro u oscuro. La entrada de game over cubre toda la pantalla en rojo con controles blancos; movimiento reducido evita el desplazamiento.
+
+En 0.2.4 los puntajes se duplican sin cambiar las categorías de tiempo. El récord del formato y dificultad seleccionados aparece en el inicio y en la guía de controles. Los fondos aleatorios incluyen 18 familias cromáticas, sin repetir inmediatamente. El círculo de destello usa composición por diferencia sobre toda la interfaz: reloj, contador, etiquetas, ajustes, puntos y barra de Nitro invierten su color al atravesarlo.

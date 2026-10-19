@@ -40,7 +40,7 @@ test('passing twelve does not auto-solve; releasing at twelve rewards Perfect Ni
   await expect(page.locator('#combo')).toHaveText('×1');
   await expect(page.locator('#nitro-message')).toContainText('PERFECT NITRO');
   const charge = Number(await page.locator('#nitro-meter').getAttribute('aria-valuenow'));
-  expect(charge).toBeGreaterThan(31); expect(charge).toBeLessThan(32);
+  expect(charge).toBeGreaterThan(30); expect(charge).toBeLessThan(31);
   await page.clock.runFor(1000);
   expect(Number(await page.locator('#nitro-meter').getAttribute('aria-valuenow'))).toBe(charge);
   await expect(page.locator('body')).toHaveAttribute('data-phase', '2');
@@ -95,7 +95,7 @@ test('hours fill Nitro only at the tenth perfect solve', async ({ page }) => {
   await installClock(page); await page.goto('/'); await play(page);
   for (let i = 1; i <= 10; i++) {
     await solve(page);
-    await expect(page.locator('#nitro-value')).toHaveText(`${40 + 6 * i}%`);
+    await expect(page.locator('#nitro-value')).toHaveText(`${40 + 5 * i + (i >= 5 ? 4 : 0) + (i === 10 ? 6 : 0)}%`);
     if (i < 10) await page.clock.runFor(1000);
   }
 });

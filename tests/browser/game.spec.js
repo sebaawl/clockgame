@@ -23,7 +23,7 @@ test('mode menu comes first, then phase one and hour for exactly three seconds w
   await page.keyboard.press('ArrowRight');
   await page.clock.runFor(560);
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('22');
+  await expect(page.locator('#score')).toHaveText('44');
   await page.clock.runFor(1000);
   await expect(page.locator('body')).toHaveAttribute('data-phase', '2');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
@@ -53,7 +53,7 @@ test('hard mode rejects the intuitive shortcut and any last-tap bypass, then acc
   for (let i = 0; i < 12; i++) await page.keyboard.press('ArrowRight');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
   expect(Number(await page.locator('#score').textContent())).toBeGreaterThan(0);
-  expect(Number(await page.locator('#score').textContent())).toBeLessThan(33);
+  expect(Number(await page.locator('#score').textContent())).toBeLessThan(66);
 });
 
 test('success remains a solid one-second circle and cannot be skipped', async ({ page }) => {

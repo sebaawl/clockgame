@@ -33,15 +33,15 @@ test('149 ms is one tap; 150 ms activates without a duplicate initial move', () 
   assert.equal(h.state().taps, 1); assert.equal(h.state().release, true);
 });
 
-test('Nitro drains 40 percent per second and stops moving on release', () => {
+test('Nitro drains 32 percent per second and stops moving on release', () => {
   const h = harness(); h.control.press(1, 1); h.advance(1150); h.control.release(1);
-  assert.ok(Math.abs(h.state().charge - 60) < 1e-8);
+  assert.ok(Math.abs(h.state().charge - 68) < 1e-8);
   const steps = h.state().steps; h.advance(1000);
   assert.equal(h.state().steps, steps); assert.equal(h.state().active, false);
 });
 
-test('100 percent lasts 2.5 seconds and an empty long hold only produces one normal tap', () => {
-  const h = harness(); h.control.press(1, 1); h.advance(2800);
+test('100 percent lasts 3.125 seconds and an empty long hold only produces one normal tap', () => {
+  const h = harness(); h.control.press(1, 1); h.advance(3400);
   assert.equal(h.state().charge, 0); assert.equal(h.state().active, false);
   const steps = h.state().steps; h.advance(1000); assert.equal(h.state().steps, steps);
   h.control.release(1); assert.equal(h.state().release, false);
@@ -86,9 +86,9 @@ test('release at twelve grants path-perfect and Perfect Nitro bonuses without pe
   assert.equal(game.status, 'playing');
   assert.equal(settleGame(game, 400, { perfectNitro: true }), true);
   assert.equal(game.perfect, true); assert.equal(game.perfectNitro, true);
-  assert.equal(game.lastNitroGain, 13); assert.equal(game.nitro, 43);
+  assert.equal(game.lastNitroGain, 8); assert.equal(game.nitro, 38);
   assert.equal(settleGame(game, 401, { perfectNitro: true }), false);
-  assert.equal(game.nitro, 43);
+  assert.equal(game.nitro, 38);
 });
 
 test('recharge only happens on clears and five/ten milestones do not double count', () => {
@@ -97,10 +97,10 @@ test('recharge only happens on clears and five/ten milestones do not double coun
   tickGame(game, 1000); assert.equal(game.nitro, 0);
   for (let i = 1; i <= 10; i++) {
     solve(game, 1000 + i);
-    assert.equal(game.lastNitroGain, i === 5 ? 14 : i === 10 ? 18 : 8);
+    assert.equal(game.lastNitroGain, i === 5 ? 9 : i === 10 ? 11 : 5);
     if (i < 10) advanceGame(game, 1000 + i, atEleven);
   }
-  assert.equal(game.combo, 10); assert.equal(game.nitro, 96);
+  assert.equal(game.combo, 10); assert.equal(game.nitro, 60);
 });
 
 test('hard-mode shortcut still fails during Nitro and late releases never win', () => {
@@ -178,13 +178,13 @@ test('hours require ten consecutive perfect solves to fill initial Nitro, includ
 test('an extra movement resets the perfect hours streak without confiscating stored Nitro', () => {
   const game = startGame(createGame(), 0, atEleven);
   for (let i = 1; i <= 5; i++) { solve(game, i); advanceGame(game, i, atEleven); }
-  assert.equal(game.nitro, 70);
+  assert.equal(game.nitro, 69);
   moveGame(game, -1, 10);
   assert.equal(game.hourPerfectStreak, 0);
   moveGame(game, 1, 11);
   moveGame(game, 1, 12);
   assert.equal(game.perfect, false);
-  assert.equal(game.nitro, 70);
+  assert.equal(game.nitro, 69);
   advanceGame(game, 13, atEleven);
   consumeNitro(game, 40);
   solve(game, 14);

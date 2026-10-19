@@ -18,9 +18,9 @@ export function scoreAdjustment({ remaining, budget, optimalSteps, taps, stage =
     : grade === 'insuficiente' ? 6 - 2 * (elapsed - 2)
     : elapsed <= 5 ? 2 : 1;
   // Slow solves stay small even in later phases, with a long streak or hard mode.
-  if (grade === 'malo') return reward;
+  if (grade === 'malo') return reward * 2;
   const precision = .65 + .35 * clamp(optimalSteps / taps, 0, 1);
   const difficulty = 1 + clamp(stage, 0, 2) * .1 + clamp(round, 0, 2) * .15;
   const chain = 1 + clamp(streak - 1, 0, 10) * .01;
-  return Math.max(1, Math.round(reward * precision * difficulty * chain * (mode === 'hard' ? 1.5 : 1)));
+  return 2 * Math.max(1, Math.round(reward * precision * difficulty * chain * (mode === 'hard' ? 1.5 : 1)));
 }

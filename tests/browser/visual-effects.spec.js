@@ -14,9 +14,10 @@ test('five consecutive solves show a large combo with a white flash on black', a
   await expect(page.locator('#combo-celebration')).toBeVisible();
   expect(parseFloat(await page.locator('#combo-big').evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThan(90);
   await expect(page.locator('#success-glow')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await expect(page.locator('#success-glow')).toHaveCSS('z-index', '4');
+  await expect(page.locator('#success-glow')).toHaveCSS('z-index', '6');
+  await expect(page.locator('#success-glow')).toHaveCSS('mix-blend-mode', 'difference');
   await expect(page.locator('#resources')).toHaveCSS('mix-blend-mode', 'normal');
-  await expect(page.locator('#resources')).toHaveCSS('color', 'rgb(0, 0, 0)');
+  await expect(page.locator('#resources')).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.clock.runFor(1000);
   await expect(page.locator('body')).toHaveAttribute('data-phase', '6');
   await page.locator('#settings-button').click();
@@ -27,6 +28,7 @@ test('five consecutive solves show a large combo with a white flash on black', a
   for (let i = 0; i < 5; i++) { await solve(page); if (i < 4) await page.clock.runFor(1000); }
   await expect(page.locator('#combo-big')).toHaveText('10×');
   await expect(page.locator('#success-glow')).toHaveAttribute('data-combo', 'false');
+  await expect(page.locator('#success-glow')).toHaveCSS('mix-blend-mode', 'difference');
   await expect(page.locator('#resources')).toHaveCSS('mix-blend-mode', 'normal');
   expect(await page.locator('#success-glow').evaluate(el => el.getAnimations().length)).toBe(0);
 });
@@ -71,4 +73,19 @@ test('game over fills the viewport with red and slides up with readable controls
   await expect(page.locator('#restart-game')).toHaveCSS('color', 'rgb(255, 255, 255)');
   const size = await page.locator('#game-over').evaluate(el => ({ width: el.offsetWidth, height: el.offsetHeight }));
   expect(size).toEqual(page.viewportSize());
+});
+
+test('best scores follow the selected mode and remain visible on the controls guide', async ({ page }) => {
+  await page.evaluate(() => {
+    localStorage.setItem('clocking:best:classic:normal', '2468');
+    localStorage.setItem('clocking:best:classic:hard', '864');
+  });
+  await page.reload();
+  await expect(page.locator('#menu-best')).toHaveText('RÉCORD 2.468');
+  await page.locator('#mode-hard').click();
+  await expect(page.locator('#menu-best')).toHaveText('RÉCORD 864');
+  await page.locator('#start-game').click();
+  await page.clock.runFor(3000);
+  await expect(page.locator('#guide-best')).toBeVisible();
+  await expect(page.locator('#guide-best')).toHaveText('RÉCORD 864');
 });

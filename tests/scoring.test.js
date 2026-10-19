@@ -12,18 +12,18 @@ test('absolute elapsed seconds classify every inclusive tier boundary', () => {
 });
 
 test('one-second solves clearly outscore two, three and slower solves', () => {
-  assert.equal(scoreAt(0), 22);
-  assert.equal(scoreAt(1), 20);
-  assert.equal(scoreAt(2), 10);
-  assert.equal(scoreAt(3), 4);
-  assert.equal(scoreAt(3.001), 2);
-  assert.equal(scoreAt(5.001), 1);
+  assert.equal(scoreAt(0), 44);
+  assert.equal(scoreAt(1), 40);
+  assert.equal(scoreAt(2), 20);
+  assert.equal(scoreAt(3), 8);
+  assert.equal(scoreAt(3.001), 4);
+  assert.equal(scoreAt(5.001), 2);
 });
 
 test('slow solves remain tiny regardless of difficulty, streak, precision or mode', () => {
   for (const mode of ['normal', 'hard']) {
-    assert.equal(scoreAt(3.5, { stage: 2, round: 2, streak: 100, mode }), 2);
-    assert.equal(scoreAt(7, { stage: 2, round: 2, streak: 100, mode }), 1);
+    assert.equal(scoreAt(3.5, { stage: 2, round: 2, streak: 100, mode }), 4);
+    assert.equal(scoreAt(7, { stage: 2, round: 2, streak: 100, mode }), 2);
   }
 });
 
@@ -45,9 +45,9 @@ test('time grades use seconds rather than the percentage of the budget', () => {
 });
 
 test('hard route keeps its premium and streak multipliers have a small fixed cap', () => {
-  assert.equal(scoreAt(0, { mode: 'hard' }), 33);
-  assert.equal(scoreAt(0, { streak: 11 }), 24);
-  assert.equal(scoreAt(0, { streak: 100 }), 24);
+  assert.equal(scoreAt(0, { mode: 'hard' }), 66);
+  assert.equal(scoreAt(0, { streak: 11 }), 48);
+  assert.equal(scoreAt(0, { streak: 100 }), 48);
 });
 
 test('zero-time and invalid attempts never earn points', () => {
@@ -65,7 +65,7 @@ test('a thousand requires a substantial run of fast solves, but fewer than befor
     }
     return Infinity;
   }
-  assert.ok(reach(1) >= 35 && reach(1) <= 50);
-  assert.ok(reach(1.5) >= 50 && reach(1.5) <= 75);
+  assert.ok(reach(1) >= 20 && reach(1) <= 30);
+  assert.ok(reach(1.5) >= 30 && reach(1.5) <= 45);
   assert.equal(reach(3.5), Infinity);
 });

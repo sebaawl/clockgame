@@ -44,7 +44,7 @@ button:focus { outline: none; }
 button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--foreground); outline-offset: 5px; }
 .tap-zone:focus-visible { outline-offset: -8px; }
 .timer:focus-visible { outline-offset: 0; border-radius: 8px; }
-.success-glow { position: fixed; z-index: 1; left: 50%; top: 54%; width: 200vmax; height: 200vmax; opacity: 0; transform: translate(-50%, -50%) scale(0); border-radius: 50%; background: var(--success-color); pointer-events: none; }
+.success-glow { position: fixed; z-index: 6; mix-blend-mode: difference; left: 50%; top: 54%; width: 200vmax; height: 200vmax; opacity: 0; transform: translate(-50%, -50%) scale(0); border-radius: 50%; background: var(--success-color); pointer-events: none; }
 .intermission { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; text-align: center; touch-action: none; }
 .break-copy { padding: 24px; animation: arrive 250ms ease-out both; }
 .break-kicker, .break-detail { margin: 0; font-size: 11px; font-weight: 300; letter-spacing: .22em; line-height: 1.5; }
@@ -204,7 +204,7 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
 @media (prefers-reduced-motion: reduce) { .control-guide, .guide-arrow, .guide-clock-hand { animation: none !important; } }
 
 /* Difference blending inverts the score over the actual expanding disk in either theme. */
-.score-panel { color: #fff; mix-blend-mode: difference; }
+.score-panel { color: var(--foreground); }
 
 :root { --accent: #54d8ff; }
 :root[data-theme='light'] { --accent: #007fa8; }
@@ -274,6 +274,11 @@ body[data-state='lost'] .game-over {
 .combo-celebration strong { font-size: clamp(96px, 32vw, 170px); font-weight: 700; line-height: 1.15; letter-spacing: -.07em; }
 @media (prefers-reduced-motion: reduce) { body[data-state='lost'] .game-over { animation: none; } }
 
-.success-glow[data-combo='true'] { z-index: 4; }
-body[data-state='cleared'] #success-glow[data-combo='true'] ~ .resources { mix-blend-mode: normal; color: var(--background); }
-body[data-state='cleared'] #success-glow[data-combo='true'] ~ .resources .combo-count { color: inherit; }
+
+.menu-best { margin: 0 0 20px; font-size: 12px; font-weight: 700; letter-spacing: .12em; }
+.guide-best { position: absolute; top: calc(54% - var(--dial-size) / 2 - 70px); width: 100%; margin: 0; text-align: center; font-size: 14px; font-weight: 700; letter-spacing: .1em; }
+body[data-state='ready'] .score-panel, body[data-state='launching'] .score-panel { visibility: hidden; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .guide-best { top: 20px; }
+  .menu-best { margin-bottom: 10px; }
+}
