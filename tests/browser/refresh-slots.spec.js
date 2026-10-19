@@ -1,0 +1,51 @@
+import { test, expect } from '@playwright/test';
+import { createProgress, PROGRESS_KEY } from '../../src/progression.js';
+import { installClock, play } from './helpers.js';
+
+test('completed missions disappear, pending rewards can be claimed, and a four-hour boundary brings new objectives', async ({ page }) => {
+  await installClock(page);
+  const p = createProgress(new Date('2026-10-19T12:00:00Z'));
+  Object.assign(p.daily, { best: 2000, classic: 2000, survival: 2000, clocks: 50, perfect: 50 });
+  await page.addInitScript(({ p, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(p)); }, { p, key: PROGRESS_KEY });
+  await page.goto('/'); await page.locator('#open-daily').click();
+  await expect(page.locator('.goal')).toHaveCount(0);
+  await expect(page.locator('.mission-wait')).toContainText('Espera a la siguiente misión');
+  await expect(page.locator('.mission-reward')).toHaveCount(3);
+  await page.locator('[data-goal="score"] button').click();
+  await expect(page.locator('[data-goal="score"]')).toHaveCount(0);
+  await expect(page.locator('#wallet-points strong')).toHaveText('600');
+  await page.reload(); await page.locator('#open-daily').click();
+  await expect(page.locator('[data-goal="score"]')).toHaveCount(0);
+  await page.clock.fastForward(4 * 60 * 60 * 1000);
+  await expect(page.locator('.goal')).toHaveCount(3);
+  await expect(page.locator('.mission-reward')).toHaveCount(0);
+  await expect(page.locator('.mission-wait')).toHaveCount(0);
+  await expect(page.locator('#wallet-points strong')).toHaveText('600');
+});
+
+test('slots can be targeted and cleared in game while the gear rotates in place and theme controls have no native highlight', async ({ page }) => {
+  await installClock(page);
+  const p = createProgress(new Date('2026-10-19T12:00:00Z')); p.owned.push('dual', 'speed', 'tank', 'lock');
+  await page.addInitScript(({ p, key }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(p)); }, { p, key: PROGRESS_KEY });
+  await page.goto('/'); await play(page); await page.locator('#settings-button').click();
+  const motion = await page.evaluate(() => window.__motions.find(m => m.frames.at(-1).transform === 'rotate(135deg)'));
+  expect(motion.options.duration).toBe(620);
+  expect(motion.frames.every(frame => !frame.transform.includes('translate'))).toBe(true);
+  await expect(page.locator('.theme-toggle')).toHaveCSS('-webkit-tap-highlight-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('#setting-light')).toHaveCSS('appearance', 'none');
+  await page.locator('#tab-extras').click();
+  await page.locator('[data-boost-slot="1"]').click();
+  await page.locator('[data-extra="lock"]').click();
+  await expect(page.locator('[data-slot-index="1"] strong')).toHaveText('Nitro Lock');
+  await expect(page.locator('[data-slot-index="0"] strong')).toHaveText('Disponible');
+  await page.locator('[data-extra="speed"]').click();
+  await expect(page.locator('[data-slot-index="0"] strong')).toHaveText('Nitro ×2');
+  await page.locator('[data-remove-boost="speed"]').click();
+  await expect(page.locator('[data-slot-index="0"] strong')).toHaveText('Disponible');
+  await expect(page.locator('[data-slot-index="1"] strong')).toHaveText('Nitro Lock');
+  await page.locator('[data-extra="tank"]').click();
+  await page.locator('[data-boost-slot="1"]').click(); await page.locator('[data-extra="speed"]').click();
+  await expect(page.locator('[data-slot-index="1"] strong')).toHaveText('Nitro ×2');
+  await page.locator('#continue-game').click(); await page.clock.runFor(300);
+  await expect(page.locator('body')).toHaveAttribute('data-boosts', 'tank speed');
+});

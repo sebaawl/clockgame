@@ -1,4 +1,5 @@
-import { ITEMS, PACKS, dailyGoals, claimGoal, exchangeCoins, buyItem, equipItem, saveProgress, localDay, equippedBoosts, boostSlots } from './progression.js';
+import { boostSlotsView } from './boost-slots.js';
+import { ITEMS, PACKS, dailyGoals, claimGoal, exchangeCoins, buyItem, equipItem, saveProgress, missionPeriod, nextMissionAt, equippedBoosts, boostSlots, boostLoadout, removeBoost } from './progression.js';
 
 export function createStore({ progress, storage, gear, changed, reducedMotion, feedback, navigated = () => {} }) {
   const svg = path => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
@@ -11,7 +12,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     <p id="store-notice" class="store-notice" role="status" aria-live="polite"></p>
     <div id="store-content"></div>`;
   document.body.append(page);
-  let tab = 'cosmetic', view = 'shop', motion, active = false, tabTimer, dayTimer, market = 'buy';
+  let tab = 'cosmetic', view = 'shop', motion, active = false, tabTimer, dayTimer, market = 'buy', selectedBoostSlot = null, displayedPeriod, displayedMinutes;
   const scrollPositions = { shop: 0, daily: 0 };
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
@@ -19,8 +20,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   function purchaseActions(item, owned, equipped = false) {
     if (item.kind === 'upgrade' && owned) return `<span class="upgrade-owned">${symbols.check} Permanente</span>`;
     if (owned) {
-      const removable = item.kind === 'boost' && boostSlots(progress) === 2;
-      return `<button data-action="equip" data-id="${item.id}" ${equipped && !removable ? 'disabled' : ''}>${equipped ? removable ? 'Quitar ✓' : 'Equipado ✓' : 'Equipar'}</button>`;
+      return `<button data-action="equip" data-id="${item.id}" ${equipped ? 'disabled' : ''}>${equipped ? item.kind === 'boost' ? `Ranura ${boostLoadout(progress).indexOf(item.id) + 1} ✓` : 'Equipado ✓' : 'Equipar'}</button>`;
     }
     return `<button data-action="buy" data-id="${item.id}" aria-label="Comprar ${item.name} por ${item.price} monedas" ${progress.coins < item.price ? 'disabled' : ''}>${coin}<strong>${format(item.price)}</strong></button><button class="score-unlock" data-action="unlock" data-id="${item.id}" aria-label="Desbloquear ${item.name} con récord de ${item.target} puntos" ${progress.best < item.target ? 'disabled' : ''}>${symbols.trophy} ${format(item.target)}</button>`;
   }
@@ -36,20 +36,24 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${item.kind === 'sound' ? `<button class="sound-preview" data-action="preview" data-id="${item.id}" aria-label="Escuchar ${item.name}">${svg('<path d="m9 5 10 7-10 7V5Z"/>')}</button>` : ''}${purchaseActions(item, owned, equipped)}</div></article>`;
   }
   function render() {
-    const goals = dailyGoals(progress);
+    const goals = dailyGoals(progress); displayedPeriod = progress.daily.period;
     page.querySelector('#wallet-points strong').textContent = format(progress.points);
     page.querySelector('#wallet-coins strong').textContent = format(progress.coins);
     page.querySelector('#store-title').textContent = view === 'daily' ? 'Misiones' : 'Tienda';
     page.setAttribute('aria-labelledby', view === 'daily' ? 'open-daily' : 'open-store');
     const content = page.querySelector('#store-content');
     if (view === 'daily') {
-      const now = new Date(), midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      const minutes = Math.ceil((midnight - now) / 60000);
-      content.innerHTML = `<div class="mission-section-head"><span>HOY</span><span class="reset-time" aria-label="Nuevas misiones en ${Math.floor(minutes / 60)} horas y ${minutes % 60} minutos">${symbols.clock} ${Math.floor(minutes / 60)}h ${minutes % 60}m</span></div><div class="goal-list">${goals.map(goal => {
+      const now = new Date();
+      const minutes = Math.max(0, Math.ceil((nextMissionAt(now) - now) / 60000)); displayedMinutes = minutes;
+      const pending = goals.filter(goal => !goal.claimed && goal.value >= goal.target);
+      const completed = goals.filter(goal => goal.claimed || goal.value >= goal.target).length;
+      const waiting = completed ? `<div class="mission-wait">${symbols.clock}<h3>Espera a la siguiente misión.</h3><p>Nuevas misiones en ${Math.floor(minutes / 60)}h ${minutes % 60}m</p></div>` : '';
+      const rewards = pending.map(goal => `<div class="mission-reward" data-goal="${goal.id}"><span>${gear}${goal.reward}</span><button data-action="claim" data-id="${goal.id}" aria-label="Recoger ${goal.reward} engranajes">${symbols.down}</button></div>`).join('');
+      content.innerHTML = `<div class="mission-section-head"><span>CADA 4 HORAS</span><span class="reset-time" aria-label="Nuevas misiones en ${Math.floor(minutes / 60)} horas y ${minutes % 60} minutos">${symbols.clock} ${Math.floor(minutes / 60)}h ${minutes % 60}m</span></div><div class="goal-list">${goals.filter(goal => !goal.claimed && goal.value < goal.target).map(goal => {
         const label = goal.id === 'precision' ? goal.detail.includes('perfectos') ? 'PERFECTOS' : 'RELOJES' : 'PUNTOS';
-        const context = goal.id === 'score' ? 'Una partida' : goal.id === 'precision' ? 'Acumulados hoy' : goal.detail.includes('Supervivencia') ? 'Supervivencia' : 'Clásico';
+        const context = goal.id === 'score' ? 'Una partida' : goal.id === 'precision' ? 'Este ciclo' : goal.detail.includes('Supervivencia') ? 'Supervivencia' : 'Clásico';
         return `<article class="goal" data-goal="${goal.id}"><div class="goal-heading"><div class="mission-target"><span>${label}</span><h3>${format(goal.target)}</h3><p>${context}</p></div><span class="gear-reward">${gear}<strong>${goal.reward}</strong></span></div><div class="goal-progress" role="progressbar" aria-label="${goal.title}" aria-valuenow="${Math.min(goal.target, goal.value)}" aria-valuemin="0" aria-valuemax="${goal.target}"><span style="width:${Math.min(100, goal.value / goal.target * 100)}%"></span></div><div class="goal-footer"><span>${format(Math.min(goal.target, goal.value))} <span>/ ${format(goal.target)}</span></span><button data-action="claim" data-id="${goal.id}" aria-label="${goal.claimed ? 'Recompensa recogida' : 'Recoger recompensa de ' + goal.title}" ${goal.claimed || goal.value < goal.target ? 'disabled' : ''}>${goal.claimed ? symbols.check : symbols.down}</button></div></article>`;
-      }).join('')}</div><button class="mission-exchange" data-action="section" data-id="exchange">${symbols.exchange} Canjear</button>`;
+      }).join('')}</div>${rewards}${waiting}<button class="mission-exchange" data-action="section" data-id="exchange">${symbols.exchange} Canjear</button>`;
       return;
     }
     const nav = `<div class="market-nav" role="group" aria-label="Acciones de tienda"><button data-action="section" data-id="buy" aria-pressed="${market === 'buy'}">${symbols.bag} Comprar</button><button data-action="section" data-id="exchange" aria-pressed="${market === 'exchange'}">${symbols.exchange} Canjear</button></div>`;
@@ -58,7 +62,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       return;
     }
     content.innerHTML = nav + `<div class="store-tabs" role="group" aria-label="Secciones de la tienda"><span class="store-tab-line" style="transform:translateX(${tab === 'cosmetic' ? 0 : 100}%)"></span><button data-action="tab" data-id="cosmetic" aria-pressed="${tab === 'cosmetic'}">${symbols.clock} Cosméticos</button><button data-action="tab" data-id="boost" aria-pressed="${tab === 'boost'}">${svg('<path d="m14 2-8 12h6l-2 8 8-12h-6l2-8Z"/>')} Boosts</button></div>
-      ${tab === 'boost' ? `<div class="loadout-heading"><span>RANURAS <strong>${equippedBoosts(progress).length}/${boostSlots(progress)}</strong></span><button class="no-boost" data-action="equip" data-id="none" aria-label="Quitar todos los boosts" aria-pressed="${!equippedBoosts(progress).length}">${svg('<path d="m6 6 12 12M18 6 6 18"/>')}</button></div><div class="general-label">MEJORA GENERAL</div>${itemCard(ITEMS.find(item => item.id === 'dual'))}<div class="general-label">BOOSTS</div>` : ''}
+      ${tab === 'boost' ? `${boostSlotsView(progress, selectedBoostSlot)}<div class="general-label">MEJORA GENERAL</div>${itemCard(ITEMS.find(item => item.id === 'dual'))}<div class="general-label">BOOSTS</div>` : ''}
       <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div>${tab === 'cosmetic' ? `<div class="general-label">SONIDOS</div><div class="catalog">${ITEMS.filter(item => item.kind === 'sound').map(itemCard).join('')}</div>` : ''}<p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
   }
   function celebrate(type, amount, origin) {
@@ -88,14 +92,15 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     const direction = active && view === 'daily' ? -1 : 1;
     if (active) scrollPositions[view] = page.scrollTop;
     clearTimeout(tabTimer); clearInterval(dayTimer); motion?.cancel();
-    view = target; active = true; page.hidden = false;
+    view = target; active = true; page.hidden = false; selectedBoostSlot = null;
     render(); page.querySelector('#store-notice').textContent = '';
     page.scrollTop = scrollPositions[view];
     navigated(view);
     dayTimer = setInterval(() => {
-      const day = progress.daily.day; dailyGoals(progress);
-      if (day !== progress.daily.day) { persist(); render(); }
-    }, 30000);
+      dailyGoals(progress);
+      if (displayedPeriod !== progress.daily.period) { persist(); render(); }
+      else if (view === 'daily' && displayedMinutes !== Math.ceil((nextMissionAt() - new Date()) / 60000)) render();
+    }, 1000);
     if (!reducedMotion.matches) motion = page.animate([{ opacity: 0, transform: `translateX(${direction * 14}px)` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 240, easing: 'cubic-bezier(.2,.8,.3,1)' });
   }
   function close() {
@@ -128,15 +133,15 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       tabTimer = setTimeout(() => { if (!active || view !== 'shop') return; render(); if (!reducedMotion.matches) page.querySelector('.catalog').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 260 }); }, reducedMotion.matches ? 0 : 400);
       return;
     }
-    if (action === 'claim' && progress.daily.day !== localDay()) {
-      const previousDay = progress.daily.day; dailyGoals(progress);
-      if (previousDay !== progress.daily.day) { persist(); render(); notice.textContent = 'Nuevas metas para hoy.'; return; }
-    }
+    if (action === 'slot') { selectedBoostSlot = Number(id); render(); return; }
+    if (action === 'claim' && displayedPeriod !== missionPeriod()) { dailyGoals(progress); persist(); render(); notice.textContent = 'Nuevas misiones disponibles.'; return; }
     if (action === 'claim') { reward = claimGoal(progress, id); if (reward) message = `+${reward} engranajes`; }
     if (action === 'exchange') { reward = exchangeCoins(progress, id); if (reward) message = `+${reward} monedas`; }
     if (action === 'buy' || action === 'unlock') { if (buyItem(progress, id, action === 'buy' ? 'coins' : 'score')) message = `${ITEMS.find(i => i.id === id).name} desbloqueado`; }
-    if (action === 'equip') { if (equipItem(progress, id)) message = id === 'none' ? 'Sin boost' : `${ITEMS.find(i => i.id === id).name} ${equippedBoosts(progress).includes(id) || ITEMS.find(i => i.id === id).kind !== 'boost' ? 'equipado' : 'retirado'}`; }
+    if (action === 'remove') { selectedBoostSlot = boostLoadout(progress).indexOf(id); if (removeBoost(progress, id)) message = `Ranura ${selectedBoostSlot + 1} disponible`; }
+    if (action === 'equip') { const item = ITEMS.find(item => item.id === id); const slot = item?.kind === 'boost' ? selectedBoostSlot : null; if (equipItem(progress, id, slot)) message = id === 'none' ? 'Sin boost' : `${ITEMS.find(i => i.id === id).name} ${equippedBoosts(progress).includes(id) || ITEMS.find(i => i.id === id).kind !== 'boost' ? 'equipado' : 'retirado'}`; }
     if (!message) { if (action === 'equip') notice.textContent = 'Quita un boost para liberar una ranura.'; return; }
+    if (action === 'equip') selectedBoostSlot = null;
     const saved = persist(); render(); if (action === 'equip' && id.startsWith('sound-')) feedback.preview(); notice.textContent = message + (saved ? '' : ' · Guardado no disponible: solo esta sesión.');
     if (reward) celebrate(action === 'claim' ? 'points' : 'coins', reward, rect);
     else if (!reducedMotion.matches) notice.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300 });

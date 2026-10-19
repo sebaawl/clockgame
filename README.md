@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.11.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.12.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -184,3 +184,7 @@ Selectores centrados con texto grande y flechas, sin recuadros. Al pulsar una op
 ### Navegación principal (0.3.11)
 
 Barra inferior con Jugar, Tienda y Misiones. Las dos últimas son páginas completas, sin ventanas modales, y mantienen su desplazamiento al alternarlas. La barra desaparece durante la partida. Atrás en Android regresa desde estas pestañas a Jugar. Navegación por teclado con flechas, Inicio y Fin.
+
+### Misiones y ranuras (0.3.12)
+
+Misiones por ventanas fijas de cuatro horas: los objetivos completados desaparecen y las recompensas pendientes se recogen por separado. Se muestra la espera hasta la siguiente tanda. Ranuras numeradas para elegir, sustituir o quitar boosts individualmente, manteniendo sus posiciones al guardar. Engranaje de ajustes simétrico con giro sobre su eje; eliminados los resaltados táctiles nativos del selector de tema y el resaltado de foco del WebView.

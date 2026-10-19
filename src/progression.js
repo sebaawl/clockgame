@@ -27,13 +27,16 @@ const integer = value => Number.isSafeInteger(value) && value >= 0 ? Math.min(va
 export function localDay(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
-function dayState(day) { return { day, best: 0, classic: 0, survival: 0, clocks: 0, perfect: 0, claimed: [] }; }
+export const MISSION_INTERVAL = 4 * 60 * 60 * 1000;
+export const missionPeriod = (now = new Date()) => Math.floor(now.getTime() / MISSION_INTERVAL);
+export const nextMissionAt = (now = new Date()) => new Date((missionPeriod(now) + 1) * MISSION_INTERVAL);
+function dayState(day, period) { return { day, period, best: 0, classic: 0, survival: 0, clocks: 0, perfect: 0, claimed: [] }; }
 export function createProgress(now = new Date()) {
-  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original', 'sound-felt'], soundPreset: 'felt', cosmetic: 'original', boost: null, boosts: [], daily: dayState(localDay(now)) };
+  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original', 'sound-felt'], soundPreset: 'felt', cosmetic: 'original', boost: null, boosts: [], daily: dayState(localDay(now), missionPeriod(now)) };
 }
 export function refreshDaily(state, now = new Date()) {
   const day = localDay(now);
-  if (state.daily.day !== day) state.daily = dayState(day);
+  if (state.daily.period !== missionPeriod(now)) state.daily = dayState(day, missionPeriod(now));
   return state.daily;
 }
 export function loadProgress(storage, now = new Date()) {
@@ -46,9 +49,13 @@ export function loadProgress(storage, now = new Date()) {
     if (state.owned.includes('sound-' + saved.soundPreset) && ['felt', 'wood', 'clock'].includes(saved.soundPreset)) state.soundPreset = saved.soundPreset;
     if (state.owned.includes(saved.cosmetic) && ITEMS.some(i => i.id === saved.cosmetic && i.kind === 'cosmetic')) state.cosmetic = saved.cosmetic;
     const candidates = Array.isArray(saved.boosts) && saved.boosts.length ? saved.boosts : [saved.boost];
-    state.boosts = [...new Set(candidates)].filter(id => state.owned.includes(id) && ITEMS.some(i => i.id === id && i.kind === 'boost')).slice(0, boostSlots(state));
-    state.boost = state.boosts[0] || null;
-    if (saved.daily?.day === localDay(now)) {
+    const seen = new Set();
+    state.boosts = candidates.slice(0, boostSlots(state)).map(id => {
+      if (!state.owned.includes(id) || !ITEMS.some(i => i.id === id && i.kind === 'boost') || seen.has(id)) return null;
+      seen.add(id); return id;
+    });
+    syncBoosts(state);
+    if (saved.daily?.period === missionPeriod(now)) {
       for (const field of ['best', 'classic', 'survival', 'clocks', 'perfect']) state.daily[field] = integer(saved.daily[field]);
       state.daily.claimed = Array.isArray(saved.daily.claimed) ? saved.daily.claimed.filter(id => ['score', 'mode', 'precision'].includes(id)) : [];
     }
@@ -58,12 +65,11 @@ export function loadProgress(storage, now = new Date()) {
 export function saveProgress(state, storage) { try { storage.setItem(PROGRESS_KEY, JSON.stringify(state)); return true; } catch { return false; } }
 export function dailyGoals(state, now = new Date()) {
   const daily = refreshDaily(state, now);
-  const day = new Date(`${daily.day}T12:00:00`);
-  const alternate = Math.floor(Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()) / 86400000) % 2 === 0;
+  const alternate = (daily.period + Math.floor(daily.period / 6)) % 2 === 0;
   return [
     { id: 'score', title: 'A tiempo', detail: 'Consigue 1500 puntos en una partida.', target: 1500, value: daily.best, reward: 600 },
     { id: 'mode', title: alternate ? 'Resiste' : 'Vuelta completa', detail: `Consigue ${alternate ? 1000 : 1200} puntos en una partida de ${alternate ? 'Supervivencia' : 'Clásico'}.`, target: alternate ? 1000 : 1200, value: alternate ? daily.survival : daily.classic, reward: 450 },
-    { id: 'precision', title: alternate ? 'Sin rodeos' : 'En marcha', detail: alternate ? 'Resuelve 20 relojes perfectos hoy.' : 'Resuelve 35 relojes hoy.', target: alternate ? 20 : 35, value: alternate ? daily.perfect : daily.clocks, reward: 350 },
+    { id: 'precision', title: alternate ? 'Sin rodeos' : 'En marcha', detail: alternate ? 'Resuelve 20 relojes perfectos en este ciclo.' : 'Resuelve 35 relojes en este ciclo.', target: alternate ? 20 : 35, value: alternate ? daily.perfect : daily.clocks, reward: 350 },
   ].map(goal => ({ ...goal, claimed: daily.claimed.includes(goal.id) }));
 }
 // Called once per solved clock, with this run's cumulative score.
@@ -100,20 +106,34 @@ export function buyItem(state, id, method = 'coins') {
   return true;
 }
 export const boostSlots = state => state.owned.includes('dual') ? 2 : 1;
-export function equippedBoosts(state) {
-  return (state.boosts?.length ? state.boosts : state.boost ? [state.boost] : []).slice(0, boostSlots(state));
+export function boostLoadout(state) {
+  const source = state.boosts?.length ? state.boosts : state.boost ? [state.boost] : [];
+  return Array.from({ length: boostSlots(state) }, (_, i) => source[i] || null);
 }
-export function equipItem(state, id) {
+export function equippedBoosts(state) { return boostLoadout(state).filter(Boolean); }
+function syncBoosts(state) {
+  while (state.boosts.length && !state.boosts.at(-1)) state.boosts.pop();
+  state.boost = state.boosts.find(Boolean) || null;
+}
+export function removeBoost(state, id) {
+  const slots = boostLoadout(state), index = slots.indexOf(id);
+  if (index < 0) return false;
+  slots[index] = null; state.boosts = slots; syncBoosts(state); return true;
+}
+export function equipItem(state, id, slot = null) {
   if (id === 'none') { state.boost = null; state.boosts = []; return true; }
   const item = ITEMS.find(item => item.id === id);
   if (!item || !state.owned.includes(id) || item.kind === 'upgrade') return false;
   if (item.kind === 'sound') { state.soundPreset = id.slice(6); return true; }
   if (item.kind === 'cosmetic') { state.cosmetic = id; return true; }
-  let equipped = equippedBoosts(state);
-  if (boostSlots(state) === 1) equipped = [id];
-  else if (equipped.includes(id)) equipped = equipped.filter(value => value !== id);
-  else if (equipped.length < 2) equipped.push(id);
-  else return false;
-  state.boosts = equipped; state.boost = equipped[0] || null;
+  const slots = boostLoadout(state), existing = slots.indexOf(id);
+  if (slot !== null) {
+    if (!Number.isInteger(slot) || slot < 0 || slot >= slots.length) return false;
+    if (existing >= 0 && existing !== slot) slots[existing] = slots[slot];
+    slots[slot] = id;
+  } else if (slots.length === 1) slots[0] = id;
+  else if (existing >= 0) slots[existing] = null;
+  else { const free = slots.indexOf(null); if (free < 0) return false; slots[free] = id; }
+  state.boosts = slots; syncBoosts(state);
   return true;
 }

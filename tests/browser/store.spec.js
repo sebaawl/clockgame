@@ -14,7 +14,8 @@ test('claim daily gears, exchange for coins, buy and equip a cosmetic, and retai
   await setup(page, p => { p.points = 600; p.daily.best = 1600; });
   await page.locator('#open-daily').click();
   const claim = page.locator('[data-goal="score"] button');
-  await claim.click(); await expect(claim).toBeDisabled();
+  await claim.click(); await expect(claim).toHaveCount(0);
+  await expect(page.locator('.mission-wait')).toContainText('Espera a la siguiente misión');
   await expect(page.locator('#wallet-points strong')).toHaveText('1.200');
   expect(await page.locator('.reward-particle').count()).toBeGreaterThan(0);
   await page.locator('#open-store').click();

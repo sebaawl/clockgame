@@ -13,8 +13,8 @@ test('purchase double slot, equip two boosts, prevent a third and play with both
   for (const id of ['recharge', 'lock']) await page.locator(`[data-item="${id}"] [data-action="equip"]`).click();
   await page.locator('[data-item="tank"] [data-action="equip"]').click();
   await expect(page.locator('#store-notice')).toContainText('liberar una ranura');
-  await expect(page.locator('[data-item="recharge"] [data-action="equip"]')).toHaveText('Quitar ✓');
-  await expect(page.locator('[data-item="lock"] [data-action="equip"]')).toHaveText('Quitar ✓');
+  await expect(page.locator('[data-item="recharge"] [data-action="equip"]')).toHaveText('Ranura 1 ✓');
+  await expect(page.locator('[data-item="lock"] [data-action="equip"]')).toHaveText('Ranura 2 ✓');
   await page.reload(); await play(page);
   await expect(page.locator('body')).toHaveAttribute('data-boosts', 'recharge lock');
   await page.mouse.move(page.viewportSize().width - 30, page.viewportSize().height / 2); await page.mouse.down(); await page.clock.runFor(600);

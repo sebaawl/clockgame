@@ -29,6 +29,7 @@ public final class MainActivity extends Activity {
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
         game = new WebView(this);
         game.setBackgroundColor(Color.BLACK);
+        game.setDefaultFocusHighlightEnabled(false);
         game.setOverScrollMode(View.OVER_SCROLL_NEVER);
         WebView.setWebContentsDebuggingEnabled(false);
         WebSettings settings = game.getSettings();
@@ -39,7 +40,7 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.11");
+        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.12");
         game.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return true;

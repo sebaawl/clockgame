@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createProgress, localDay, dailyGoals, recordSolve, claimGoal, exchangeCoins, buyItem, equipItem, refreshDaily, loadProgress, saveProgress } from '../src/progression.js';
+import { createProgress, localDay, dailyGoals, recordSolve, claimGoal, exchangeCoins, buyItem, equipItem, refreshDaily, loadProgress, saveProgress, missionPeriod, nextMissionAt, boostLoadout, removeBoost } from '../src/progression.js';
 const today = new Date(2026, 9, 19, 12);
 const tomorrow = new Date(2026, 9, 20, 12);
 const memory = () => { const entries = new Map(); return { getItem: k => entries.get(k), setItem: (k, v) => entries.set(k, v) }; };
@@ -14,7 +14,7 @@ test('goals grant only claimable rewards once; playing score is not spendable cu
   assert.equal(claimGoal(p, 'score', today), 0);
   assert.equal(p.points, 600); assert.equal(p.best, 1600);
 });
-test('daily progress resets at local midnight while balances and unlocks survive', () => {
+test('mission progress refreshes across days while balances and unlocks survive', () => {
   const p = createProgress(today);
   recordSolve(p, { score: 3500, format: 'survival', perfect: true }, today);
   claimGoal(p, 'score', today); buyItem(p, 'dots', 'score'); equipItem(p, 'dots');
@@ -64,7 +64,7 @@ test('double slot is a permanent expensive purchase, permits two distinct boosts
   assert.equal(equipItem(p, 'tank'), false); assert.deepEqual(p.boosts, ['lock', 'speed']);
   assert.equal(equipItem(p, 'dual'), false);
   const storage = memory(); saveProgress(p, storage); assert.deepEqual(loadProgress(storage, today).boosts, ['lock', 'speed']);
-  assert.equal(equipItem(p, 'lock'), true); assert.deepEqual(p.boosts, ['speed']);
+  assert.equal(equipItem(p, 'lock'), true); assert.deepEqual(p.boosts, [null, 'speed']);
   equipItem(p, 'none'); assert.deepEqual(p.boosts, []);
 });
 
@@ -82,4 +82,27 @@ test('clock sounds require ownership, default to felt and persist independently 
   assert.equal(loadProgress(storage, today).soundPreset, 'wood');
   state.soundPreset = 'clock'; saveProgress(state, storage);
   assert.equal(loadProgress(storage, today).soundPreset, 'felt');
+});
+
+test('missions reset exactly every four hours, survive reload within a window, and preserve wallet and purchases', () => {
+  const start = new Date('2026-10-19T12:00:00Z'), before = new Date('2026-10-19T15:59:59.999Z'), next = new Date('2026-10-19T16:00:00Z');
+  const p = createProgress(start), storage = memory(); p.owned.push('dots'); p.coins = 50;
+  recordSolve(p, { score: 1800, format: 'classic', perfect: true }, start);
+  assert.equal(claimGoal(p, 'score', start), 600); saveProgress(p, storage);
+  const restored = loadProgress(storage, before); assert.equal(restored.daily.best, 1800); assert.deepEqual(restored.daily.claimed, ['score']);
+  assert.equal(nextMissionAt(before).getTime(), next.getTime());
+  refreshDaily(restored, next); assert.equal(restored.daily.period, missionPeriod(next));
+  assert.equal(restored.daily.best, 0); assert.deepEqual(restored.daily.claimed, []);
+  assert.equal(restored.points, 600); assert.equal(restored.coins, 50); assert.ok(restored.owned.includes('dots'));
+  assert.equal(claimGoal(restored, 'score', next), 0);
+});
+test('boost slots retain their positions and support explicit replacement, removal and swapping', () => {
+  const p = createProgress(today), storage = memory(); p.owned.push('dual', 'speed', 'lock', 'tank');
+  equipItem(p, 'speed', 0); equipItem(p, 'lock', 1);
+  assert.equal(removeBoost(p, 'speed'), true); assert.deepEqual(boostLoadout(p), [null, 'lock']);
+  saveProgress(p, storage); const loaded = loadProgress(storage, today); assert.deepEqual(boostLoadout(loaded), [null, 'lock']);
+  equipItem(loaded, 'tank', 0); assert.deepEqual(boostLoadout(loaded), ['tank', 'lock']);
+  equipItem(loaded, 'speed', 1); assert.deepEqual(boostLoadout(loaded), ['tank', 'speed']);
+  equipItem(loaded, 'tank', 1); assert.deepEqual(boostLoadout(loaded), ['speed', 'tank']);
+  assert.equal(equipItem(loaded, 'lock', 2), false);
 });

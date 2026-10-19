@@ -1,3 +1,4 @@
+import { boostSlotsView } from './boost-slots.js';
 import { extrasPreview, animateExtrasPreview } from './extras-preview.js';
 import { createMusic } from './music.js';
 import '@fontsource/poppins/latin-300.css';
@@ -10,7 +11,7 @@ import './store.css';
 import './home.css';
 import './market.css';
 import { createStore } from './store.js';
-import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots } from './progression.js';
+import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots, boostLoadout, removeBoost } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
@@ -74,6 +75,9 @@ let launchAnimation;
 const ticks = Array.from({ length: 12 }, (_, i) => `<line x1="160" y1="35" x2="160" y2="${i % 3 === 0 ? 48 : 42}" transform="rotate(${i * 30} 160 160)" class="tick" />`).join('');
 const gear = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="m9 3 1-2h4l1 2 2 1 2-.2 2 3.4-1.2 1.8v3l1.2 1.8-2 3.4-2-.2-2 1-1 2h-4l-1-2-2-1-2 .2-2-3.4L4.2 12V9L3 7.2l2-3.4L7 4Z" transform="translate(0 1)"/><circle cx="12" cy="12" r="3.1"/></svg>';
 
+const settingsGearPoints = Array.from({ length: 8 }, (_, tooth) => [-13, -10, 10, 13].map((offset, index) => { const angle = (tooth * 45 + offset) * Math.PI / 180; const radius = index === 0 || index === 3 ? 9.3 : 12; return `${(16 + Math.cos(angle) * radius).toFixed(2)},${(16 + Math.sin(angle) * radius).toFixed(2)}`; })).flat().join(' ');
+const settingsGear = `<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" aria-hidden="true"><polygon points="${settingsGearPoints}"/><circle cx="16" cy="16" r="4.2"/></svg>`;
+let gearRotation = 0;
 const icon = path => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
 const homeIcon = icon('<path d="m3 10 9-7 9 7M5 9v11h14V9M9 20v-7h6v7"/>');
 const restartIcon = icon('<path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/>');
@@ -87,7 +91,7 @@ document.querySelector('#app').innerHTML = `
     <div class="hud" id="hud"><div class="hud-row">
       <div id="cycle-label" class="cycle-label">HORA</div>
       <button id="timer" class="timer" aria-describedby="instructions"><span id="time">15.0</span></button>
-      <button id="settings-button" class="settings-trigger" aria-label="Abrir ajustes" type="button">${gear}</button>
+      <button id="settings-button" class="settings-trigger" aria-label="Abrir ajustes" type="button">${settingsGear}</button>
     </div></div>
     <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">PUNTOS</span></div>
     <div class="clock-wrap" id="clock-wrap">
@@ -613,7 +617,7 @@ function openSettings() {
   feedback.unlock();
   feedback.interrupt();
   feedback.ui('open');
-  previewExtra = progress.cosmetic;
+  previewExtra = progress.cosmetic; selectedBoostSlot = null;
   syncSoundOptions();
   settingsTab(false);
   delete settings.dataset.closing;
@@ -642,6 +646,7 @@ function closeSettings() {
 }
 
 let previewExtra = null;
+let selectedBoostSlot = null;
 function currentPreviewItem() { return ITEMS.find(item => item.id === previewExtra) || (previewExtra === 'none' ? { id: 'none', kind: 'boost', name: 'Sin boost' } : ITEMS.find(item => item.id === progress.cosmetic)); }
 function playExtrasPreview(playSound = false) { animateExtrasPreview(document.querySelector('.extras-preview'), currentPreviewItem(), reducedMotion.matches, feedback, playSound); }
 function syncSoundOptions() {
@@ -652,8 +657,8 @@ function syncSoundOptions() {
       const selected = kind === 'cosmetic' ? progress.cosmetic === item.id : kind === 'sound' ? progress.soundPreset === item.id.slice(6) : equippedBoosts(progress).includes(item.id);
       return `<button type="button" data-extra="${item.id}" ${kind === 'sound' ? `data-sound="${item.id.slice(6)}"` : ''} aria-pressed="${selected}">${item.name}${selected ? ' ✓' : ''}</button>`;
     });
-    if (kind === 'boost') buttons.unshift(`<button type="button" data-extra="none" aria-pressed="${!equippedBoosts(progress).length}">Sin boost</button>`);
-    return `<fieldset class="extras-group"><legend>${title}${kind === 'boost' ? ` · ${equippedBoosts(progress).length}/${boostSlots(progress)}` : ''}</legend><div class="extras-options">${buttons.join('')}</div></fieldset>`;
+    if (kind === 'boost' && equippedBoosts(progress).length) buttons.push('<button type="button" data-extra="none">Vaciar todo</button>');
+    return `<fieldset class="extras-group"><legend>${title}${kind === 'boost' ? ` · ${equippedBoosts(progress).length}/${boostSlots(progress)}` : ''}</legend>${kind === 'boost' ? boostSlotsView(progress, selectedBoostSlot) : ''}<div class="extras-options">${buttons.join('')}</div></fieldset>`;
   }).join('');
 }
 function settingsTab(extras) {
@@ -669,16 +674,29 @@ $('tab-game').addEventListener('click', () => settingsTab(false));
 $('tab-extras').addEventListener('click', () => settingsTab(true));
 $('settings-extras').addEventListener('click', event => {
   if (event.target.closest('[data-preview-replay]')) { playExtrasPreview(true); return; }
+  const slotButton = event.target.closest('[data-boost-slot]');
+  if (slotButton) { selectedBoostSlot = Number(slotButton.dataset.boostSlot); syncSoundOptions(); return; }
+  const removeButton = event.target.closest('[data-remove-boost]');
   const button = event.target.closest('[data-extra]');
-  if (!button || !equipItem(progress, button.dataset.extra)) return;
-  previewExtra = button.dataset.extra;
+  if (removeButton) {
+    selectedBoostSlot = boostLoadout(progress).indexOf(removeButton.dataset.removeBoost);
+    if (!removeBoost(progress, removeButton.dataset.removeBoost)) return;
+    previewExtra = 'none';
+  } else {
+    if (!button) return;
+    const id = button.dataset.extra, item = ITEMS.find(item => item.id === id);
+    const existing = boostLoadout(progress).indexOf(id);
+    const slot = item?.kind === 'boost' ? (selectedBoostSlot ?? (existing >= 0 ? existing : null)) : null;
+    if (!equipItem(progress, id, slot)) { settings.querySelector('.slot-hint').textContent = 'Elige una ranura para sustituir su boost.'; return; }
+    previewExtra = id; selectedBoostSlot = null;
+  }
   preferences.soundPreset = progress.soundPreset;
   savePreferences(); saveProgress(progress, storage);
   runCosmetic = progress.cosmetic;
   game.boosts = [...equippedBoosts(progress)]; game.boost = game.boosts[0] || null;
   game.nitro = Math.min(game.nitro, nitroCapacity(game));
   syncSoundOptions(); render();
-  playExtrasPreview(Boolean(button.dataset.sound));
+  playExtrasPreview(Boolean(button?.dataset.sound));
 });
 document.querySelectorAll('[data-choice-info]').forEach(button => button.addEventListener('click', () => {
   const kind = button.dataset.choiceInfo;
@@ -887,7 +905,13 @@ document.addEventListener('click', event => {
   const svg = button.querySelector('svg');
   if (svg) {
     svg.getAnimations().forEach(animation => animation.cancel());
-    const turn = button.matches('.restart-action') ? 360 : button.matches('.settings-trigger') ? 90 : 0;
+    if (button.matches('.settings-trigger')) {
+      const from = gearRotation; gearRotation += 135;
+      svg.style.transform = `rotate(${gearRotation}deg)`;
+      reveal(svg, [{ transform: `rotate(${from}deg)` }, { transform: `rotate(${gearRotation}deg)` }], 620);
+      return;
+    }
+    const turn = button.matches('.restart-action') ? 360 : 0;
     reveal(svg, [
       { transform: 'translateY(0) rotate(0deg) scale(1)' },
       { transform: `translateY(-3px) rotate(${turn * .7}deg) scale(1.12)`, offset: .45 },
