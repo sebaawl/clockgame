@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.12.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.13.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -188,3 +188,7 @@ Barra inferior con Jugar, Tienda y Misiones. Las dos últimas son páginas compl
 ### Misiones y ranuras (0.3.12)
 
 Misiones por ventanas fijas de cuatro horas: los objetivos completados desaparecen y las recompensas pendientes se recogen por separado. Se muestra la espera hasta la siguiente tanda. Ranuras numeradas para elegir, sustituir o quitar boosts individualmente, manteniendo sus posiciones al guardar. Engranaje de ajustes simétrico con giro sobre su eje; eliminados los resaltados táctiles nativos del selector de tema y el resaltado de foco del WebView.
+
+### Legibilidad (0.3.13)
+
+Etiquetas de 12–13 px, descripciones de 14 px y textos mayores en botones, ranuras, ajustes y HUD. Más peso y contraste para los textos secundarios, conservando la jerarquía tipográfica. Espaciado adaptado para mantener Jugar visible en teléfonos pequeños.

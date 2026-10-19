@@ -1,0 +1,81 @@
+/* Phone-first type: readable captions, generous body text, clear hierarchy. */
+.choice-caption { font-size: 12px; font-weight: 400; letter-spacing: .1em; opacity: .85; }
+.choice-copy h2 { font-size: clamp(27px, 7.4vw, 36px); }
+.choice-copy p { font-size: 14px; line-height: 1.55; margin-top: 9px; }
+.start-content .menu-best > span, .menu-best > span, .guide-best > span { font-size: 12px; font-weight: 400; letter-spacing: .1em; }
+.start-content .menu-best > strong { font-size: 42px; }
+.home-play .primary-action { font-size: 17px; }
+.home-play .equipped-note { font-size: 12px; letter-spacing: .04em; }
+.app-nav button { font-size: 12px; font-weight: 400; line-height: 1.2; opacity: .75; }
+.nav-badge:not(:empty) { font-size: 11px; }
+.cycle-label { font-size: 14px; font-weight: 400; letter-spacing: .08em; }
+.score-panel > span, .result-unit { font-size: 12px; font-weight: 400; letter-spacing: .12em; }
+.resource-labels { font-size: 12px; font-weight: 400; letter-spacing: .04em; }
+.combo-count { font-size: 20px; }
+.combo-count::before { font-size: 12px; font-weight: 400; }
+.nitro-message { font-size: 12px; font-weight: 400; letter-spacing: .04em; min-height: 18px; }
+.primary-action, .text-action { font-size: 15px; }
+.result-panel #restart-game { font-size: 16px; }
+.result-panel #change-mode { font-size: 14px; }
+.settings h2 { font-size: 30px; }
+.settings-note { font-size: 14px; font-weight: 400; line-height: 1.6; }
+.setting-row strong, .music-setting label { font-size: 16px; font-weight: 600; }
+.music-setting output { font-size: 14px; font-weight: 400; }
+.settings-tabs button { font-size: 15px; font-weight: 400; }
+.extras-group legend { font-size: 13px; font-weight: 400; letter-spacing: .04em; }
+.extras-options button { font-size: 14px; font-weight: 400; min-height: 46px; }
+.extras-preview { min-height: 148px; }
+.preview-copy > span:first-child { font-size: 11px; font-weight: 400; letter-spacing: .07em; }
+.preview-copy strong { font-size: 19px; }
+.preview-copy p { font-size: 13px; line-height: 1.5; }
+.preview-feedback { font-size: 12px; font-weight: 400; }
+.boost-slot .slot-label { font-size: 11px; font-weight: 400; letter-spacing: .06em; }
+.boost-slot strong { font-size: 15px; }
+.boost-slot small { font-size: 12px; font-weight: 400; opacity: .85; }
+.boost-slot .slot-select, .boost-slot.locked { min-height: 164px; }
+.slot-hint { font-size: 13px; font-weight: 400; line-height: 1.55; }
+.wallet span { font-size: 12px; font-weight: 400; letter-spacing: .04em; }
+.store .market-nav button, .store-tabs button { font-size: 15px; font-weight: 400; }
+.item-copy h3 { font-size: 22px; line-height: 1.3; }
+.item-copy > p { font-size: 14px; line-height: 1.55; }
+.item-details > p { font-size: 14px; line-height: 1.6; }
+.item-actions button, .item-actions .score-unlock { font-size: 13px; font-weight: 400; min-height: 44px; }
+.item-actions button strong { font-size: 16px; }
+.general-label { font-size: 12px; font-weight: 400; letter-spacing: .1em; }
+.upgrade-owned { font-size: 14px; }
+.store-best { font-size: 12px; font-weight: 400; }
+.store-best strong { font-size: 22px; }
+.exchange-section h3 { font-size: 20px; }
+.mission-section-head > span:first-child { font-size: 12px; letter-spacing: .1em; }
+.mission-section-head .reset-time { font-size: 14px; font-weight: 400; }
+.mission-target > span { font-size: 12px; letter-spacing: .08em; }
+.mission-target h3 { font-size: 54px; }
+.mission-target p { font-size: 14px; line-height: 1.5; }
+.goal-footer > span { font-size: 15px; }
+.goal-footer > span > span { font-size: 13px; opacity: .85; }
+.store .mission-exchange { font-size: 15px; }
+.mission-wait h3 { font-size: 22px; line-height: 1.4; }
+.mission-wait p { font-size: 14px; line-height: 1.6; }
+.store-notice { font-size: 14px; line-height: 1.5; }
+.designer label { font-size: 14px; }
+.designer-balance span { font-size: 12px; }
+@media (max-width: 370px) {
+  .shop-item { grid-template-columns: 70px minmax(0, 1fr); gap: 12px; }
+  .item-art > svg { max-width: 66px; }
+  .extras-preview { grid-template-columns: 82px minmax(0, 1fr) 38px; gap: 9px; }
+  .extras-preview .extras-clock { width: 82px; height: 82px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .choice-copy h2 { font-size: 28px; }
+  .choice-copy p { font-size: 13px; }
+  .choice-block { min-height: 86px; }
+  .start-content .menu-best > strong { font-size: 34px; }
+}
+@media (max-height: 700px) and (orientation: portrait) {
+  .home-header { margin-bottom: 12px; }
+  .home-selection { gap: 4px; }
+  .choice-block { min-height: 86px; }
+  .home-play { padding-top: 12px; }
+}
+.store .item-actions button:disabled { opacity: .65; }
+.boost-slot.locked { opacity: .7; }

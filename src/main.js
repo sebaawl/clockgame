@@ -10,6 +10,7 @@ import './style.css';
 import './store.css';
 import './home.css';
 import './market.css';
+import './typography.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots, boostLoadout, removeBoost } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
