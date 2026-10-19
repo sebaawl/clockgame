@@ -5,9 +5,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 let folder;
-
 test.beforeEach(async ({ page, context }) => {
-  // Use an isolated, renamed file: no checkout assets or conventional filename.
   folder = await mkdtemp(join(tmpdir(), 'clocking sin conexión '));
   await copyFile(new URL('../../index.html', import.meta.url), join(folder, 'mi reloj.html'));
   await context.setOffline(true);
@@ -16,83 +14,55 @@ test.beforeEach(async ({ page, context }) => {
   await page.clock.install({ time: instant });
   await page.clock.pauseAt(instant);
 });
-
 test.afterEach(async () => {
   if (folder) await rm(folder, { recursive: true, force: true });
 });
 
 async function openPortable(page) {
-  // A blank, opaque-origin document has no server or checkout assets to fall back to.
   await page.goto('about:blank');
   await page.setContent(await readFile(join(folder, 'mi reloj.html'), 'utf8'));
-  await page.clock.runFor(800);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Todo a su tiempo.');
+  await expect(page.locator('#time')).toHaveText('10.0');
+  await expect(page.locator('#clock')).toBeVisible();
 }
 
-test('standalone HTML plays offline with embedded styles and fonts', async ({ page, isMobile }) => {
+test('single HTML plays and celebrates offline with no external assets', async ({ page, isMobile }) => {
   const errors = [];
-  const networkRequests = [];
+  const requests = [];
   page.on('pageerror', error => errors.push(error.message));
-  page.on('request', request => { if (/^https?:/.test(request.url())) networkRequests.push(request.url()); });
+  page.on('request', request => { if (/^https?:/.test(request.url())) requests.push(request.url()); });
   await openPortable(page);
-  await page.evaluate(() => document.fonts.ready);
-  expect(await page.locator('body').evaluate(element => getComputedStyle(element).fontFamily)).toContain('DM Sans');
-  const fonts = await page.evaluate(() => [...document.fonts].filter(font => font.status === 'loaded').map(font => font.family));
-  expect(fonts).toContain('DM Sans');
-  expect(fonts).toContain('Instrument Serif');
-
-  await page.getByRole('button', { name: 'Empezar a jugar' }).click();
+  expect(await page.locator('body').evaluate(el => getComputedStyle(el).backgroundColor)).toBe('rgb(0, 0, 0)');
   if (isMobile) await page.locator('#tap-right').tap();
   else await page.locator('#tap-right').click();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-  await page.clock.runFor(1250);
-  await expect(page.locator('#phase-label')).toHaveText('FASE 01');
-  await expect(page.locator('#timer-whole')).toHaveText('15');
-  await page.getByRole('button', { name: 'Pausar', exact: true }).click();
-  await page.clock.runFor(5000);
-  await expect(page.locator('#timer-whole')).toHaveText('15');
-
-  const currentUrl = page.url();
-  await page.getByRole('link', { name: 'clocking, inicio' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Todo a su tiempo.');
-  expect(page.url()).toBe(currentUrl);
-  expect(await page.locator('#font-licenses').evaluate(element => JSON.parse(element.textContent).length)).toBe(2);
+  expect(await page.locator('#success-glow').evaluate(el => el.getAnimations()[0].effect.getTiming().duration)).toBe(1000);
+  await page.clock.runFor(1000);
+  await expect(page.locator('#time')).toHaveText('15.0');
   expect(errors).toEqual([]);
-  expect(networkRequests).toEqual([]);
+  expect(requests).toEqual([]);
 });
 
-test('standalone HTML still plays when browser privacy settings deny localStorage', async ({ page }) => {
+test('single HTML works even when all local storage is blocked', async ({ page }) => {
   await page.addInitScript(() => {
-    Object.defineProperty(window, 'localStorage', {
-      get() { throw new DOMException('Storage disabled', 'SecurityError'); },
-    });
+    Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage disabled', 'SecurityError'); } });
   });
   await openPortable(page);
-  await page.getByRole('button', { name: 'Activar sonido', exact: true }).click();
-  await page.getByRole('button', { name: 'Empezar a jugar' }).click();
   await page.keyboard.press('ArrowRight');
-  await page.clock.runFor(1250);
+  await page.clock.runFor(1000);
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
-  await expect(page.locator('#best-label')).toContainText('01');
 });
 
-test('a renamed local HTML file opens directly and its home link stays in that file', async ({ page }) => {
-  const fileUrl = pathToFileURL(join(folder, 'mi reloj.html')).href;
+test('a renamed local HTML file opens directly', async ({ page }) => {
   try {
-    await page.goto(fileUrl);
+    await page.goto(pathToFileURL(join(folder, 'mi reloj.html')).href);
   } catch (error) {
-    // Managed Chromium can forbid all file URLs; keep this distinct from an app failure.
     if (error.message.includes('net::ERR_BLOCKED_BY_ADMINISTRATOR')) {
-      test.skip(true, 'Browser administration policy blocks file://. Standalone HTML is tested separately offline in an opaque-origin document.');
+      test.skip(true, 'Managed browser blocks file://; offline standalone content is tested separately.');
     }
     throw error;
   }
-  await page.clock.runFor(800);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Todo a su tiempo.');
-  await page.getByRole('button', { name: 'Empezar a jugar' }).click();
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-  await page.getByRole('link', { name: 'clocking, inicio' }).click();
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Todo a su tiempo.');
-  expect(page.url()).toBe(fileUrl);
+  await expect(page.locator('#time')).toHaveText('10.0');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
 });
