@@ -279,7 +279,7 @@ function updateBest() {
   for (const id of ['menu-best', 'guide-best']) $(id).querySelector('strong').textContent = best.toLocaleString('es-CL');
 }
 function render() {
-  music.sync(game.status, settings.open);
+  music.sync(game.status, settings.open, menuTab === 'shop');
   updateBest(); updateProgressMenu();
   Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', boosts: game.boosts.join(' '), state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
   applyTheme();
@@ -625,7 +625,7 @@ function openSettings() {
   settingsTab(false);
   delete settings.dataset.closing;
   settings.showModal();
-  music.sync(game.status, true);
+  music.sync(game.status, true, menuTab === 'shop');
   if (!reducedMotion.matches) {
     settings.querySelectorAll('.settings-heading, .settings-note, .setting-row, .music-setting, .sound-picker, .settings-actions, .continue-game').forEach((element, i) => {
       element.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280, delay: 55 + i * 28, fill: 'backwards', easing: 'cubic-bezier(.2,.8,.3,1)' });
@@ -762,7 +762,7 @@ settings.addEventListener('close', () => {
   }
   if (resumeAfterSettings && game.status === 'paused' && !document.hidden) resume();
   resumeAfterSettings = false;
-  music.sync(game.status, false);
+  music.sync(game.status, false, menuTab === 'shop');
 });
 settings.addEventListener('click', event => {
   if (event.target !== settings) return;

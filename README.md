@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.17.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.18.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -215,3 +215,7 @@ La pista elegida se repite sin cambiar al terminar. El menú vuelve a sortear su
 Al perder, el tema de la partida desacelera durante 850 ms: baja su velocidad y tono, se apagan los agudos y el volumen cae hasta detenerse. Se combina con la onda grave de derrota. Reiniciar o regresar al menú cancela la frenada y restaura la reproducción normal; el silencio global y el cambio de aplicación la interrumpen.
 
 La tienda añade Papel (65 monedas / récord 4000), Broche (95 / 5500), Terciopelo (120 / 6500) y De bolsillo (150 / 8000). Son variaciones filtradas y secuenciadas del clic grabado, con agudos suaves. Se pueden escuchar antes de comprarlas y equipar desde Extras durante una partida. La selección persiste al reabrir.
+
+### Música de tienda (0.3.18)
+
+Entrar a Tienda aplica a la música el mismo filtro de paso bajo de 440 Hz que los ajustes durante una partida. Las vistas previas de sonidos mantienen su audio directo. Al cambiar a Jugar o Misiones vuelve suavemente el sonido normal, sin reiniciar ni cambiar el tema elegido.

@@ -123,7 +123,7 @@ export function createMusic(getPreferences) {
   });
   window.addEventListener('pagehide', () => { for (const track of Object.values(tracks)) track.audio.pause(); });
   return {
-    sync(state, settingsOpen = false) {
+    sync(state, settingsOpen = false, shopOpen = false) {
       if (state !== 'lost') cancelTapeStop();
       else if (lastState !== 'lost') beginTapeStop();
       lastState = state;
@@ -131,7 +131,7 @@ export function createMusic(getPreferences) {
       if (next && (requested !== next || (next === 'game' && newGame))) chooseTrack(tracks[next]);
       if (next === 'game') newGame = false;
       requested = next;
-      submerged = settingsOpen && requested === 'game';
+      submerged = shopOpen || (settingsOpen && requested === 'game');
       apply();
     },
     autoplay: unlock,
