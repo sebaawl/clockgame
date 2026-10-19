@@ -514,7 +514,12 @@ function tap(direction, { accelerated = false } = {}) {
   if (game.status === 'ready') { launchRun(direction); return; }
   if (game.status === 'paused') { resume(); return; }
   if (game.status !== 'playing') return;
+  const previousCombo = game.combo;
   if (!moveGame(game, direction, performance.now(), { deferSolve: accelerated })) { if (game.status === 'lost') lose(); return; }
+  if (previousCombo > 0 && !game.perfectRoute) {
+    backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
+    applyTheme();
+  }
   if (accelerated) feedback.nitroStep(game.combo); else { bump(); feedback.tap(game.combo); }
   attemptTaps += 1;
   if (game.status === 'cleared') { finishAdjustment(); return; }

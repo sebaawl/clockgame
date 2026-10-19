@@ -94,3 +94,28 @@ test('best scores follow the selected mode and remain visible on the controls gu
   await expect(page.locator('.guide-nitro, .guide-start, .guide-control strong, .guide-control > span:last-child:not(.guide-arrow)')).toHaveCount(0);
   await expect(page.locator('.guide-clock-hand').first()).toHaveCSS('animation-duration', '5.2s');
 });
+
+for (const theme of ['dark', 'light']) {
+  test(`breaking a streak restores the ${theme} monochrome backdrop and resets its color timer`, async ({ page }) => {
+    if (theme === 'light') {
+      await page.locator('#settings-button').click();
+      await page.getByRole('switch', { name: 'Modo claro', exact: true }).check();
+      await page.locator('#continue-game').click(); await page.clock.runFor(240);
+    }
+    await play(page); await solve(page); await page.clock.runFor(1000);
+    await page.clock.runFor(10020);
+    await expect(page.locator('body')).not.toHaveAttribute('data-backdrop', '0');
+    await page.keyboard.press('ArrowRight');
+    await expect(page.locator('#combo')).toHaveText('×0');
+    await expect(page.locator('body')).toHaveAttribute('data-backdrop', '0');
+    const colors = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return { background: style.getPropertyValue('--background').trim(), accent: style.getPropertyValue('--accent').trim() };
+    });
+    expect(colors).toEqual({ background: theme === 'light' ? '#ffffff' : '#000000', accent: theme === 'light' ? '#007fa8' : '#54d8ff' });
+    expect(parseFloat(await page.locator('#score').evaluate(el => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(40);
+    await page.clock.runFor(1000);
+    await expect(page.locator('body')).toHaveAttribute('data-backdrop', '0');
+    await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  });
+}
