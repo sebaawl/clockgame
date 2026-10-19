@@ -64,9 +64,14 @@ test('paused play cannot start or continue a hold', () => {
 
 const atEleven = () => .9999;
 function solve(game, now, accelerated = false) {
+  if (game.challenge === 'rhythm') {
+    for (let i = 0; i < 4; i++) { now = game.rhythmNext; moveGame(game, 1, now); }
+    return now;
+  }
   const direction = game.mode === 'hard' ? game.requiredDirection : game.optimalDirection || 1;
   const steps = game.optimalSteps;
   for (let i = 0; i < steps; i++) moveGame(game, direction, now, { deferSolve: accelerated });
+  return now;
 }
 
 test('Nitro crosses twelve without solving; overshoot breaks precision and combo', () => {
@@ -127,9 +132,10 @@ test('survival keeps one clock, adds bounded time and charges time during celebr
 
 test('survival continues beyond 90 and pause preserves its single timer', () => {
   const game = startGame(createGame(), 0, atEleven, 'normal', 'survival');
-  for (let i = 0; i < 100; i++) { solve(game, i); advanceGame(game, i, atEleven); }
+  let now = 0;
+  for (let i = 0; i < 100; i++) { now = solve(game, now + 1); advanceGame(game, now, atEleven); }
   assert.equal(game.status, 'playing'); assert.equal(game.completed, 100);
-  pauseGame(game, 200); const remaining = game.remaining;
+  pauseGame(game, now + 200); const remaining = game.remaining;
   tickGame(game, 99999); assert.equal(game.remaining, remaining);
   resumeGame(game, 100000); tickGame(game, 101000); assert.ok(Math.abs(game.remaining - (remaining - 1)) < 1e-9);
 });
@@ -207,7 +213,7 @@ test('survival drains at a leisurely pace, rewards faster play and tightens with
     let now = 0;
     for (let guard = 0; guard < 200 && game.status === 'playing'; guard++) {
       now += seconds * 1000;
-      solve(game, now);
+      now = solve(game, now);
       if (game.status === 'cleared') { now += 1000; advanceGame(game, now, () => .4); }
     }
     assert.equal(game.status, 'lost');

@@ -1,3 +1,4 @@
+import { tickRhythm, pulseRhythm } from './rhythm.js';
 import { prepareChallenge, tickChallenge, retryExact } from './survival.js';
 export const STAGES = ['horas', 'minutos', 'segundos'];
 export const FLOORS = [7, 5, 3];
@@ -12,6 +13,8 @@ export const hasBoost = (game, id) => game.boosts?.includes(id) || game.boost ==
 export const nitroDrain = game => NITRO_DRAIN * (hasBoost(game, 'efficient') ? .75 : 1);
 export const nitroCapacity = game => hasBoost(game, 'tank') ? 200 : 100;
 export const SURVIVAL_CAP = 17;
+export const FORMATS = ['classic', 'survival', 'duel', 'rhythm'];
+export const continuousTime = game => game.format === 'survival' || game.format === 'duel';
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
 export const phaseBudget = (round, phase, mode = 'normal', stage = 0, difficulty = 'easy') => {
@@ -22,6 +25,7 @@ export function createGame() {
   return {
     status: 'menu', difficulty: 'easy', boost: null, boosts: [], mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
     completed: 0, taps: 0, position: 0, rotation: 0, challenge: 'normal', targetClicks: 0, challengeDirection: 0, challengeRetries: 0, extraTurns: 0, driftInterval: 0, driftDirection: 0,
+    rhythmHits: 0, rhythmMisses: 0, rhythmErrors: 0, rhythmScore: 0, rhythmTime: 0, rhythmNext: 0, rhythmPeriod: 1100, rhythmGrade: '', rhythmRemaining: 0,
     budget: 12, remaining: 12, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
     nitro: NITRO_INITIAL, combo: 0, hourPerfectStreak: 0, attemptSteps: 0, optimalSteps: 0,
@@ -70,15 +74,28 @@ function preparePhase(game, now, random) {
   return game;
 }
 export function startGame(game, now, random = Math.random, mode = 'normal', format = 'classic', options = {}) {
-  Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: format === 'survival' ? 'survival' : 'classic' });
+  Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: FORMATS.includes(format) ? format : 'classic' });
   game.difficulty = Object.hasOwn(DIFFICULTIES, options.difficulty) ? options.difficulty : 'easy';
   game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock', 'efficient', 'precision', 'compass'].includes(id)).slice(0, 3);
   game.boost = game.boosts[0] || null;
-  if (game.format === 'survival') game.remaining = 14 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
+  if (continuousTime(game)) game.remaining = 14 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
   return preparePhase(game, now, random);
 }
+// Presentation and control guides do not advance autonomous clocks or beats.
+export function beginPlay(game, now) {
+  game.status = 'playing';
+  game.deadline = now + game.remaining * 1000;
+  if (game.driftInterval) {
+    game.driftNext = now + game.driftInterval;
+    game.flipNext = game.challenge === 'chaos' ? now + game.flipInterval : Infinity;
+  }
+  if (game.challenge === 'rhythm') game.rhythmNext = now + game.rhythmPeriod;
+  return game;
+}
 export function tickGame(game, now) {
-  if (game.status !== 'playing' && !(game.format === 'survival' && game.status === 'cleared')) return game;
+  if (game.status !== 'playing' && !(continuousTime(game) && game.status === 'cleared')) return game;
+  if (game.challenge === 'rhythm' && game.status === 'playing') { tickRhythm(game, now); return game; }
+  if (game.format === 'rhythm') return game;
   game.remaining = Math.max(0, (game.deadline - now) / 1000);
   if (game.remaining === 0) { game.status = 'lost'; game.combo = 0; }
   else tickChallenge(game, now, positions(game.stage));
@@ -87,12 +104,13 @@ export function tickGame(game, now) {
 export function settleGame(game, now, { perfectNitro = false, nitroLock = false } = {}) {
   if (game.status !== 'playing') return false;
   tickGame(game, now);
-  if (game.status !== 'playing' || game.position !== 0 || game.attemptSteps === 0
+  const rhythm = game.challenge === 'rhythm';
+  if (game.status !== 'playing' || (rhythm && game.rhythmHits !== 4) || game.position !== 0 || game.attemptSteps === 0
       || (game.challenge === 'exact' && game.attemptSteps !== game.targetClicks)
-      || (game.mode === 'hard' && game.hardProgress < game.requiredSteps)) return false;
+      || (!rhythm && game.mode === 'hard' && game.hardProgress < game.requiredSteps)) return false;
   game.solveBudget = game.budget;
   game.solveRemaining = game.remaining;
-  game.perfect = game.perfectRoute && game.attemptSteps === game.optimalSteps;
+  game.perfect = game.perfectRoute && (rhythm || game.attemptSteps === game.optimalSteps);
   game.nitroLocked = nitroLock && hasBoost(game, 'lock') && game.lockUses > 0;
   game.perfectNitro = perfectNitro && !game.nitroLocked;
   if (hasBoost(game, 'lock')) {
@@ -117,8 +135,8 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   } else game.nitro = clamp(previousNitro + game.lastNitroGain, 0, nitroCapacity(game));
   game.lastNitroGain = game.nitro - previousNitro;
   game.completed += 1;
-  if (game.format === 'survival') {
-    const gain = (Math.max(.7, 1.6 - game.completed * .008) + (game.perfect ? .3 : 0) + (game.challenge === 'exact' ? 1.25 * game.extraTurns : game.driftInterval ? .45 : 0)) * DIFFICULTIES[game.difficulty].time;
+  if (continuousTime(game)) {
+    const gain = rhythm ? game.rhythmTime : (Math.max(.7, 1.6 - game.completed * .008) + (game.perfect ? .3 : 0) + (game.challenge === 'exact' ? 1.25 * game.extraTurns : game.driftInterval ? .45 : 0)) * DIFFICULTIES[game.difficulty].time;
     game.lastTimeGain = Math.min(gain, SURVIVAL_CAP - game.remaining);
     game.remaining += game.lastTimeGain;
     game.deadline = now + game.remaining * 1000;
@@ -131,6 +149,16 @@ export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   tickGame(game, now);
   if (game.status !== 'playing') return false;
   const count = positions(game.stage);
+  if (game.challenge === 'rhythm') {
+    game.taps++;
+    game.attemptSteps++;
+    if (pulseRhythm(game, now)) {
+      game.rotation += 90;
+      game.position = (game.rhythmHits % 4) * count / 4;
+      settleGame(game, now);
+    }
+    return true;
+  }
   if (!game.optimalDirection) game.optimalDirection = direction;
   if (direction !== game.optimalDirection || (game.position === 0 && game.challenge !== 'exact') || game.attemptSteps >= game.optimalSteps) {
     game.perfectRoute = false;
@@ -155,7 +183,7 @@ export function consumeNitro(game, amount) {
 export function advanceGame(game, now, random = Math.random) {
   if (game.status !== 'cleared') return game;
   const previousStage = game.stage;
-  if (game.format === 'survival') {
+  if (game.format !== 'classic') {
     tickGame(game, now);
     if (game.status === 'lost') return game;
     const within = game.completed % CYCLE_PHASES;
@@ -173,6 +201,7 @@ export function pauseGame(game, now) {
   if (!['playing', 'cleared', 'break'].includes(game.status)) return game;
   tickGame(game, now);
   if (game.status === 'lost') return game;
+  game.rhythmRemaining = game.rhythmNext - now;
   game.driftRemaining = Math.max(0, game.driftNext - now);
   game.flipRemaining = Math.max(0, game.flipNext - now);
   game.resumeStatus = game.status;
@@ -182,6 +211,7 @@ export function pauseGame(game, now) {
 export function resumeGame(game, now) {
   if (game.status !== 'paused') return game;
   game.deadline = now + game.remaining * 1000;
+  game.rhythmNext = now + game.rhythmRemaining;
   game.driftNext = now + game.driftRemaining;
   game.flipNext = now + game.flipRemaining;
   game.status = game.resumeStatus || 'playing';

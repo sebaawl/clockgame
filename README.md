@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.22.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.23.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -253,3 +253,13 @@ El reloj completa doce movimientos con clics precargados en 1,5 segundos. Sus do
 La transformación termina a los 2,1 segundos; el nombre llega a las coordenadas reales del encabezado a los 2,7 y el menú aparece escalonado hasta los 3,3. Tema y sonido guardados se respetan. Movimiento reducido simplifica la apertura; se puede saltar y no se repite al regresar al menú ni al cambiar la orientación. Los clics bloqueados por autoplay se descartan, sin reproducirse de golpe después.
 
 Los contornos están generados en `src/intro-glyphs.js`. Para regenerarlos tras cambiar la fuente: `python3 scripts/generate-intro-glyphs.py` (requiere fontTools y `npm ci`). No se necesita analizar fuentes durante la ejecución.
+
+### Aros rítmicos y modos independientes (0.3.23)
+
+Supervivencia añade «Sigue el pulso» en los ajustes 11 de horas, 5 de minutos y 3 de segundos. El cronómetro se congela durante el desafío. Un aro se contrae hacia el borde circular: cada toque acertado avanza un cuarto de vuelta, y cuatro aciertos completan el reloj. Se evalúa el momento de presionar, no el de soltar. Ambas mitades sirven; Nitro no interviene.
+
+La ventana es simétrica: hasta 45 ms otorga 48 puntos y 0,65 segundos; hasta 95 ms, 28 puntos y 0,35 segundos; hasta 170 ms, 12 puntos y 0,15 segundos. El tiempo se entrega al terminar el reto, respetando el límite de 17 segundos de Supervivencia. Pulsar fuera del margen o dejar pasar un aro consume una vida; tres fallos terminan la partida. Las pausas conservan la distancia del aro.
+
+El selector principal incorpora dos partidas independientes. **1 vs 1** alterna relojes que avanzan solos en una dirección y relojes que cambian de rumbo, con cuenta atrás recuperable. **Ritmo** presenta únicamente aros, sin cuenta atrás ni recompensas de tiempo: la precisión solo mejora el puntaje y las tres vidas duran toda la partida. El intervalo entre aros es de 1,1 / 0,95 / 0,8 segundos según la dificultad. Récords y selección se guardan por modo.
+
+La presentación inicial no consume pulsos ni acumula movimientos del primer duelo. Reiniciar restablece las vidas. Verificación: 76 pruebas de lógica y 14 de navegador en escritorio y móvil, incluyendo supervivencia anterior, pulsaciones, pausas, precisión y transición al siguiente reloj.

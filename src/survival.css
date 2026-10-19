@@ -29,3 +29,18 @@ body:not([data-challenge='normal']) .resource-labels > span { white-space: nowra
 .boost-slot:nth-child(3) .slot-label { grid-column: 1 / -1; }
 .boost-slot:nth-child(3) .slot-select > svg, .boost-slot:nth-child(3) .slot-plus, .boost-slot.locked:nth-child(3) > svg { grid-column: 1; grid-row: 2 / 4; }
 .boost-slot:nth-child(3) strong, .boost-slot:nth-child(3) small { grid-column: 2; }
+
+.rhythm-ring { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; transform-origin: center; color: var(--accent); z-index: 2; }
+.rhythm-ring circle { fill: none; stroke: currentColor; stroke-width: 3; }
+body[data-challenge='rhythm'] .clock-face { stroke: var(--foreground); }
+body[data-challenge='rhythm'] .active-hand { transition: transform 260ms cubic-bezier(.2,1.3,.35,1); }
+body[data-challenge='rhythm'][data-state='paused'] .rhythm-ring { opacity: .35; }
+.timer[data-frozen='true'] { opacity: .65; }
+.timer[data-frozen='true']::after { content: 'PAUSA'; display: block; font-size: 11px; letter-spacing: .12em; line-height: 1; }
+body[data-format='rhythm'] .timer::after { content: 'SIN TIEMPO'; }
+@media (prefers-reduced-motion: reduce) {
+  body[data-challenge='rhythm'] .active-hand { transition: none; }
+}
+/* A stable circular timing rim, even when another cosmetic is equipped. */
+body[data-challenge='rhythm'] #clock .clock-face { display: block; animation: none; }
+body[data-challenge='rhythm'] #clock .square-face { display: none; }

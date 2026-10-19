@@ -35,9 +35,9 @@ export async function installClock(page, { feedback = false } = {}) {
 }
 
 export async function selectChoice(page, kind, value) {
-  const titles = { route: { normal: 'Normal', hard: 'Contraintuitivo' }, format: { classic: 'Clásico', survival: 'Supervivencia' }, difficulty: { easy: 'Fácil', medium: 'Media', hard: 'Difícil' } };
+  const titles = { route: { normal: 'Normal', hard: 'Contraintuitivo' }, format: { classic: 'Clásico', survival: 'Supervivencia', duel: '1 vs 1', rhythm: 'Ritmo' }, difficulty: { easy: 'Fácil', medium: 'Media', hard: 'Difícil' } };
   const wanted = titles[kind][value];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 4; i++) {
     if (await page.locator(`#${kind}-current`).textContent() === wanted) return;
     await page.locator(`[data-cycle="${kind}"][data-step="1"]`).click();
   }

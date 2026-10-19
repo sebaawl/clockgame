@@ -17,7 +17,7 @@ import './survival.css';
 import './spectral.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots, boostLoadout, removeBoost } from './progression.js';
-import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
+import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost, FORMATS, continuousTime, beginPlay } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
@@ -33,7 +33,7 @@ const SOUND_PRESETS = ITEMS.filter(item => item.kind === 'sound').map(item => it
 const preferences = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem('clocking:preferences') || '{}');
-    return { musicVolume: Number.isFinite(saved.musicVolume) ? Math.max(0, Math.min(1, saved.musicVolume)) : .4, difficulty: Object.hasOwn(DIFFICULTIES, saved.difficulty) ? saved.difficulty : 'easy', format: saved.format === 'survival' ? 'survival' : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
+    return { musicVolume: Number.isFinite(saved.musicVolume) ? Math.max(0, Math.min(1, saved.musicVolume)) : .4, difficulty: Object.hasOwn(DIFFICULTIES, saved.difficulty) ? saved.difficulty : 'easy', format: FORMATS.includes(saved.format) ? saved.format : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
   } catch { return { musicVolume: .4, difficulty: 'easy', format: 'classic', flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
 })();
 const feedback = createFeedback(() => preferences);
@@ -44,7 +44,7 @@ const storage = { getItem: key => localStorage.getItem(key), setItem: (key, valu
 const progress = loadProgress(storage);
 preferences.soundPreset = progress.soundPreset;
 try {
-  for (const format of ['classic', 'survival']) for (const mode of ['normal', 'hard']) progress.best = Math.max(progress.best, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0);
+  for (const format of FORMATS) for (const mode of ['normal', 'hard']) progress.best = Math.max(progress.best, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0);
 } catch {}
 let selectedDifficulty = preferences.difficulty;
 let runCosmetic = progress.cosmetic;
@@ -100,6 +100,7 @@ document.querySelector('#app').innerHTML = `
     </div></div>
     <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">PUNTOS</span></div>
     <div class="clock-wrap" id="clock-wrap">
+      <svg id="rhythm-ring" class="rhythm-ring" viewBox="0 0 320 320" hidden aria-hidden="true"><circle cx="160" cy="160" r="144"/></svg>
       <svg id="clock" class="clock" viewBox="0 0 320 320" role="img" aria-label="Reloj analógico. Objetivo: las doce.">
         <circle class="clock-face" cx="160" cy="160" r="144" /><rect class="square-face" x="16" y="16" width="288" height="288" rx="48"/><circle class="inner-face" cx="160" cy="160" r="129"/>
         <g class="ticks">${ticks}</g>
@@ -228,13 +229,13 @@ function updateResources() {
   document.body.dataset.hot = String(game.combo >= 5);
   let message = game.status === 'cleared' ? game.perfectNitro ? 'PERFECT NITRO' : game.perfect ? 'PERFECTO' : '' : nitroRunning ? 'NITRO' : value <= 0 ? 'SIN CARGA' : '';
   if (hasBoost(game, 'lock')) message = game.nitroLocked && game.status === 'cleared' ? `LOCK · ${game.lockUses ? game.lockUses + '/3' : 'RECARGA 3'}` : game.lockCooldown > 0 ? `LOCK · FALTAN ${game.lockCooldown} AJUSTES` : `LOCK · ${game.lockUses}/3`;
-  if (game.status === 'cleared' && game.format === 'survival') message += `${message ? ' · ' : ''}+${game.lastTimeGain.toFixed(1)} S`;
+  if (game.status === 'cleared' && continuousTime(game)) message += `${message ? ' · ' : ''}+${game.lastTimeGain.toFixed(1)} S`;
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
 
 let challengeKey = '', guideKey = '';
 function updateChallengePanel() {
-  const visible = game.format === 'survival' && game.challenge !== 'normal' && ['playing', 'paused', 'cleared'].includes(game.status);
+  const visible = game.challenge !== 'normal' && ['playing', 'paused', 'cleared'].includes(game.status);
   const panel = $('challenge-panel');
   panel.hidden = !visible;
   $('challenge-dock').hidden = !visible;
@@ -243,7 +244,23 @@ function updateChallengePanel() {
   document.body.dataset.targetClicks = String(game.targetClicks);
   document.body.dataset.clicks = String(game.attemptSteps);
   document.body.dataset.challengeDirection = String(game.challengeDirection);
+  $('rhythm-ring').toggleAttribute('hidden', !visible || game.challenge !== 'rhythm' || game.status === 'cleared');
   if (!visible) { challengeKey = ''; return; }
+  if (game.challenge === 'rhythm') {
+    $('rhythm-ring').dataset.next = String(game.rhythmNext);
+    $('rhythm-ring').dataset.period = String(game.rhythmPeriod);
+    updateRhythmRing();
+    $('challenge-title').textContent = game.status === 'cleared' ? 'VUELTA COMPLETA' : 'SIGUE EL PULSO';
+    $('challenge-counter-label').textContent = 'PULSOS';
+    $('challenge-counter').innerHTML = `<span class="count-current">${game.rhythmHits}</span><span class="count-total"> / 4</span>`;
+    $('challenge-counter').setAttribute('aria-label', `${game.rhythmHits} de 4 pulsos, ${3 - game.rhythmMisses} intentos restantes`);
+    $('challenge-hint').textContent = `${game.rhythmGrade || 'Toca cuando el aro llegue al borde'} · ${3 - game.rhythmMisses} ${3 - game.rhythmMisses === 1 ? 'vida' : 'vidas'}`;
+    if (game.status === 'cleared') $('challenge-hint').textContent = `+${game.rhythmScore} PUNTOS${game.format === 'survival' ? ` · +${game.lastTimeGain.toFixed(1)} S` : ''}`;
+    panel.dataset.guide = 'off';
+    if (challengeKey !== `${game.completed}:rhythm`) announce('Sigue el pulso. Toca cualquiera de los lados cuando el aro toque el borde. Cuatro aciertos completan la vuelta. Tres fallos terminan la partida.');
+    challengeKey = `${game.completed}:rhythm`;
+    return;
+  }
   const exact = game.challenge === 'exact';
   const direction = exact ? game.challengeDirection : game.driftDirection;
   const arrow = direction === 1 ? '↻' : '↺';
@@ -304,23 +321,33 @@ function prepareAttempt() {
   optimalSteps = game.mode === 'hard' ? game.requiredSteps : Math.min(game.position, count - game.position);
 }
 function displayTime() {
+  if (game.format === 'rhythm' || (game.challenge === 'rhythm' && game.status !== 'cleared')) {
+    time.textContent = game.format === 'rhythm' ? '∞' : game.remaining.toFixed(1);
+    document.body.dataset.danger = 'false';
+    timer.dataset.frozen = 'true';
+    timer.setAttribute('aria-label', 'Tiempo detenido. Toca para pausar.');
+    return;
+  }
+  timer.dataset.frozen = 'false';
   time.textContent = (Math.ceil(Math.max(0, game.remaining * 10 - 1e-7)) / 10).toFixed(1);
-  document.body.dataset.danger = String(game.status === 'playing' && game.remaining <= 3);
+  document.body.dataset.danger = String(game.status === 'playing' && game.challenge !== 'rhythm' && game.remaining <= 3);
   timer.setAttribute('aria-label', `${time.textContent.replace('.', ',')} segundos. ${game.status === 'paused' ? 'Toca para continuar.' : 'Toca para pausar.'}`);
 }
 function reveal(element, frames, duration = 380) {
   if (!reducedMotion.matches) element.animate(frames, { duration, easing: 'cubic-bezier(.2,.85,.3,1)' });
 }
 const HOME_OPTIONS = {
-  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Relojes vivos y cuentas exactas. Cada acierto suma tiempo.']],
+  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Duelos, cuentas y ritmo. Cada acierto recupera tiempo.'], ['duel', '1 vs 1', 'La manecilla juega en tu contra. Atrapa las doce y gana tiempo.'], ['rhythm', 'Ritmo', 'Cuatro pulsos, una vuelta. Más precisión, más puntos. Tres fallos y termina.']],
   difficulty: [['easy', 'Fácil', 'Más margen para practicar.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
   route: [['normal', 'Normal', 'Elige el camino que prefieras.'], ['hard', 'Contraintuitivo', 'Llega a las doce por el camino largo.']],
 };
 function syncSelector(animate = false) {
+  document.querySelector('[data-choice=route]').hidden = selectedFormat === 'rhythm';
   const selected = { format: selectedFormat, difficulty: selectedDifficulty, route: selectedMode };
   for (const [kind, options] of Object.entries(HOME_OPTIONS)) {
     const index = options.findIndex(option => option[0] === selected[kind]);
-    const [, title, description] = options[index];
+    const [, title, baseDescription] = options[index];
+    const description = kind === 'difficulty' && selectedFormat === 'rhythm' ? ({ easy: 'Un pulso cada 1,1 segundos.', medium: 'Un pulso cada 0,95 segundos.', hard: 'Un pulso cada 0,8 segundos.' }[selectedDifficulty]) : baseDescription;
     const changed = $(kind + '-current').textContent !== title;
     $(kind + '-current').textContent = title;
     $(kind + '-description').textContent = description;
@@ -357,10 +384,10 @@ function render() {
   timer.hidden = inMenu;
   clockWrap.hidden = inMenu || inBreak || ended;
   $('score-panel').hidden = inMenu || inBreak || ended;
-  $('resources').hidden = inMenu || inBreak || ended || ['ready', 'launching'].includes(game.status);
+  $('resources').hidden = inMenu || inBreak || ended || game.challenge === 'rhythm' || ['ready', 'launching'].includes(game.status);
   $('controls').hidden = inMenu || inBreak || ended;
   $('game-over').hidden = !ended;
-  $('cycle-label').textContent = CYCLE_NAMES[game.stage];
+  $('cycle-label').textContent = game.challenge === 'rhythm' ? 'RITMO' : CYCLE_NAMES[game.stage];
   score.textContent = points.toLocaleString('es-CL');
   score.setAttribute('aria-label', `Puntaje: ${points}`);
   if (inBreak) $('break-detail').textContent = game.status === 'paused' ? 'TOCA PARA CONTINUAR' : `FASE ${game.round + 1}`;
@@ -418,10 +445,10 @@ function chooseMode(mode) {
   savePreferences();
 }
 function chooseFormat(format) {
-  selectedFormat = format === 'survival' ? 'survival' : 'classic';
+  selectedFormat = FORMATS.includes(format) ? format : 'classic';
   preferences.format = selectedFormat;
 
-  chooseMode(selectedMode);
+  chooseMode(selectedFormat === 'rhythm' ? 'normal' : selectedMode);
 }
 function showMenu() {
   clearRun();
@@ -512,7 +539,7 @@ function startBreak(reason) {
   game.status = 'break';
   breakRemaining = BREAK_MS;
   $('break-kicker').textContent = reason === 'first' ? 'COMENZAMOS' : reason === 'phase' ? 'NUEVA FASE' : 'SIGUIENTE CICLO';
-  $('break-title').textContent = CYCLE_NAMES[game.stage];
+  $('break-title').textContent = game.format === 'rhythm' ? 'RITMO' : game.format === 'duel' ? '1 VS 1' : CYCLE_NAMES[game.stage];
   render();
   announce(`Fase ${game.round + 1}. ${CYCLE_NAMES[game.stage]}. ${game.mode === 'hard' ? 'Recorrido contraintuitivo. ' : ''}Comenzamos en tres segundos.`);
   scheduleBreakEnd();
@@ -557,10 +584,9 @@ function launchRun(direction) {
       { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
     ], { duration: 1000, easing: 'ease-out' });
     feedback.ui('impact');
-    game.status = 'playing';
-    game.deadline = performance.now() + game.remaining * 1000;
+    beginPlay(game, performance.now());
     render();
-    announce('¡Ya! Lleva la manecilla a las doce.');
+    announce(game.challenge === 'rhythm' ? '¡Ya! Toca cuando el aro toque el borde del reloj.' : '¡Ya! Lleva la manecilla a las doce.');
   }, duration);
 }
 function bump() {
@@ -626,7 +652,7 @@ function resume() {
 function finishAdjustment() {
   input.cancel();
   streak = game.combo;
-  points += scoreAdjustment({ remaining: game.solveRemaining, budget: game.solveBudget, optimalSteps: game.optimalSteps, taps: game.attemptSteps, stage: game.stage, round: game.round, streak, mode: game.mode });
+  if (game.challenge !== 'rhythm') points += scoreAdjustment({ remaining: game.solveRemaining, budget: game.solveBudget, optimalSteps: game.optimalSteps, taps: game.attemptSteps, stage: game.stage, round: game.round, streak, mode: game.mode });
   recordSolve(progress, { score: points, format: game.format, perfect: game.perfect });
   saveProgress(progress, storage);
   if (!reducedMotion.matches) score.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.13)' }, { transform: 'scale(1)' }], { duration: 240, easing: 'ease-out' });
@@ -640,9 +666,12 @@ function tap(direction, { accelerated = false } = {}) {
   if (game.status === 'paused') { resume(); return; }
   if (game.status !== 'playing') return;
   const previousCombo = game.combo;
+  const beforeRhythmMisses = game.rhythmMisses;
+  const beforeRhythmScore = game.rhythmScore || 0;
   if (!moveGame(game, direction, performance.now(), { deferSolve: accelerated })) { if (game.status === 'lost') lose(); return; }
+  if (game.challenge === 'rhythm') points += game.rhythmScore - beforeRhythmScore;
   if (game.status === 'lost') { lose(); return; }
-  if (previousCombo > 0 && !game.perfectRoute) {
+  if (previousCombo > 0 && (game.challenge === 'rhythm' ? game.rhythmMisses > beforeRhythmMisses : !game.perfectRoute)) {
     backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
     applyTheme();
   }
@@ -888,6 +917,7 @@ for (const [id, direction] of [['tap-left', -1], ['tap-right', 1]]) {
   zone.addEventListener('pointerdown', event => {
     if (event.isPrimary === false || event.button !== 0) return;
     event.preventDefault();
+    if (game.challenge === 'rhythm' && game.status === 'playing') { tap(direction); return; }
     if (game.status === 'ready' || game.status === 'paused') { tap(direction); return; }
     if (input.press(direction, event.pointerId)) {
       try { zone.setPointerCapture(event.pointerId); } catch {}
@@ -928,7 +958,7 @@ window.addEventListener('clocking:back', () => {
 window.addEventListener('blur', pauseForBackground);
 window.addEventListener('resize', () => { positionGlow(); syncSelector(); });
 function updateAmbience(now) {
-  const active = game.status === 'playing' || (game.format === 'survival' && game.status === 'cleared');
+  const active = game.status === 'playing' || (continuousTime(game) && game.status === 'cleared');
   if (!active) { lastBackdropAt = null; return; }
   if (lastBackdropAt !== null) backdropElapsed += Math.max(0, now - lastBackdropAt);
   lastBackdropAt = now;
@@ -938,16 +968,24 @@ function updateAmbience(now) {
     applyTheme();
   }
 }
+function updateRhythmRing() {
+  const remaining = game.status === 'paused' ? game.rhythmRemaining : game.rhythmNext - performance.now();
+  const distance = remaining / game.rhythmPeriod;
+  $('rhythm-ring').style.transform = `scale(${Math.max(.84, Math.min(1.8, 1 + distance * .8))})`;
+}
 function frame() {
   updateAmbience(performance.now());
-  if (game.status === 'playing' || (game.format === 'survival' && game.status === 'cleared')) {
-    const previousRotation = game.rotation, previousDirection = game.driftDirection;
+  if (game.status === 'playing' || (continuousTime(game) && game.status === 'cleared')) {
+    const previousRotation = game.rotation, previousDirection = game.driftDirection, previousMisses = game.rhythmMisses;
     tickGame(game, performance.now());
-    if (game.rotation !== previousRotation || game.driftDirection !== previousDirection) render();
+    if (previousMisses !== game.rhythmMisses && game.combo === 0) {
+      backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
+    }
+    if (game.rotation !== previousRotation || game.driftDirection !== previousDirection || previousMisses !== game.rhythmMisses) render();
     if (game.status === 'lost') lose();
     else {
       displayTime();
-      if (game.status === 'playing' && game.remaining <= 3) {
+      if (game.status === 'playing' && game.challenge !== 'rhythm' && game.remaining <= 3) {
         const interval = game.remaining <= 1 ? 300 : game.remaining <= 2 ? 500 : 800;
         if (performance.now() - lastWarning >= interval) {
           feedback.warning(!dangerAnnounced);
@@ -956,6 +994,7 @@ function frame() {
       }
     }
   }
+  if (game.challenge === 'rhythm' && game.status === 'playing') updateRhythmRing();
   requestAnimationFrame(frame);
 }
 // Capture the press before navigation starts, including keyboard activation.

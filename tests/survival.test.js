@@ -155,11 +155,15 @@ test('compass advice preserves reachability across every valid hour and remainin
 test('survival repeats 12 hours, 6 minutes and 4 seconds without ending the run', () => {
   const g = startGame(createGame(), 0, () => .4, 'normal', 'survival');
   const observed = [0, 0, 0];
+  let now = 0;
   for (let i = 0; i < 66; i++) {
     observed[g.stage]++;
     const count = g.optimalSteps;
-    for (let j = 0; j < count; j++) moveGame(g, g.optimalDirection, i);
-    assert.equal(g.status, 'cleared'); advanceGame(g, i, () => .4);
+    for (let j = 0; j < count; j++) {
+      now = g.challenge === 'rhythm' ? g.rhythmNext : now + 1;
+      moveGame(g, g.optimalDirection || 1, now);
+    }
+    assert.equal(g.status, 'cleared'); advanceGame(g, now, () => .4);
   }
   assert.deepEqual(observed, [36, 18, 12]);
   assert.equal(g.status, 'playing'); assert.equal(g.round, 3); assert.equal(g.phase, 1);
