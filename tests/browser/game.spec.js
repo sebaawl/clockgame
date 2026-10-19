@@ -58,6 +58,14 @@ test('success glow is behind the clock, covers the viewport and lasts exactly on
   expect(geometry.x).toBeCloseTo(clock.x + clock.width / 2, 0);
   expect(geometry.y).toBeCloseTo(clock.y + clock.height / 2, 0);
   expect(geometry.layer).toBeLessThan(await page.locator('#clock-wrap').evaluate(el => Number(getComputedStyle(el).zIndex)));
+  expect(await page.locator('#success-glow').evaluate(el => ({
+    background: getComputedStyle(el).backgroundColor,
+    image: getComputedStyle(el).backgroundImage,
+    frames: el.getAnimations()[0].effect.getKeyframes().map(frame => ({ opacity: frame.opacity, transform: frame.transform })),
+  }))).toMatchObject({
+    background: 'rgb(255, 255, 255)', image: 'none',
+    frames: [{ opacity: '1' }, { opacity: '1' }, { opacity: '1' }, { opacity: '0' }],
+  });
   await page.clock.runFor(999);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
   // Inputs cannot skip the glow or change the next clock early.
@@ -67,6 +75,22 @@ test('success glow is behind the clock, covers the viewport and lasts exactly on
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
   await expect(page.locator('#time')).toHaveText('15.0');
   expect(await page.locator('#success-glow').evaluate(el => el.getAnimations().length)).toBe(0);
+});
+
+test('larger timer and overshooting hand motion preserve rapid alternating taps', async ({ page }) => {
+  expect(await page.locator('#timer').evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(48);
+  await page.keyboard.press('ArrowLeft');
+  const bump = await page.locator('#clock-wrap').evaluate(el => el.getAnimations()[0].effect.getKeyframes());
+  expect(bump.some(frame => frame.transform.includes('1.018'))).toBe(true);
+  expect(await page.locator('#active-hand').evaluate(el => getComputedStyle(el).transitionTimingFunction)).toContain('1.55');
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('ArrowLeft');
+    await page.keyboard.press('ArrowRight');
+  }
+  await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 10\./);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
 });
 
 test('timer and keyboard pause without consuming time; expiry can be retried by tapping', async ({ page }) => {

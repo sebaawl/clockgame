@@ -1,6 +1,6 @@
 # clocking
 
-Solo un reloj analógico blanco y un contador de segundos sobre negro. Sin menús, textos, colores de acento ni botones visibles. Trazos gruesos y redondeados. Al ajustar el reloj a las doce, un resplandor blanco nace detrás de él, se expande hasta cubrir la pantalla y se desvanece en **un segundo**.
+Solo un reloj analógico blanco y un contador de segundos grande sobre negro. Sin menús, textos, colores de acento ni botones visibles. Trazos gruesos y redondeados; las manecillas se mueven con un pequeño rebote y el reloj responde a cada toque. Al llegar a las doce, un círculo sólido blanco nace detrás del reloj, alcanza todas las esquinas y después desaparece en fade out. El efecto completo dura **un segundo**, sin degradados.
 
 ## Jugar sin instalar nada
 

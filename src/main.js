@@ -101,8 +101,10 @@ function positionGlow() {
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   glow.style.left = `${x}px`;
   glow.style.top = `${y}px`;
-  glow.style.width = `${radius * 3.2}px`;
-  glow.style.height = `${radius * 3.2}px`;
+  // A solid disk must reach the furthest corner before its fade begins.
+  const diameter = radius * 2 + 4;
+  glow.style.width = `${diameter}px`;
+  glow.style.height = `${diameter}px`;
 }
 
 function celebrate() {
@@ -113,14 +115,14 @@ function celebrate() {
     { opacity: 0.12, transform: 'translate(-50%, -50%) scale(1)', offset: 0.4 },
     { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ] : [
-    { opacity: 0, transform: 'translate(-50%, -50%) scale(0.03)' },
-    { opacity: 0.85, transform: 'translate(-50%, -50%) scale(0.55)', offset: 0.38 },
-    { opacity: 0.55, transform: 'translate(-50%, -50%) scale(1)', offset: 0.7 },
-    { opacity: 0, transform: 'translate(-50%, -50%) scale(1.1)' },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(0)', easing: 'cubic-bezier(.2,.7,.3,1)' },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.65 },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.72, easing: 'ease-out' },
+    { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ];
   glowAnimation = glow.animate(frames, {
     duration: SUCCESS_MS,
-    easing: 'cubic-bezier(.2,.55,.3,1)',
+    easing: 'linear',
   });
   transitionRemaining = SUCCESS_MS;
   scheduleAdvance();
@@ -147,9 +149,10 @@ function bump() {
   bumpAnimation?.cancel();
   bumpAnimation = clockWrap.animate([
     { transform: 'translate(-50%, -50%) scale(1)' },
-    { transform: 'translate(-50%, -50%) scale(.955)', offset: 0.35 },
+    { transform: 'translate(-50%, -50%) scale(.965)', offset: 0.25 },
+    { transform: 'translate(-50%, -50%) scale(1.018)', offset: 0.6 },
     { transform: 'translate(-50%, -50%) scale(1)' },
-  ], { duration: 170, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  ], { duration: 260, easing: 'ease-out' });
 }
 
 function lose() {
