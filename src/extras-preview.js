@@ -1,7 +1,7 @@
 const descriptions = {
   original: 'El reloj original', dots: 'Doce puntos', rail: 'Doble aro', square: 'Esfera cuadrada',
   eclipse: 'Aro grueso, sin marcas', pulse: 'Círculo de trazos', diamond: 'Cuatro marcas cardinales',
-  'sound-felt': 'Clic suave', 'sound-wood': 'Encaje grave', 'sound-clock': 'Ajuste metálico',
+  'sound-paper': 'Roce ligero', 'sound-latch': 'Encaje compacto', 'sound-velvet': 'Golpe cálido', 'sound-pocket': 'Doble encaje', 'sound-felt': 'Clic suave', 'sound-wood': 'Encaje grave', 'sound-clock': 'Ajuste metálico',
   speed: 'Velocidad ×2', tank: 'Capacidad 200', recharge: 'Recarga ×2',
   lock: 'Frena en las doce · 3 usos', time: '+1,5 segundos', efficient: 'Consumo −25%',
   precision: '+3 Nitro por perfecto', none: 'Sin ventajas activas',

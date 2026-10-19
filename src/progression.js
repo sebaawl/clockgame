@@ -3,6 +3,10 @@ export const ITEMS = [
   { id: 'sound-felt', kind: 'sound', name: 'Amortiguado', detail: 'Un clic suave para sesiones largas.', price: 0, target: 0 },
   { id: 'sound-wood', kind: 'sound', name: 'Grave', detail: 'Un encaje profundo y discreto.', price: 50, target: 3000 },
   { id: 'sound-clock', kind: 'sound', name: 'Mecánico', detail: 'El ajuste metálico del reloj.', price: 80, target: 4500 },
+  { id: 'sound-paper', kind: 'sound', name: 'Papel', detail: 'Un roce seco y ligero, sin brillo metálico.', price: 65, target: 4000 },
+  { id: 'sound-latch', kind: 'sound', name: 'Broche', detail: 'Dos piezas que encajan con un clic compacto.', price: 95, target: 5500 },
+  { id: 'sound-velvet', kind: 'sound', name: 'Terciopelo', detail: 'Un golpecito cálido, redondo y muy amortiguado.', price: 120, target: 6500 },
+  { id: 'sound-pocket', kind: 'sound', name: 'De bolsillo', detail: 'Un doble encaje corto, como un mecanismo pequeño.', price: 150, target: 8000 },
   { id: 'dual', kind: 'upgrade', name: 'Doble ranura', detail: 'Mejora permanente: equipa dos boosts distintos a la vez.', price: 600, target: 20000 },
   { id: 'original', kind: 'cosmetic', name: 'Original', detail: 'El reloj de siempre.', price: 0, target: 0 },
   { id: 'dots', kind: 'cosmetic', name: 'Órbita', detail: 'Doce puntos. Un círculo limpio.', price: 60, target: 3500 },
@@ -46,7 +50,7 @@ export function loadProgress(storage, now = new Date()) {
     if (!saved || saved.version !== 1) return state;
     for (const field of ['points', 'coins', 'best']) state[field] = integer(saved[field]);
     state.owned = ['original', 'sound-felt', ...ITEMS.filter(item => !['original', 'sound-felt'].includes(item.id) && saved.owned?.includes(item.id)).map(item => item.id)];
-    if (state.owned.includes('sound-' + saved.soundPreset) && ['felt', 'wood', 'clock'].includes(saved.soundPreset)) state.soundPreset = saved.soundPreset;
+    if (state.owned.includes('sound-' + saved.soundPreset) && ITEMS.some(item => item.kind === 'sound' && item.id === 'sound-' + saved.soundPreset)) state.soundPreset = saved.soundPreset;
     if (state.owned.includes(saved.cosmetic) && ITEMS.some(i => i.id === saved.cosmetic && i.kind === 'cosmetic')) state.cosmetic = saved.cosmetic;
     const candidates = Array.isArray(saved.boosts) && saved.boosts.length ? saved.boosts : [saved.boost];
     const seen = new Set();

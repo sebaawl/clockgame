@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.16.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.17.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -209,3 +209,9 @@ La pista elegida se repite sin cambiar al terminar. El menú vuelve a sortear su
 - Clásico empieza con 12 segundos; la ruta contraintuitiva dispone de un 25% menos. Los mínimos por tanda son 6/4/2,5 s en horas, 7/5,5/4,5 s en minutos y 9/7/5,5 s en segundos, manteniendo el margen según el recorrido manual.
 - Supervivencia comienza con 12 s y permite acumular hasta 15 s antes de los factores de dificultad. Cada acierto devuelve de 1,392 a 0,55 s según el progreso, más 0,25 s si es perfecto; también se aplica el factor de dificultad.
 - Las posiciones en el sexto más próximo a las doce aparecen aproximadamente el 2% de las veces. Todas las posiciones válidas siguen siendo posibles y se conserva la animación por el arco más corto.
+
+### Frenada de cinta y sonidos (0.3.17)
+
+Al perder, el tema de la partida desacelera durante 850 ms: baja su velocidad y tono, se apagan los agudos y el volumen cae hasta detenerse. Se combina con la onda grave de derrota. Reiniciar o regresar al menú cancela la frenada y restaura la reproducción normal; el silencio global y el cambio de aplicación la interrumpen.
+
+La tienda añade Papel (65 monedas / récord 4000), Broche (95 / 5500), Terciopelo (120 / 6500) y De bolsillo (150 / 8000). Son variaciones filtradas y secuenciadas del clic grabado, con agudos suaves. Se pueden escuchar antes de comprarlas y equipar desde Extras durante una partida. La selección persiste al reabrir.

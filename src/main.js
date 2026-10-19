@@ -26,7 +26,7 @@ const CYCLE_NAMES = ['HORA', 'MINUTO', 'SEGUNDO'];
 let backdropIndex = 0;
 let backdropElapsed = 0;
 let lastBackdropAt = null;
-const SOUND_PRESETS = ['felt', 'wood', 'clock'];
+const SOUND_PRESETS = ITEMS.filter(item => item.kind === 'sound').map(item => item.id.slice(6));
 const preferences = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem('clocking:preferences') || '{}');

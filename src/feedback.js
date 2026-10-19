@@ -193,8 +193,19 @@ export function createFeedback(getPreferences) {
     felt: { rate: .65, cutoff: 850, volume: .4, length: .075 },
     wood: { rate: .5, cutoff: 1000, volume: .4, length: .085 },
     clock: { rate: .85, cutoff: 1800, volume: .22, length: .065 },
+    paper: { rate: .92, cutoff: 950, volume: .22, length: .028 },
+    latch: { rate: .58, cutoff: 1250, volume: .32, length: .048 },
+    velvet: { rate: .38, cutoff: 480, volume: .5, length: .095 },
+    pocket: { rate: .72, cutoff: 1100, volume: .24, length: .032 },
   };
-  function tick(preset = getPreferences().soundPreset) { return foley(profiles[preset] || profiles.felt); }
+  function tick(preset = getPreferences().soundPreset, energetic = false) {
+    const profile = profiles[preset] || profiles.felt;
+    const voice = foley(energetic ? { ...profile, volume: profile.volume * 1.1, rate: profile.rate * 1.05 } : profile);
+    if (preset === 'latch' || preset === 'pocket') {
+      foley({ ...profile, rate: profile.rate * .88, volume: profile.volume * .38, length: .024 }, preset === 'pocket' ? .038 : .019);
+    }
+    return voice;
+  }
   function loss() {
     const audio = unlock();
     if (!audio) return;
@@ -246,10 +257,7 @@ export function createFeedback(getPreferences) {
     warning(haptic) { if (haptic) vibrate(18); foley({ rate: .7, cutoff: 950, volume: .17, length: .04 }); },
     tap(combo = 0) {
       vibrate(8);
-      if (combo >= 5) {
-        const profile = profiles[getPreferences().soundPreset] || profiles.felt;
-        foley({ ...profile, volume: profile.volume * 1.1, rate: profile.rate * 1.05 });
-      } else tick();
+      tick(getPreferences().soundPreset, combo >= 5);
     },
     interrupt() { vibrate([24, 30, 58]); },
     unlock, ui, success, preview: tick,
