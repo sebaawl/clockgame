@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.4.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.5.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 

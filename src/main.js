@@ -1,5 +1,6 @@
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
+import '@fontsource/poppins/latin-900.css';
 import '@fontsource/poppins/latin-400.css';
 import '@fontsource/poppins/latin-600.css';
 import './style.css';
@@ -83,7 +84,7 @@ document.querySelector('#app').innerHTML = `
       <button id="timer" class="timer" aria-describedby="instructions"><span id="time">15.0</span></button>
       <button id="settings-button" class="settings-trigger" aria-label="Abrir ajustes" type="button">${gear}</button>
     </div></div>
-    <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">${gear} PUNTOS</span></div>
+    <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">PUNTOS</span></div>
     <div class="clock-wrap" id="clock-wrap">
       <svg id="clock" class="clock" viewBox="0 0 320 320" role="img" aria-label="Reloj analógico. Objetivo: las doce.">
         <circle class="clock-face" cx="160" cy="160" r="144" /><rect class="square-face" x="16" y="16" width="288" height="288" rx="48"/><circle class="inner-face" cx="160" cy="160" r="129"/>
@@ -120,9 +121,9 @@ document.querySelector('#app').innerHTML = `
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
     <section id="game-over" class="game-over" hidden aria-label="Fin de la partida"><div id="result-panel" class="result-panel">
-      <p class="result-kicker" id="result-kicker">SE ACABÓ EL TIEMPO</p><h2 id="result-title">Se te pasó<br>la hora.</h2>
-      <output id="final-score" class="final-score" aria-label="Puntaje final">0</output><p class="result-unit">${gear} PUNTOS</p><p id="result-mode" class="result-mode">NORMAL</p><p id="best-score" class="best-score"></p>
-      <button id="restart-game" class="primary-action" type="button">Reintentar</button><button id="result-daily" class="text-action" type="button">Metas diarias</button><button id="change-mode" class="text-action" type="button">Cambiar modo</button>
+      <h2 id="result-title">Se te pasó<br>la hora.</h2>
+      <div class="result-points"><output id="final-score" class="final-score" aria-label="Puntaje final">0</output><p class="result-unit">PUNTOS</p></div>
+      <button id="restart-game" class="primary-action" type="button">${restartIcon}<span>Reintentar</span></button><button id="change-mode" class="text-action" type="button">Menú principal</button>
     </div></section>
     <div id="combo-celebration" class="combo-celebration" hidden aria-hidden="true"><span>COMBO</span><strong id="combo-big">5×</strong></div>
     <p class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -166,7 +167,6 @@ function updateProgressMenu() {
   $('menu-coins').textContent = progress.coins ? progress.coins.toLocaleString('es-CL') : '';
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
-  $('result-daily').textContent = ready ? `Metas diarias · ${ready} por recoger` : 'Metas diarias';
   $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
   document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
 }
@@ -488,16 +488,20 @@ function bump() {
     { transform: 'translate(-50%, -50%) scale(1)' },
   ], { duration: 260, easing: 'ease-out' });
 }
+const lossTitles = ['Se te pasó<br>la hora.', 'Perdiste<br>el tren.', 'Llegaste<br>tarde.', 'El tiempo<br>voló.', 'Se acabó<br>la cuerda.'];
+let lastLossTitle = -1;
 function showResult(won) {
-  $('result-kicker').textContent = won ? 'TODO EN SU SITIO' : 'SE ACABÓ EL TIEMPO';
-  $('result-title').innerHTML = won ? 'Justo a<br>tiempo.' : 'Se te pasó<br>la hora.';
+  if (won) $('result-title').innerHTML = 'Justo a<br>tiempo.';
+  else {
+    const offset = 1 + Math.floor(Math.random() * (lossTitles.length - 1));
+    lastLossTitle = (lastLossTitle + offset) % lossTitles.length;
+    $('result-title').innerHTML = lossTitles[lastLossTitle];
+  }
   $('final-score').textContent = points.toLocaleString('es-CL');
   $('final-score').setAttribute('aria-label', `Puntaje final: ${points}`);
-  $('result-mode').textContent = `${game.format === 'survival' ? 'SUPERVIVENCIA' : 'CLÁSICO'} · ${game.mode === 'hard' ? 'CONTRAINTUITIVO' : 'NORMAL'} · ${DIFFICULTIES[game.difficulty].name.toUpperCase()}`;
   const key = bestKey(game.format, game.mode, game.difficulty);
   let best = points;
   try { best = Math.max(points, Number(localStorage.getItem(key)) || 0); localStorage.setItem(key, String(best)); } catch {}
-  $('best-score').textContent = `RÉCORD ${best.toLocaleString('es-CL')}`;
   render();
   $('restart-game').focus({ preventScroll: true });
 }
@@ -627,7 +631,6 @@ document.querySelectorAll('[data-sound]').forEach(button => button.addEventListe
 }));
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
-$('result-daily').addEventListener('click', () => store.open(true));
 document.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {
   const kind = button.dataset.cycle;
   const options = HOME_OPTIONS[kind];

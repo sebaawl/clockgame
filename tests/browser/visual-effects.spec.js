@@ -72,7 +72,13 @@ test('game over fills the viewport with red and slides up with readable controls
   await page.clock.runFor(15100);
   await expect(page.locator('#game-over')).toHaveCSS('background-color', 'rgb(223, 38, 59)');
   await expect(page.locator('#game-over')).toHaveCSS('animation-name', 'game-over-rise');
-  await expect(page.locator('#restart-game')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await expect(page.locator('#restart-game')).toHaveCSS('color', 'rgb(0, 0, 0)');
+  await expect(page.locator('#restart-game')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('#restart-game')).toHaveCSS('border-radius', '999px');
+  await expect(page.locator('#game-over button')).toHaveCount(2);
+  await expect(page.locator('#restart-game svg')).toHaveCount(1);
+  await expect(page.locator('#result-title')).toHaveCSS('font-weight', '900');
+  await expect(page.locator('#score-panel svg')).toHaveCount(0);
   const size = await page.locator('#game-over').evaluate(el => ({ width: el.offsetWidth, height: el.offsetHeight }));
   expect(size).toEqual(page.viewportSize());
 });
