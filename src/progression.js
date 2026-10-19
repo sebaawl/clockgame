@@ -1,5 +1,8 @@
 export const PROGRESS_KEY = 'clocking:progress:v1';
 export const ITEMS = [
+  { id: 'sound-felt', kind: 'sound', name: 'Amortiguado', detail: 'Un clic suave para sesiones largas.', price: 0, target: 0 },
+  { id: 'sound-wood', kind: 'sound', name: 'Grave', detail: 'Un encaje profundo y discreto.', price: 50, target: 3000 },
+  { id: 'sound-clock', kind: 'sound', name: 'Mecánico', detail: 'El ajuste metálico del reloj.', price: 80, target: 4500 },
   { id: 'dual', kind: 'upgrade', name: 'Doble ranura', detail: 'Mejora permanente: equipa dos boosts distintos a la vez.', price: 600, target: 20000 },
   { id: 'original', kind: 'cosmetic', name: 'Original', detail: 'El reloj de siempre.', price: 0, target: 0 },
   { id: 'dots', kind: 'cosmetic', name: 'Órbita', detail: 'Doce puntos. Un círculo limpio.', price: 60, target: 3500 },
@@ -21,7 +24,7 @@ export function localDay(now = new Date()) {
 }
 function dayState(day) { return { day, best: 0, classic: 0, survival: 0, clocks: 0, perfect: 0, claimed: [] }; }
 export function createProgress(now = new Date()) {
-  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original'], cosmetic: 'original', boost: null, boosts: [], daily: dayState(localDay(now)) };
+  return { version: 1, points: 0, coins: 0, best: 0, owned: ['original', 'sound-felt'], soundPreset: 'felt', cosmetic: 'original', boost: null, boosts: [], daily: dayState(localDay(now)) };
 }
 export function refreshDaily(state, now = new Date()) {
   const day = localDay(now);
@@ -34,7 +37,8 @@ export function loadProgress(storage, now = new Date()) {
     const saved = JSON.parse(storage.getItem(PROGRESS_KEY));
     if (!saved || saved.version !== 1) return state;
     for (const field of ['points', 'coins', 'best']) state[field] = integer(saved[field]);
-    state.owned = ['original', ...ITEMS.filter(item => item.id !== 'original' && saved.owned?.includes(item.id)).map(item => item.id)];
+    state.owned = ['original', 'sound-felt', ...ITEMS.filter(item => !['original', 'sound-felt'].includes(item.id) && saved.owned?.includes(item.id)).map(item => item.id)];
+    if (state.owned.includes('sound-' + saved.soundPreset) && ['felt', 'wood', 'clock'].includes(saved.soundPreset)) state.soundPreset = saved.soundPreset;
     if (state.owned.includes(saved.cosmetic) && ITEMS.some(i => i.id === saved.cosmetic && i.kind === 'cosmetic')) state.cosmetic = saved.cosmetic;
     const candidates = Array.isArray(saved.boosts) && saved.boosts.length ? saved.boosts : [saved.boost];
     state.boosts = [...new Set(candidates)].filter(id => state.owned.includes(id) && ITEMS.some(i => i.id === id && i.kind === 'boost')).slice(0, boostSlots(state));
@@ -98,6 +102,7 @@ export function equipItem(state, id) {
   if (id === 'none') { state.boost = null; state.boosts = []; return true; }
   const item = ITEMS.find(item => item.id === id);
   if (!item || !state.owned.includes(id) || item.kind === 'upgrade') return false;
+  if (item.kind === 'sound') { state.soundPreset = id.slice(6); return true; }
   if (item.kind === 'cosmetic') { state.cosmetic = id; return true; }
   let equipped = equippedBoosts(state);
   if (boostSlots(state) === 1) equipped = [id];

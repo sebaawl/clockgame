@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.6.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.7.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -164,3 +164,7 @@ Selección por bloques con flechas y descripción breve. Jugar en blanco. Tienda
 ### Música (0.3.6)
 
 Pistas originales del menú y la partida integradas sin conexión, en bucle y con transición suave. Volumen de música persistente en ajustes; filtro de paso bajo a 440 Hz al abrirlos durante una partida. La música empieza con la primera interacción y se silencia con Sonido o al dejar la app en segundo plano.
+
+### Extras (0.3.7)
+
+Sonidos Grave (50 monedas o récord 3.000) y Mecánico (80 o 4.500) en la tienda; Amortiguado incluido por defecto. Ajustes con pestañas Juego y Extras para equipar compras durante la partida. Luna en la esquina superior para cambiar el tema y botón Jugar con contraste invertido en modo claro. Cambiar boosts conserva el cooldown del Lock y nunca recarga Nitro; los cambios de tiempo se aplican a los próximos relojes.

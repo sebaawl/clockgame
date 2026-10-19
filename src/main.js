@@ -9,7 +9,7 @@ import './store.css';
 import './home.css';
 import './market.css';
 import { createStore } from './store.js';
-import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts } from './progression.js';
+import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, hasBoost } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
@@ -34,6 +34,7 @@ const music = createMusic(() => preferences);
 const game = createGame();
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const progress = loadProgress(storage);
+preferences.soundPreset = progress.soundPreset;
 try {
   for (const format of ['classic', 'survival']) for (const mode of ['normal', 'hard']) progress.best = Math.max(progress.best, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0);
 } catch {}
@@ -132,17 +133,16 @@ document.querySelector('#app').innerHTML = `
   </main>
   <dialog id="settings" class="settings" aria-labelledby="settings-title">
     <div class="sheet-handle" aria-hidden="true"></div>
-    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2></div>
+    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><label class="theme-toggle" title="Modo claro"><input id="setting-light" type="checkbox" role="switch" aria-label="Modo claro">${icon('<path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/>')}</label></div>
     <p class="settings-note">Tu tiempo está en pausa.</p>
+    <div class="settings-tabs" role="tablist" aria-label="Apartados de ajustes"><button id="tab-game" role="tab" aria-selected="true" aria-controls="settings-game" type="button">Juego</button><button id="tab-extras" role="tab" aria-selected="false" aria-controls="settings-extras" type="button">Extras</button></div>
+    <section id="settings-game" role="tabpanel" aria-labelledby="tab-game">
     <label class="setting-row" for="setting-sound"><span><strong>Sonido</strong></span><input id="setting-sound" type="checkbox" role="switch"></label>
     <div class="music-setting"><label for="setting-music">Música</label><output id="music-volume-value" for="setting-music">40%</output><input id="setting-music" type="range" min="0" max="100" step="1" aria-label="Volumen de música"></div>
     <label class="setting-row" for="setting-success"><span><strong>Sonido de acierto</strong></span><input id="setting-success" type="checkbox" role="switch"></label>
     <label class="setting-row" for="setting-flash"><span><strong>Destello de acierto</strong></span><input id="setting-flash" type="checkbox" role="switch"></label>
-    <fieldset class="sound-picker"><legend>Sonido del reloj</legend><div class="sound-options" role="group" aria-label="Sonido del reloj">
-      ${[['felt', 'Amortiguado'], ['wood', 'Grave'], ['clock', 'Mecánico']].map(([id, name]) => `<button class="sound-option" data-sound="${id}" aria-pressed="false" type="button">${name}</button>`).join('')}
-    </div></fieldset>
     <label class="setting-row" for="setting-vibration"><span><strong>Vibración</strong></span><input id="setting-vibration" type="checkbox" role="switch"></label>
-    <label class="setting-row" for="setting-light"><span><strong>Modo claro</strong></span><input id="setting-light" type="checkbox" role="switch"></label>
+    </section><section id="settings-extras" role="tabpanel" aria-labelledby="tab-extras" hidden></section>
     <div class="settings-actions">
       <button id="menu-settings" class="icon-action home-action" type="button" aria-label="Volver al menú" title="Volver al menú">${homeIcon}</button>
       <button id="restart-settings" class="icon-action restart-action" type="button" aria-label="Reiniciar partida" title="Reiniciar partida">${restartIcon}</button>
@@ -167,6 +167,7 @@ if (import.meta.env.VITE_DESIGNER === 'true') {
   import('./designer.js').then(({ installDesigner }) => { designer = installDesigner({ progress, storage, changed: updateProgressMenu, gear, reducedMotion, feedback }); });
 }
 function updateProgressMenu() {
+  preferences.soundPreset = progress.soundPreset;
   $('menu-coins').textContent = progress.coins ? progress.coins.toLocaleString('es-CL') : '';
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
@@ -600,6 +601,7 @@ function openSettings() {
   feedback.interrupt();
   feedback.ui('open');
   syncSoundOptions();
+  settingsTab(false);
   delete settings.dataset.closing;
   settings.showModal();
   music.sync(game.status, true);
@@ -626,16 +628,38 @@ function closeSettings() {
 }
 
 function syncSoundOptions() {
-  document.querySelectorAll('[data-sound]').forEach(button => {
-    button.setAttribute('aria-pressed', String(button.dataset.sound === preferences.soundPreset));
-  });
+  const sections = [['cosmetic', 'Relojes'], ['sound', 'Sonidos'], ['boost', 'Boosts']];
+  $('settings-extras').innerHTML = sections.map(([kind, title]) => {
+    const items = ITEMS.filter(item => item.kind === kind && progress.owned.includes(item.id));
+    const buttons = items.map(item => {
+      const selected = kind === 'cosmetic' ? progress.cosmetic === item.id : kind === 'sound' ? progress.soundPreset === item.id.slice(6) : equippedBoosts(progress).includes(item.id);
+      return `<button type="button" data-extra="${item.id}" ${kind === 'sound' ? `data-sound="${item.id.slice(6)}"` : ''} aria-pressed="${selected}">${item.name}${selected ? ' ✓' : ''}</button>`;
+    });
+    if (kind === 'boost') buttons.unshift(`<button type="button" data-extra="none" aria-pressed="${!equippedBoosts(progress).length}">Sin boost</button>`);
+    return `<fieldset class="extras-group"><legend>${title}${kind === 'boost' ? ` · ${equippedBoosts(progress).length}/${boostSlots(progress)}` : ''}</legend><div class="extras-options">${buttons.join('')}</div></fieldset>`;
+  }).join('');
 }
-document.querySelectorAll('[data-sound]').forEach(button => button.addEventListener('click', () => {
-  preferences.soundPreset = button.dataset.sound;
-  savePreferences();
-  syncSoundOptions();
-  feedback.preview();
-}));
+function settingsTab(extras) {
+  $('settings-game').hidden = extras;
+  $('settings-extras').hidden = !extras;
+  $('tab-game').setAttribute('aria-selected', String(!extras));
+  $('tab-extras').setAttribute('aria-selected', String(extras));
+  const panel = $(extras ? 'settings-extras' : 'settings-game');
+  reveal(panel, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 220);
+}
+$('tab-game').addEventListener('click', () => settingsTab(false));
+$('tab-extras').addEventListener('click', () => settingsTab(true));
+$('settings-extras').addEventListener('click', event => {
+  const button = event.target.closest('[data-extra]');
+  if (!button || !equipItem(progress, button.dataset.extra)) return;
+  preferences.soundPreset = progress.soundPreset;
+  savePreferences(); saveProgress(progress, storage);
+  runCosmetic = progress.cosmetic;
+  game.boosts = [...equippedBoosts(progress)]; game.boost = game.boosts[0] || null;
+  game.nitro = Math.min(game.nitro, nitroCapacity(game));
+  syncSoundOptions(); render();
+  if (button.dataset.sound) feedback.preview();
+});
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
 document.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {

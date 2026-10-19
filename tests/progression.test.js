@@ -67,3 +67,19 @@ test('double slot is a permanent expensive purchase, permits two distinct boosts
   assert.equal(equipItem(p, 'lock'), true); assert.deepEqual(p.boosts, ['speed']);
   equipItem(p, 'none'); assert.deepEqual(p.boosts, []);
 });
+
+test('clock sounds require ownership, default to felt and persist independently of boosts', () => {
+  const state = createProgress(today), storage = memory();
+  assert.equal(state.soundPreset, 'felt');
+  assert.equal(equipItem(state, 'sound-wood'), false);
+  state.coins = 50;
+  assert.equal(buyItem(state, 'sound-wood'), true);
+  assert.equal(state.coins, 0);
+  assert.equal(equipItem(state, 'sound-wood'), true);
+  assert.equal(state.soundPreset, 'wood');
+  assert.deepEqual(state.boosts, []);
+  saveProgress(state, storage);
+  assert.equal(loadProgress(storage, today).soundPreset, 'wood');
+  state.soundPreset = 'clock'; saveProgress(state, storage);
+  assert.equal(loadProgress(storage, today).soundPreset, 'felt');
+});

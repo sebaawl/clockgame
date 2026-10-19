@@ -3,6 +3,7 @@ import { installClock, selectChoice } from './helpers.js';
 
 test('pill actions, three recorded sounds, persistent selection and global mute', async ({ page }) => {
   await installClock(page, { feedback: true });
+  await page.addInitScript(() => { if (!localStorage.getItem('clocking:progress:v1')) localStorage.setItem('clocking:progress:v1', JSON.stringify({ version: 1, owned: ['original', 'sound-felt', 'sound-wood', 'sound-clock'] })); });
   await page.goto('/');
   await expect(page.locator('#start-game')).toHaveCSS('border-radius', '999px');
   await selectChoice(page, 'route', 'hard');
@@ -11,6 +12,7 @@ test('pill actions, three recorded sounds, persistent selection and global mute'
   const beforePanel = await page.evaluate(() => window.__ticks);
   await page.locator('#settings-button').click();
   expect(await page.evaluate(() => window.__ticks)).toBeGreaterThan(beforePanel);
+  await page.locator('#tab-extras').click();
   await expect(page.locator('[data-sound]')).toHaveCount(3);
   for (const preset of ['wood', 'clock', 'felt']) {
     const before = await page.evaluate(() => window.__ticks);
@@ -21,8 +23,11 @@ test('pill actions, three recorded sounds, persistent selection and global mute'
   await page.locator('[data-sound="wood"]').click();
   await page.reload();
   await page.locator('#settings-button').click();
+  await page.locator('#tab-extras').click();
   await expect(page.locator('[data-sound="wood"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#tab-game').click();
   await page.getByRole('switch', { name: /^Sonido$/ }).uncheck();
+  await page.locator('#tab-extras').click();
   const muted = await page.evaluate(() => window.__ticks);
   await page.locator('[data-sound="clock"]').click();
   await page.locator('#continue-game').click();

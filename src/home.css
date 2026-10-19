@@ -64,7 +64,7 @@ body[data-state='menu'] .hud { top: max(14px, env(safe-area-inset-top)); }
 .choice-copy h2 { margin: 7px 0 4px; font-size: 21px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
 .choice-copy p { margin: 0; min-height: 28px; font-size: 10px; font-weight: 300; line-height: 1.45; }
 .home-play { padding-top: 28px; }
-.home-play .primary-action { color: #000; background: #fff; border-color: #fff; font-weight: 600; }
+.home-play .primary-action { color: var(--surface); background: var(--foreground); border-color: var(--foreground); font-weight: 600; }
 @media (max-height: 700px) and (orientation: portrait) {
   .start-content { padding-top: 56px; padding-bottom: 12px; }
   .home-header { margin-bottom: 20px; }

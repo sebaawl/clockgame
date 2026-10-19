@@ -1,0 +1,40 @@
+import { test, expect } from '@playwright/test';
+import { installClock, play } from './helpers.js';
+
+test('sounds are purchased, owned extras equip during play, and the moon inverts the play button', async ({ page }) => {
+  await installClock(page);
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('clocking:progress:v1')) localStorage.setItem('clocking:progress:v1', JSON.stringify({ version: 1, coins: 50, owned: ['original', 'dots', 'tank', 'lock'] }));
+  });
+  await page.goto('/');
+  await page.locator('#settings-button').click();
+  await page.locator('#tab-extras').click();
+  await expect(page.locator('[data-sound]')).toHaveCount(1);
+  await expect(page.locator('[data-sound="felt"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('switch', { name: 'Modo claro', exact: true }).check();
+  await page.locator('#continue-game').click(); await page.clock.runFor(300);
+  await expect(page.locator('#start-game')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(page.locator('#start-game')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await page.locator('#open-store').click();
+  await page.locator('[data-item="sound-wood"] [data-action="buy"]').click();
+  await expect(page.locator('[data-item="sound-wood"] [data-action="equip"]')).toBeEnabled();
+  await expect(page.locator('#wallet-coins strong')).toHaveText('0');
+  await page.locator('[data-action="close"]').click(); await page.clock.runFor(450);
+  await play(page);
+  await page.locator('#settings-button').click();
+  await page.locator('#tab-extras').click();
+  await page.locator('[data-extra="sound-wood"]').click();
+  await expect(page.locator('[data-extra="sound-wood"]')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('[data-extra="dots"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-skin', 'dots');
+  await page.locator('[data-extra="tank"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-boosts', 'tank');
+  await page.locator('[data-extra="lock"]').click();
+  await expect(page.locator('body')).toHaveAttribute('data-boosts', 'lock');
+  await page.locator('#continue-game').click(); await page.clock.runFor(300);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  await page.reload();
+  await page.locator('#settings-button').click(); await page.locator('#tab-extras').click();
+  await expect(page.locator('[data-extra="sound-wood"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('[data-extra="lock"]')).toHaveAttribute('aria-pressed', 'true');
+});

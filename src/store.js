@@ -14,7 +14,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   let tab = 'cosmetic', view = 'shop', motion, closing = false, tabTimer, dayTimer, market = 'buy';
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
-  const compactDetail = { original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
+  const compactDetail = { 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
   function purchaseActions(item, owned, equipped = false) {
     if (item.kind === 'upgrade' && owned) return `<span class="upgrade-owned">${symbols.check} Permanente</span>`;
     if (owned) {
@@ -24,13 +24,14 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     return `<button data-action="buy" data-id="${item.id}" aria-label="Comprar ${item.name} por ${item.price} monedas" ${progress.coins < item.price ? 'disabled' : ''}>${coin}<strong>${format(item.price)}</strong></button><button class="score-unlock" data-action="unlock" data-id="${item.id}" aria-label="Desbloquear ${item.name} con récord de ${item.target} puntos" ${progress.best < item.target ? 'disabled' : ''}>${symbols.trophy} ${format(item.target)}</button>`;
   }
   function art(item) {
+    if (item.kind === 'sound') return svg('<path d="m11 4-6 5H2v6h3l6 5V4Zm4 4a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/>');
     if (item.kind === 'cosmetic') return miniClock(item.id);
     if (item.id === 'lock') return svg('<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>');
     if (item.id === 'tank') return svg('<rect x="3" y="4" width="6" height="16" rx="2"/><rect x="15" y="4" width="6" height="16" rx="2"/><path d="M3 12h6m6 0h6"/>');
     return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', dual: '2' })[item.id]}</span>`;
   }
   function itemCard(item) {
-    const owned = progress.owned.includes(item.id), equipped = item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
+    const owned = progress.owned.includes(item.id), equipped = item.kind === 'sound' ? progress.soundPreset === item.id.slice(6) : item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
     return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${purchaseActions(item, owned, equipped)}</div></article>`;
   }
   function render() {
@@ -60,7 +61,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     }
     content.innerHTML = nav + `<div class="store-tabs" role="group" aria-label="Secciones de la tienda"><span class="store-tab-line" style="transform:translateX(${tab === 'cosmetic' ? 0 : 100}%)"></span><button data-action="tab" data-id="cosmetic" aria-pressed="${tab === 'cosmetic'}">${symbols.clock} Cosméticos</button><button data-action="tab" data-id="boost" aria-pressed="${tab === 'boost'}">${svg('<path d="m14 2-8 12h6l-2 8 8-12h-6l2-8Z"/>')} Boosts</button></div>
       ${tab === 'boost' ? `<div class="loadout-heading"><span>RANURAS <strong>${equippedBoosts(progress).length}/${boostSlots(progress)}</strong></span><button class="no-boost" data-action="equip" data-id="none" aria-label="Quitar todos los boosts" aria-pressed="${!equippedBoosts(progress).length}">${svg('<path d="m6 6 12 12M18 6 6 18"/>')}</button></div><div class="general-label">MEJORA GENERAL</div>${itemCard(ITEMS.find(item => item.id === 'dual'))}<div class="general-label">BOOSTS</div>` : ''}
-      <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div><p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
+      <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div>${tab === 'cosmetic' ? `<div class="general-label">SONIDOS</div><div class="catalog">${ITEMS.filter(item => item.kind === 'sound').map(itemCard).join('')}</div>` : ''}<p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
   }
   function celebrate(type, amount, origin) {
     const target = dialog.querySelector(type === 'points' ? '#wallet-points' : '#wallet-coins');
@@ -130,9 +131,9 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     if (action === 'claim') { reward = claimGoal(progress, id); if (reward) message = `+${reward} engranajes`; }
     if (action === 'exchange') { reward = exchangeCoins(progress, id); if (reward) message = `+${reward} monedas`; }
     if (action === 'buy' || action === 'unlock') { if (buyItem(progress, id, action === 'buy' ? 'coins' : 'score')) message = `${ITEMS.find(i => i.id === id).name} desbloqueado`; }
-    if (action === 'equip') { if (equipItem(progress, id)) message = id === 'none' ? 'Sin boost' : `${ITEMS.find(i => i.id === id).name} ${equippedBoosts(progress).includes(id) || ITEMS.find(i => i.id === id).kind === 'cosmetic' ? 'equipado' : 'retirado'}`; }
+    if (action === 'equip') { if (equipItem(progress, id)) message = id === 'none' ? 'Sin boost' : `${ITEMS.find(i => i.id === id).name} ${equippedBoosts(progress).includes(id) || ITEMS.find(i => i.id === id).kind !== 'boost' ? 'equipado' : 'retirado'}`; }
     if (!message) { if (action === 'equip') notice.textContent = 'Quita un boost para liberar una ranura.'; return; }
-    const saved = persist(); render(); notice.textContent = message + (saved ? '' : ' · Guardado no disponible: solo esta sesión.');
+    const saved = persist(); render(); if (action === 'equip' && id.startsWith('sound-')) feedback.preview(); notice.textContent = message + (saved ? '' : ' · Guardado no disponible: solo esta sesión.');
     if (reward) celebrate(action === 'claim' ? 'points' : 'coins', reward, rect);
     else if (!reducedMotion.matches) notice.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300 });
   });
