@@ -15,3 +15,6 @@ android/local.properties
 *.pass
 signing-private/
 *.apk.idsig
+
+# Private designer builds are delivered separately.
+downloads/*designer*.apk

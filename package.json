@@ -10,7 +10,8 @@
     "test": "node --test tests/*.test.js",
     "test:e2e": "npm run build && playwright test",
     "android:tools": "python3 scripts/install-android-tools.py",
-    "android:build": "python3 scripts/build-android.py"
+    "android:build": "python3 scripts/build-android.py",
+    "build:designer": "VITE_DESIGNER=true npm run build"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

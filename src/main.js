@@ -158,6 +158,10 @@ const glow = $('success-glow');
 const settings = $('settings');
 const score = $('score');
 const store = createStore({ progress, storage, gear, changed: updateProgressMenu, reducedMotion, feedback });
+let designer;
+if (import.meta.env.VITE_DESIGNER === 'true') {
+  import('./designer.js').then(({ installDesigner }) => { designer = installDesigner({ progress, storage, changed: updateProgressMenu, gear, reducedMotion, feedback }); });
+}
 function updateProgressMenu() {
   $('menu-coins').textContent = progress.coins.toLocaleString('es-CL');
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
@@ -730,6 +734,7 @@ function pauseForBackground() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseForBackground(); });
 window.addEventListener('clocking:pause', pauseForBackground);
 window.addEventListener('clocking:back', () => {
+  if (designer?.panel.open) { designer.close(); return; }
   if (store.dialog.open) { store.close(); return; }
   if (settings.open) closeSettings();
   else if (['lost', 'won'].includes(game.status)) showMenu();

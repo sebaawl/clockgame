@@ -127,3 +127,10 @@ Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. D
 La dificultad se elige independientemente del recorrido Normal/Contraintuitivo. **Fácil conserva el equilibrio anterior**. Media multiplica el tiempo por 0,82 y la recarga por 0,75; Difícil por 0,65 y 0,5. En Supervivencia también cambia el tiempo recuperado. Los récords de fácil usan las claves previas y los de media/difícil se guardan por separado. Las compras no cambian las reglas de una partida ya iniciada.
 
 El progreso usa `clocking:progress:v1` en localStorage. Los tests cubren cobro único, cambio de día, fondos insuficientes, desbloqueo por récord, persistencia, equipamiento y efectos reales de boosts/dificultad. El HTML incluye la tienda, sus iconos y recursos, y funciona sin conexión.
+
+
+## Versión de diseñador
+
+`npm run build:designer` activa herramientas locales de prueba: toca siete veces el título **clocking** en el inicio (sin pausas mayores a 800 ms). Permite sumar engranajes de metas y monedas con cantidades de 1 a 1 000 000. No modifica récords, metas ni puntajes de partidas. Los cambios se guardan en el mismo progreso local. Es una herramienta oculta para una compilación privada, no autenticación.
+
+La compilación normal (`npm run build`) elimina el código del menú. No publiques el HTML o APK generado con `VITE_DESIGNER=true` como versión para jugadores. Para empaquetarlo, ejecuta el script Android con `--skip-web-build` después de generar el HTML de diseñador y usa un código de versión igual o superior al instalado. Los artefactos privados se entregan aparte; `downloads/` mantiene solo la versión pública.
