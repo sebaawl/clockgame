@@ -18,7 +18,7 @@ test('recorded loops follow menu and game, settings muffle music, and volume per
   await expect(menu).toHaveJSProperty('paused', true);
   await page.locator('#settings-button').click();
   await expect(menu).toHaveJSProperty('paused', false);
-  await expect(menu).toHaveJSProperty('loop', true);
+  await expect(menu).toHaveJSProperty('loop', false);
   await expect.poll(() => menu.evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
   await expect.poll(() => page.evaluate(() => window.__musicFilter.frequency.value)).toBeGreaterThan(18000);
   await page.locator('#setting-music').fill('25');
@@ -48,5 +48,30 @@ test('recorded loops follow menu and game, settings muffle music, and volume per
   await expect(menu).toHaveJSProperty('paused', false);
   await page.locator('#setting-music').fill('0');
   await page.clock.runFor(500);
+  await expect(menu).toHaveJSProperty('paused', true);
+});
+
+test('both replacement tracks are reachable and the menu and game playlists repeat independently', async ({ page }) => {
+  await installClock(page, { feedback: true }); await page.goto('/');
+  await page.locator('#settings-button').click();
+  const menu = page.locator('audio[data-music="menu"]'), game = page.locator('audio[data-music="game"]');
+  await expect(menu).toHaveAttribute('data-variant', '1');
+  const firstMenu = await menu.getAttribute('src');
+  await page.evaluate(() => { Math.random = () => .9; });
+  await menu.dispatchEvent('ended');
+  await expect(menu).toHaveAttribute('data-variant', '2');
+  expect(await menu.getAttribute('src')).not.toBe(firstMenu);
+  await expect.poll(() => menu.evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+  await page.locator('#continue-game').click(); await page.clock.runFor(300); await play(page);
+  await expect(game).toHaveAttribute('data-variant', '2');
+  const secondGame = await game.getAttribute('src');
+  await page.evaluate(() => { Math.random = () => 0; });
+  await game.dispatchEvent('ended');
+  await expect(game).toHaveAttribute('data-variant', '1');
+  expect(await game.getAttribute('src')).not.toBe(secondGame);
+  await expect.poll(() => game.evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+  await page.clock.runFor(500); await expect(menu).toHaveJSProperty('paused', true);
+  const inactiveMenu = await menu.getAttribute('src'); await menu.dispatchEvent('ended');
+  expect(await menu.getAttribute('src')).toBe(inactiveMenu);
   await expect(menu).toHaveJSProperty('paused', true);
 });

@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.13.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.14.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -192,3 +192,7 @@ Misiones por ventanas fijas de cuatro horas: los objetivos completados desaparec
 ### Legibilidad (0.3.13)
 
 Etiquetas de 12–13 px, descripciones de 14 px y textos mayores en botones, ranuras, ajustes y HUD. Más peso y contraste para los textos secundarios, conservando la jerarquía tipográfica. Espaciado adaptado para mantener Jugar visible en teléfonos pequeños.
+
+### Nuevas pistas (0.3.14)
+
+Reemplazadas las músicas anteriores por Clocking Menu Theme 1 y 2, y Clocking Game Theme 1 y 2. Cada sección elige una pista aleatoria al entrar y vuelve a elegir cuando termina, en reproducción continua. Conserva volumen, silencio, pausa en segundo plano y filtro de ajustes. Los cuatro archivos están integrados sin conexión.

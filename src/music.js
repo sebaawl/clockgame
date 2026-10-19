@@ -1,19 +1,32 @@
-import menuURL from './assets/menu-music.ogg?inline';
-import gameURL from './assets/game-music.ogg?inline';
+import menuOne from './assets/menu-theme-1.ogg?inline';
+import menuTwo from './assets/menu-theme-2.ogg?inline';
+import gameOne from './assets/game-theme-1.ogg?inline';
+import gameTwo from './assets/game-theme-2.ogg?inline';
 
-// One persistent graph keeps loops seamless and settings transitions smooth.
+// One persistent graph keeps playlist playback and settings transitions smooth.
 export function createMusic(getPreferences) {
   let context, filter, master, active = null;
   let requested = null, submerged = false, hidden = false, previous = '';
-  const tracks = Object.fromEntries(Object.entries({ menu: menuURL, game: gameURL }).map(([name, url]) => {
-    const audio = new Audio(url);
-    audio.loop = true;
+  const tracks = Object.fromEntries(Object.entries({ menu: [menuOne, menuTwo], game: [gameOne, gameTwo] }).map(([name, urls]) => {
+    const audio = new Audio();
+    // The playlist loops through random choices rather than repeating one fixed file.
+    audio.loop = false;
     audio.preload = 'none';
     audio.dataset.music = name;
     audio.hidden = true;
     document.body.append(audio);
-    return [name, { audio, gain: null, timer: null }];
+    audio.addEventListener('ended', () => {
+      if (requested !== name || active !== name || hidden || !getPreferences().sound || getPreferences().musicVolume <= 0) return;
+      chooseTrack(tracks[name]); previous = ''; apply();
+    });
+    return [name, { audio, urls, gain: null, timer: null }];
   }));
+  function chooseTrack(track) {
+    const index = Math.floor(Math.random() * track.urls.length);
+    track.audio.src = track.urls[index];
+    track.audio.dataset.variant = String(index + 1);
+    track.audio.load();
+  }
   function ramp(param, value, seconds = .08) {
     param.cancelScheduledValues(context.currentTime);
     param.setTargetAtTime(value, context.currentTime, seconds);
@@ -77,7 +90,9 @@ export function createMusic(getPreferences) {
   window.addEventListener('pagehide', () => { for (const track of Object.values(tracks)) track.audio.pause(); });
   return {
     sync(state, settingsOpen = false) {
-      requested = state === 'menu' ? 'menu' : ['lost', 'won'].includes(state) ? null : 'game';
+      const next = state === 'menu' ? 'menu' : ['lost', 'won'].includes(state) ? null : 'game';
+      if (next && requested !== next) chooseTrack(tracks[next]);
+      requested = next;
       submerged = settingsOpen && requested === 'game';
       apply();
     },
