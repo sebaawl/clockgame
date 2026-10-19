@@ -83,3 +83,18 @@ body[data-state='menu'] .hud { top: max(14px, env(safe-area-inset-top)); }
   .choice-copy h2 { font-size: 26px; }
   .choice-copy p { font-size: 9px; margin-top: 3px; }
 }
+
+:root { --nav-height: calc(76px + env(safe-area-inset-bottom, 0px)); }
+.start-menu { bottom: var(--nav-height); }
+.start-content { min-height: calc(100svh - var(--nav-height)); }
+.app-nav { position: fixed; z-index: 9; inset: auto 0 0; height: var(--nav-height); box-sizing: border-box; padding: 8px 20px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--surface); color: var(--foreground); }
+.app-nav-inner { display: grid; grid-template-columns: repeat(3, 1fr); max-width: 520px; height: 100%; margin: auto; }
+.app-nav button { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 52px; border: 0; border-radius: 0; padding: 6px; background: transparent; color: inherit; opacity: .5; font-size: 9px; font-weight: 300; cursor: pointer; transition: opacity 200ms ease; }
+.app-nav button[aria-selected='true'] { opacity: 1; font-weight: 600; }
+.app-nav svg { width: 24px; height: 24px; }
+.app-nav button[aria-selected='true'] svg { stroke-width: 2.2; }
+.app-nav button::after { content: ''; position: absolute; bottom: 0; height: 2px; width: 16px; background: currentColor; border-radius: 2px; transform: scaleX(0); transition: transform 240ms cubic-bezier(.2,.8,.3,1); }
+.app-nav button[aria-selected='true']::after { transform: scaleX(1); }
+.nav-badge:empty { display: none; }
+.nav-badge:not(:empty) { position: absolute; left: calc(50% + 11px); top: 0; min-width: 15px; font-size: 8px; font-weight: 600; padding: 2px 4px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .app-nav button, .app-nav button::after { transition: none; } }

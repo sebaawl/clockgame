@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test';
+import { installClock, play } from './helpers.js';
+
+test('main navigation switches full pages, restores shop scroll and returns home with Android back', async ({ page }) => {
+  await installClock(page); await page.goto('/');
+  await expect(page.locator('#open-play')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#app-nav')).toBeVisible();
+  await page.locator('#open-store').click();
+  await expect(page.locator('#open-store')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#start-menu')).toBeHidden();
+  expect(await page.locator('#store').evaluate(el => el.tagName)).toBe('SECTION');
+  expect(await page.locator(':modal').count()).toBe(0);
+  const bounds = await page.locator('#store').evaluate(el => ({ top: el.getBoundingClientRect().top, bottom: el.getBoundingClientRect().bottom, nav: document.querySelector('#app-nav').getBoundingClientRect().top }));
+  expect(bounds.top).toBe(0); expect(bounds.bottom).toBe(bounds.nav);
+  await page.locator('#store').evaluate(el => { el.scrollTop = 200; });
+  await page.locator('#open-daily').click();
+  await expect(page.locator('#store-title')).toHaveText('Misiones');
+  await expect(page.locator('#open-daily')).toHaveAttribute('aria-selected', 'true');
+  await page.locator('#open-store').click();
+  expect(await page.locator('#store').evaluate(el => el.scrollTop)).toBe(200);
+  await page.locator('#open-daily').click();
+  await page.locator('[data-action="section"][data-id="exchange"]').click();
+  await expect(page.locator('#open-store')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.exchange-packs')).toBeVisible();
+  await page.evaluate(() => window.dispatchEvent(new Event('clocking:back')));
+  await expect(page.locator('#start-menu')).toBeVisible();
+  await expect(page.locator('#store')).toBeHidden();
+  await page.locator('#open-play').focus(); await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#open-store')).toBeFocused();
+  await expect(page.locator('#open-store')).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Home');
+  await expect(page.locator('#open-play')).toBeFocused();
+  await play(page);
+  await expect(page.locator('#app-nav')).toBeHidden();
+});

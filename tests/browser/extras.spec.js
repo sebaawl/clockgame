@@ -19,7 +19,7 @@ test('sounds are purchased, owned extras equip during play, and the moon inverts
   await page.locator('[data-item="sound-wood"] [data-action="buy"]').click();
   await expect(page.locator('[data-item="sound-wood"] [data-action="equip"]')).toBeEnabled();
   await expect(page.locator('#wallet-coins strong')).toHaveText('0');
-  await page.locator('[data-action="close"]').click(); await page.clock.runFor(450);
+  await page.locator('#open-play').click(); await page.clock.runFor(450);
   await play(page);
   await page.locator('#settings-button').click();
   await page.locator('#tab-extras').click();

@@ -1,17 +1,18 @@
 import { ITEMS, PACKS, dailyGoals, claimGoal, exchangeCoins, buyItem, equipItem, saveProgress, localDay, equippedBoosts, boostSlots } from './progression.js';
 
-export function createStore({ progress, storage, gear, changed, reducedMotion, feedback }) {
+export function createStore({ progress, storage, gear, changed, reducedMotion, feedback, navigated = () => {} }) {
   const svg = path => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
   const symbols = { bag: svg('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'), exchange: svg('<path d="M4 8h16l-4-4M20 16H4l4 4"/>'), mission: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'), trophy: svg('<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 13v6m-4 2h8"/>'), check: svg('<path d="m5 12 4 4L19 6"/>'), down: svg('<path d="M12 4v16m-6-6 6 6 6-6"/>'), info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>'), clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>') };
   const coin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>';
-  const dialog = document.createElement('dialog');
-  dialog.id = 'store'; dialog.className = 'store'; dialog.setAttribute('aria-labelledby', 'store-title');
-  dialog.innerHTML = `<header class="store-header"><button class="store-back" data-action="close" aria-label="Cerrar tienda">←</button><h2 id="store-title">Tienda</h2><button class="daily-link" data-action="daily">Metas diarias</button></header>
+  const page = document.createElement('section');
+  page.id = 'store'; page.className = 'store store-page'; page.hidden = true; page.setAttribute('role', 'tabpanel'); page.setAttribute('aria-labelledby', 'store-title');
+  page.innerHTML = `<header class="store-header"><h2 id="store-title">Tienda</h2></header>
     <div class="wallet"><div id="wallet-points">${gear}<span>PUNTOS DE METAS<strong>0</strong></span></div><div id="wallet-coins">${coin}<span>MONEDAS<strong>0</strong></span></div></div>
     <p id="store-notice" class="store-notice" role="status" aria-live="polite"></p>
     <div id="store-content"></div>`;
-  document.body.append(dialog);
-  let tab = 'cosmetic', view = 'shop', motion, closing = false, tabTimer, dayTimer, market = 'buy';
+  document.body.append(page);
+  let tab = 'cosmetic', view = 'shop', motion, active = false, tabTimer, dayTimer, market = 'buy';
+  const scrollPositions = { shop: 0, daily: 0 };
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
   const compactDetail = { eclipse: 'Aro limpio y grueso', pulse: 'Trazo discontinuo', diamond: 'Cuatro puntos cardinales', efficient: 'Consumo −25%', precision: 'Perfectos +3 Nitro', 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
@@ -36,14 +37,11 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   }
   function render() {
     const goals = dailyGoals(progress);
-    dialog.querySelector('#wallet-points strong').textContent = format(progress.points);
-    dialog.querySelector('#wallet-coins strong').textContent = format(progress.coins);
-    dialog.querySelector('#store-title').textContent = view === 'daily' ? 'Misiones' : 'Tienda';
-    const dailyLink = dialog.querySelector('.daily-link');
-    dailyLink.innerHTML = view === 'daily' ? symbols.bag : symbols.mission;
-    dailyLink.setAttribute('aria-label', view === 'daily' ? 'Ver tienda' : 'Metas diarias');
-    dialog.querySelector('.store-back').innerHTML = svg('<path d="m14 6-6 6 6 6"/>');
-    const content = dialog.querySelector('#store-content');
+    page.querySelector('#wallet-points strong').textContent = format(progress.points);
+    page.querySelector('#wallet-coins strong').textContent = format(progress.coins);
+    page.querySelector('#store-title').textContent = view === 'daily' ? 'Misiones' : 'Tienda';
+    page.setAttribute('aria-labelledby', view === 'daily' ? 'open-daily' : 'open-store');
+    const content = page.querySelector('#store-content');
     if (view === 'daily') {
       const now = new Date(), midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
       const minutes = Math.ceil((midnight - now) / 60000);
@@ -64,7 +62,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div>${tab === 'cosmetic' ? `<div class="general-label">SONIDOS</div><div class="catalog">${ITEMS.filter(item => item.kind === 'sound').map(itemCard).join('')}</div>` : ''}<p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
   }
   function celebrate(type, amount, origin) {
-    const target = dialog.querySelector(type === 'points' ? '#wallet-points' : '#wallet-coins');
+    const target = page.querySelector(type === 'points' ? '#wallet-points' : '#wallet-coins');
     target.animate(reducedMotion.matches ? [{ opacity: .5 }, { opacity: 1 }] : [{ transform: 'scale(1)' }, { transform: 'scale(1.13)', offset: .4 }, { transform: 'scale(1)' }], { duration: 480 });
     if (reducedMotion.matches) return;
     const to = target.getBoundingClientRect();
@@ -72,7 +70,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       const particle = document.createElement('span'); particle.className = 'reward-particle';
       particle.innerHTML = type === 'points' ? gear : coin;
       Object.assign(particle.style, { left: `${origin.left + origin.width / 2}px`, top: `${origin.top + origin.height / 2}px` });
-      dialog.append(particle);
+      page.append(particle);
       const dx = to.left + to.width / 2 - origin.left - origin.width / 2;
       const dy = to.top + to.height / 2 - origin.top - origin.height / 2;
       const animation = particle.animate([{ transform: 'translate(-50%, -50%) scale(.5)', opacity: 0 }, { transform: `translate(${(i - 3) * 18}px, -45px) rotate(${i * 45}deg)`, opacity: 1, offset: .25 }, { transform: `translate(${dx}px, ${dy}px) rotate(360deg) scale(.35)`, opacity: 0 }], { duration: 700 + i * 35, easing: 'cubic-bezier(.3,.1,.3,1)' });
@@ -85,49 +83,49 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     return saved;
   }
   function open(showDaily = false) {
-    if (dialog.open) return;
-    view = showDaily ? 'daily' : 'shop'; market = 'buy'; render(); dialog.querySelector('#store-notice').textContent = '';
-    closing = false; dialog.showModal(); feedback.ui('open');
-    clearInterval(dayTimer);
+    const target = showDaily ? 'daily' : 'shop';
+    if (active && target === view) return;
+    const direction = active && view === 'daily' ? -1 : 1;
+    if (active) scrollPositions[view] = page.scrollTop;
+    clearTimeout(tabTimer); clearInterval(dayTimer); motion?.cancel();
+    view = target; active = true; page.hidden = false;
+    render(); page.querySelector('#store-notice').textContent = '';
+    page.scrollTop = scrollPositions[view];
+    navigated(view);
     dayTimer = setInterval(() => {
       const day = progress.daily.day; dailyGoals(progress);
       if (day !== progress.daily.day) { persist(); render(); }
     }, 30000);
-    if (!reducedMotion.matches) motion = dialog.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], { duration: 340, easing: 'cubic-bezier(.16,1,.3,1)' });
+    if (!reducedMotion.matches) motion = page.animate([{ opacity: 0, transform: `translateX(${direction * 14}px)` }, { opacity: 1, transform: 'translateX(0)' }], { duration: 240, easing: 'cubic-bezier(.2,.8,.3,1)' });
   }
   function close() {
-    if (closing || !dialog.open) return;
-    clearTimeout(tabTimer); clearInterval(dayTimer);
-    closing = true; feedback.ui('close'); motion?.cancel();
-    if (reducedMotion.matches) { dialog.close(); closing = false; return; }
-    motion = dialog.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], { duration: 240, easing: 'ease-in', fill: 'forwards' });
-    motion.onfinish = () => { dialog.close(); motion.cancel(); closing = false; };
+    if (!active) return;
+    scrollPositions[view] = page.scrollTop;
+    clearTimeout(tabTimer); clearInterval(dayTimer); motion?.cancel();
+    active = false; page.hidden = true; navigated('play');
   }
-  dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
-  dialog.addEventListener('click', event => {
+  page.addEventListener('click', event => {
     const button = event.target.closest('button[data-action]');
     if (!button || button.disabled) return;
     const { action, id } = button.dataset, rect = button.getBoundingClientRect();
-    const notice = dialog.querySelector('#store-notice'); let message = '', reward = 0;
+    const notice = page.querySelector('#store-notice'); let message = '', reward = 0;
     if (action === 'preview') {
       if (!feedback.preview(id.slice(6))) { notice.textContent = 'Activa Sonido en ajustes para escuchar.'; return; }
       button.classList.remove('previewing'); void button.offsetWidth; button.classList.add('previewing');
       notice.textContent = ITEMS.find(item => item.id === id).name;
       return;
     }
-    if (action === 'close') { close(); return; }
-    if (action === 'daily') { clearTimeout(tabTimer); view = view === 'daily' ? 'shop' : 'daily'; render(); return; }
-    if (action === 'section') { clearTimeout(tabTimer); view = 'shop'; market = id; render(); if (!reducedMotion.matches) dialog.querySelector('#store-content').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220 }); return; }
+    if (action === 'section') { clearTimeout(tabTimer); if (view === 'daily') scrollPositions.daily = page.scrollTop; view = 'shop'; market = id; render(); navigated('shop'); if (!reducedMotion.matches) page.querySelector('#store-content').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220 }); return; }
     if (action === 'tab') {
       clearTimeout(tabTimer);
       const old = tab; tab = id;
-      const selector = dialog.querySelector('.store-tab-line');
+      const selector = page.querySelector('.store-tab-line');
       selector.style.transform = `translateX(${tab === 'cosmetic' ? 0 : 100}%)`;
-      dialog.querySelectorAll('[data-action="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === tab)));
+      page.querySelectorAll('[data-action="tab"]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === tab)));
       // Keep the moving selector mounted while the catalogue changes.
-      const previous = dialog.querySelector('.catalog'); previous.inert = true;
+      const previous = page.querySelector('.catalog'); previous.inert = true;
       if (old !== tab && !reducedMotion.matches) previous.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100 });
-      tabTimer = setTimeout(() => { if (!dialog.open || view !== 'shop') return; render(); if (!reducedMotion.matches) dialog.querySelector('.catalog').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 260 }); }, reducedMotion.matches ? 0 : 400);
+      tabTimer = setTimeout(() => { if (!active || view !== 'shop') return; render(); if (!reducedMotion.matches) page.querySelector('.catalog').animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 260 }); }, reducedMotion.matches ? 0 : 400);
       return;
     }
     if (action === 'claim' && progress.daily.day !== localDay()) {
@@ -143,6 +141,6 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     if (reward) celebrate(action === 'claim' ? 'points' : 'coins', reward, rect);
     else if (!reducedMotion.matches) notice.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 300 });
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && dialog.open) { render(); persist(); } });
-  return { open, close, dialog, render };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && active) { render(); persist(); } });
+  return { open, close, page, isOpen: () => active, render };
 }

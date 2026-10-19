@@ -17,7 +17,7 @@ test('claim daily gears, exchange for coins, buy and equip a cosmetic, and retai
   await claim.click(); await expect(claim).toBeDisabled();
   await expect(page.locator('#wallet-points strong')).toHaveText('1.200');
   expect(await page.locator('.reward-particle').count()).toBeGreaterThan(0);
-  await page.getByRole('button', { name: 'Ver tienda', exact: true }).click();
+  await page.locator('#open-store').click();
   await page.locator('[data-action="section"][data-id="exchange"]').click();
   await page.locator('[data-action="exchange"][data-id="large"]').click();
   await expect(page.locator('#wallet-coins strong')).toHaveText('90');
@@ -40,7 +40,7 @@ test('a challenging record unlocks a boost for free and Nitro really moves twice
   await page.locator('[data-item="speed"] [data-action="unlock"]').click();
   await page.locator('[data-item="speed"] [data-action="equip"]').click();
   expect((await state(page)).coins).toBe(0);
-  await page.getByRole('button', { name: 'Cerrar tienda' }).click();
+  await page.locator('#open-play').click();
   await expect(page.locator('#store')).not.toBeVisible();
   await play(page); await expect(page.locator('body')).toHaveAttribute('data-boost', 'speed');
   await page.mouse.move(30, page.viewportSize().height / 2); await page.mouse.down();
@@ -68,10 +68,10 @@ test('double tank changes the actual meter capacity; rapid navigation remains sa
   const errors = []; page.on('pageerror', e => errors.push(e.message));
   await page.locator('#open-store').click();
   await page.getByRole('button', { name: 'Boosts', exact: true }).click();
-  await page.getByRole('button', { name: 'Metas diarias', exact: true }).click();
+  await page.locator('#open-daily').click();
   await page.clock.runFor(600);
   await expect(page.locator('.goal')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Cerrar tienda' }).click();
+  await page.locator('#open-play').click();
   await expect(page.locator('#store')).not.toBeVisible();
   await play(page);
   await expect(page.locator('#nitro-meter')).toHaveAttribute('aria-valuemax', '200');

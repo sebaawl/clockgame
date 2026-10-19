@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.10.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.11.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -180,3 +180,7 @@ Panel fijo dentro de Extras con el reloj equipado, reproducción del sonido eleg
 ### Menú abierto (0.3.10)
 
 Selectores centrados con texto grande y flechas, sin recuadros. Al pulsar una opción se despliega su descripción; vuelve a ocultarse al cambiarla. Contraste del botón Jugar conservado en ambos temas.
+
+### Navegación principal (0.3.11)
+
+Barra inferior con Jugar, Tienda y Misiones. Las dos últimas son páginas completas, sin ventanas modales, y mantienen su desplazamiento al alternarlas. La barra desaparece durante la partida. Atrás en Android regresa desde estas pestañas a Jugar. Navegación por teclado con flechas, Inicio y Fin.

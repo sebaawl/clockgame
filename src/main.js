@@ -33,6 +33,7 @@ const preferences = (() => {
 const feedback = createFeedback(() => preferences);
 const music = createMusic(() => preferences);
 const game = createGame();
+let menuTab = 'play';
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const progress = loadProgress(storage);
 preferences.soundPreset = progress.soundPreset;
@@ -113,14 +114,14 @@ document.querySelector('#app').innerHTML = `
       <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
       <div id="guide-best" class="guide-best"><span>RÉCORD</span><strong>0</strong></div>
     </div>
-    <section id="start-menu" class="start-menu" aria-labelledby="start-title">
+    <section id="start-menu" class="start-menu" role="tabpanel" aria-labelledby="open-play">
       <div class="start-content">
         <header class="home-header"><h1 id="start-title">clocking</h1><div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div></header>
         <div class="home-selection">
           ${[['format', 'PARTIDA', 'Partida'], ['difficulty', 'DIFICULTAD', 'Dificultad'], ['route', 'RECORRIDO', 'Recorrido']].map(([id, label, name]) => `<section class="choice-block" data-choice="${id}" role="group" aria-label="${name}"><button type="button" data-cycle="${id}" data-step="-1" aria-label="${name} anterior">${icon('<path d="m15 6-6 6 6 6"/>')}</button><div class="choice-copy" id="${id}-copy" aria-live="polite" aria-atomic="true"><div class="choice-caption"><span>${label}</span><span id="${id}-index" class="sr-only"></span></div><h2><button type="button" data-choice-info="${id}" aria-controls="${id}-description" aria-expanded="false"><span id="${id}-current"></span></button></h2><p id="${id}-description" hidden></p></div><button type="button" data-cycle="${id}" data-step="1" aria-label="${name} siguiente">${icon('<path d="m9 6 6 6-6 6"/>')}</button></section>`).join('')}
         </div>
         <div class="home-play"><p class="equipped-note" id="equipped-note"></p><button id="start-game" class="primary-action" type="button">Jugar</button></div>
-        <nav class="progress-actions" aria-label="Progreso"><button id="open-store" type="button">${icon('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}<span>Tienda</span><span id="menu-coins" class="home-badge"></span></button><button id="open-daily" type="button">${icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9 12 2 2 4-5"/>')}<span>Misiones</span><span id="daily-ready" class="home-badge"></span></button></nav>
+
       </div>
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
@@ -132,6 +133,11 @@ document.querySelector('#app').innerHTML = `
     <div id="combo-celebration" class="combo-celebration" hidden aria-hidden="true"><span>COMBO</span><strong id="combo-big">5×</strong></div>
     <p class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></p>
   </main>
+  <nav id="app-nav" class="app-nav" role="tablist" aria-label="Navegación principal"><div class="app-nav-inner">
+    <button id="open-play" type="button" role="tab" data-menu-tab="play" aria-selected="true" aria-controls="start-menu">${icon('<path d="m9 4 12 8-12 8V4Z"/>')}<span>Jugar</span></button>
+    <button id="open-store" type="button" role="tab" data-menu-tab="shop" aria-selected="false" aria-controls="store">${icon('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}<span>Tienda</span><span id="menu-coins" class="nav-badge"></span></button>
+    <button id="open-daily" type="button" role="tab" data-menu-tab="daily" aria-selected="false" aria-controls="store">${icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9 12 2 2 4-5"/>')}<span>Misiones</span><span id="daily-ready" class="nav-badge"></span></button>
+  </div></nav>
   <dialog id="settings" class="settings" aria-labelledby="settings-title">
     <div class="sheet-handle" aria-hidden="true"></div>
     <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><label class="theme-toggle" title="Modo claro"><input id="setting-light" type="checkbox" role="switch" aria-label="Modo claro">${icon('<path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/>')}</label></div>
@@ -162,7 +168,7 @@ const handLine = $('hand-line');
 const glow = $('success-glow');
 const settings = $('settings');
 const score = $('score');
-const store = createStore({ progress, storage, gear, changed: updateProgressMenu, reducedMotion, feedback });
+const store = createStore({ progress, storage, gear, changed: updateProgressMenu, reducedMotion, feedback, navigated: tab => { menuTab = tab; render(); if (tab === 'play') reveal(document.querySelector('.start-content'), [{ opacity: 0, transform: 'translateX(-14px)' }, { opacity: 1, transform: 'translateX(0)' }], 240); } });
 let designer;
 if (import.meta.env.VITE_DESIGNER === 'true') {
   import('./designer.js').then(({ installDesigner }) => { designer = installDesigner({ progress, storage, changed: updateProgressMenu, gear, reducedMotion, feedback }); });
@@ -276,9 +282,12 @@ function render() {
   const ended = ['lost', 'won'].includes(game.status);
   $('control-guide').hidden = !['ready', 'launching'].includes(game.status);
   $('settings-button').disabled = game.status === 'launching';
-  $('start-menu').hidden = !inMenu;
+  $('start-menu').hidden = !inMenu || menuTab !== 'play';
+  $('app-nav').hidden = !inMenu;
+  document.body.dataset.menuTab = menuTab;
+  document.querySelectorAll('#app-nav [data-menu-tab]').forEach(button => { button.setAttribute('aria-selected', String(button.dataset.menuTab === menuTab)); button.tabIndex = button.dataset.menuTab === menuTab ? 0 : -1; });
   $('intermission').hidden = !inBreak;
-  $('hud').hidden = inBreak || ended;
+  $('hud').hidden = inBreak || ended || (inMenu && menuTab !== 'play');
   $('cycle-label').hidden = inMenu;
   timer.hidden = inMenu;
   clockWrap.hidden = inMenu || inBreak || ended;
@@ -350,11 +359,13 @@ function chooseFormat(format) {
 }
 function showMenu() {
   clearRun();
+  store.close(); menuTab = 'play';
   Object.assign(game, createGame(), { mode: selectedMode });
   chooseFormat(selectedFormat);
   render();
 }
 function startRun(mode = selectedMode) {
+  store.close(); menuTab = 'play';
   clearRun();
   needsControlGuide = true;
   runCosmetic = progress.cosmetic;
@@ -678,6 +689,15 @@ document.querySelectorAll('[data-choice-info]').forEach(button => button.addEven
   }
   if (open) reveal($(kind + '-description'), [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'translateY(0)' }], 240);
 }));
+$('open-play').addEventListener('click', () => { if (menuTab !== 'play') store.close(); });
+$('app-nav').addEventListener('keydown', event => {
+  const tabs = [...document.querySelectorAll('#app-nav [data-menu-tab]')];
+  const current = tabs.indexOf(document.activeElement);
+  if (current < 0 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault();
+  const index = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+  tabs[index].focus(); tabs[index].click();
+});
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
 document.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {
@@ -818,7 +838,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) pause
 window.addEventListener('clocking:pause', pauseForBackground);
 window.addEventListener('clocking:back', () => {
   if (designer?.panel.open) { designer.close(); return; }
-  if (store.dialog.open) { store.close(); return; }
+  if (store.isOpen()) { store.close(); return; }
   if (settings.open) closeSettings();
   else if (['lost', 'won'].includes(game.status)) showMenu();
   else openSettings();
@@ -858,8 +878,8 @@ function frame() {
 document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button || button.matches('.tap-zone')) return;
-  if (button.matches('[data-cycle], [data-action=tab], [data-action=section]')) {
-    if (button.getAttribute('aria-pressed') !== 'true') feedback.ui('slide');
+  if (button.matches('[data-menu-tab], [data-cycle], [data-action=tab], [data-action=section]')) {
+    if (button.getAttribute('aria-pressed') !== 'true' && button.getAttribute('aria-selected') !== 'true') feedback.ui('slide');
   } else if (!button.matches('[data-action="preview"], [data-sound-preview], [data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
     feedback.ui(button.matches('#change-mode') ? 'transition' : button.matches('#start-game, #restart-game') ? 'start' : 'press');
   }
