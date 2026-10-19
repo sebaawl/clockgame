@@ -89,9 +89,9 @@ document.querySelector('#app').innerHTML = `
       <button id="tap-right" class="tap-zone" aria-label="Girar en sentido horario" aria-describedby="instructions"></button>
     </div>
     <div id="control-guide" class="control-guide" hidden aria-hidden="true">
-      <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA IZQUIERDA</strong><span>Gira en sentido antihorario</span></div></div>
-      <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA DERECHA</strong><span>Gira en sentido horario</span></div></div>
-      <p id="guide-best" class="guide-best"></p><p class="guide-nitro">TOCA: UN PASO · MANTÉN 0,15 S: NITRO<br>SUELTA EN LAS DOCE</p><p class="guide-start">UN TOQUE PARA EMPEZAR</p>
+      <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
+      <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
+      <div id="guide-best" class="guide-best"><span>RÉCORD</span><strong>0</strong></div>
     </div>
     <section id="start-menu" class="start-menu" aria-labelledby="start-title">
       <div class="start-content">
@@ -103,7 +103,7 @@ document.querySelector('#app').innerHTML = `
           <button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Difícil</strong><span>Ve por el camino largo.</span></button>
         </div>
         <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
-        <p id="menu-best" class="menu-best"></p><button id="start-game" class="primary-action" type="button">Jugar</button><p class="arcade-future">ARCADE · PRÓXIMAMENTE</p>
+        <div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div><button id="start-game" class="primary-action" type="button">Jugar</button><p class="arcade-future">ARCADE · PRÓXIMAMENTE</p>
       </div>
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
@@ -219,7 +219,7 @@ function updateBest() {
   const format = game.status === 'menu' ? selectedFormat : game.format;
   let best = 0;
   try { best = Math.max(0, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0); } catch {}
-  for (const id of ['menu-best', 'guide-best']) $(id).textContent = `RÉCORD ${best.toLocaleString('es-CL')}`;
+  for (const id of ['menu-best', 'guide-best']) $(id).querySelector('strong').textContent = best.toLocaleString('es-CL');
 }
 function render() {
   updateBest();
