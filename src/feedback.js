@@ -195,7 +195,27 @@ export function createFeedback(getPreferences) {
     clock: { rate: .85, cutoff: 1800, volume: .22, length: .065 },
   };
   function tick(preset = getPreferences().soundPreset) { return foley(profiles[preset] || profiles.felt); }
+  function loss() {
+    const audio = unlock();
+    if (!audio) return;
+    try {
+      const oscillator = audio.createOscillator();
+      const gain = audio.createGain();
+      const start = audio.currentTime;
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(190, start);
+      oscillator.frequency.exponentialRampToValueAtTime(42, start + .44);
+      gain.gain.setValueAtTime(0, start);
+      gain.gain.linearRampToValueAtTime(.28, start + .012);
+      gain.gain.exponentialRampToValueAtTime(.001, start + .52);
+      oscillator.connect(gain).connect(master);
+      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
+      oscillator.start(start);
+      oscillator.stop(start + .55);
+    } catch { /* Loss feedback never delays the result screen. */ }
+  }
   function ui(kind = 'press') {
+    if (kind === 'loss') { loss(); return; }
     if (kind === 'success') { success(); return; }
     if (!getPreferences().sound || performance.now() - lastUI < 35) return;
     lastUI = performance.now();
@@ -203,8 +223,7 @@ export function createFeedback(getPreferences) {
       // Keep the mode-selector sound exactly as approved.
       foley({ rate: .48, cutoff: 650, volume: .32, length: .085 });
       foley({ rate: .6, cutoff: 800, volume: .13, length: .05 }, .065);
-    } else if (kind === 'loss') {
-      foley({ rate: .45, cutoff: 900, volume: .22, length: .075 });
+
     } else {
       recorded('button');
       if (['open', 'close', 'transition'].includes(kind)) recorded('transition', .025);

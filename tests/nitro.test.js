@@ -62,7 +62,7 @@ test('paused play cannot start or continue a hold', () => {
   h.control.release(1); assert.equal(h.state().release, null);
 });
 
-const atEleven = () => .99;
+const atEleven = () => .9999;
 function solve(game, now, accelerated = false) {
   const direction = game.mode === 'hard' ? game.requiredDirection : game.optimalDirection || 1;
   const steps = game.optimalSteps;
@@ -104,7 +104,7 @@ test('recharge only happens on clears and five/ten milestones do not double coun
 });
 
 test('hard-mode shortcut still fails during Nitro and late releases never win', () => {
-  const game = startGame(createGame(), 0, () => .21, 'hard');
+  const game = startGame(createGame(), 0, () => .05, 'hard');
   for (let i = 0; i < 3; i++) moveGame(game, -1, 100, { deferSolve: true });
   assert.equal(settleGame(game, 100, { perfectNitro: true }), false);
   const late = startGame(createGame(), 0, atEleven);
@@ -116,13 +116,13 @@ test('hard-mode shortcut still fails during Nitro and late releases never win', 
 test('survival keeps one clock, adds bounded time and charges time during celebrations', () => {
   const game = startGame(createGame(), 0, atEleven, 'normal', 'survival');
   solve(game, 1000);
-  assert.equal(game.solveRemaining, 14); assert.ok(game.remaining > 17);
+  assert.equal(game.solveRemaining, 11); assert.ok(game.remaining > 12 && game.remaining < 13);
   const afterClear = game.remaining;
   advanceGame(game, 2000, atEleven);
   assert.ok(Math.abs(game.remaining - (afterClear - 1)) < 1e-9);
   assert.equal(game.budget, game.remaining);
-  game.remaining = 24.9; game.deadline = 26900;
-  solve(game, 2000); assert.equal(game.remaining, 25);
+  game.remaining = 14.9; game.deadline = 16900;
+  solve(game, 2000); assert.equal(game.remaining, 15);
 });
 
 test('survival continues beyond 90 and pause preserves its single timer', () => {
@@ -197,4 +197,23 @@ test('efficient Nitro spends 24 per second and empties cleanly after its longer 
   assert.ok(Math.abs(h.state().charge - 76) < 1e-8);
   const empty = harness(100, 42, 24); empty.control.press(1, 1); empty.advance(4400);
   assert.equal(empty.state().charge, 0); assert.equal(empty.state().active, false);
+});
+
+test('survival drains at a leisurely pace, rewards faster play and tightens with difficulty', () => {
+  function endurance(difficulty, seconds) {
+    const game = startGame(createGame(), 0, () => .4, 'normal', 'survival', { difficulty });
+    let now = 0;
+    for (let guard = 0; guard < 200 && game.status === 'playing'; guard++) {
+      now += seconds * 1000;
+      solve(game, now);
+      if (game.status === 'cleared') { now += 1000; advanceGame(game, now, () => .4); }
+    }
+    assert.equal(game.status, 'lost');
+    return game.completed;
+  }
+  for (const difficulty of ['easy', 'medium', 'hard']) {
+    assert.ok(endurance(difficulty, 1) > endurance(difficulty, 3));
+    assert.ok(endurance(difficulty, 3) < 10);
+  }
+  assert.ok(endurance('hard', 1) < endurance('easy', 1));
 });

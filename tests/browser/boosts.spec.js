@@ -5,7 +5,7 @@ async function setup(page, boost) {
   await installClock(page);
   const progress = createProgress(new Date(2026, 9, 19, 12));
   progress.owned.push(boost); progress.boost = boost;
-  await page.addInitScript(({ key, progress }) => { Math.random = () => .99; localStorage.setItem(key, JSON.stringify(progress)); }, { key: PROGRESS_KEY, progress });
+  await page.addInitScript(({ key, progress }) => { Math.random = () => .9999; localStorage.setItem(key, JSON.stringify(progress)); }, { key: PROGRESS_KEY, progress });
   await page.goto('/'); await play(page);
 }
 async function hold(page, ms) {

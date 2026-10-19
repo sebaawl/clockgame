@@ -5,7 +5,7 @@ import { installClock, play } from './helpers.js';
 test('purchase double slot, equip two boosts, prevent a third and play with both effects', async ({ page }) => {
   await installClock(page);
   const p = createProgress(new Date(2026, 9, 19, 12)); p.coins = 600; p.owned.push('recharge', 'lock', 'tank');
-  await page.addInitScript(({ key, p }) => { Math.random = () => .99; if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(p)); }, { key: PROGRESS_KEY, p });
+  await page.addInitScript(({ key, p }) => { Math.random = () => .9999; if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify(p)); }, { key: PROGRESS_KEY, p });
   await page.goto('/'); await page.locator('#open-store').click();
   await page.getByRole('button', { name: 'Boosts', exact: true }).click(); await page.clock.runFor(450);
   await page.locator('[data-item="dual"] [data-action="buy"]').click();

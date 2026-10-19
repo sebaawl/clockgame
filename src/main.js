@@ -1,5 +1,6 @@
 import { boostSlotsView } from './boost-slots.js';
 import { extrasPreview, animateExtrasPreview } from './extras-preview.js';
+import { playIntro } from './intro.js';
 import { createMusic } from './music.js';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
@@ -253,7 +254,7 @@ function reveal(element, frames, duration = 380) {
 }
 const HOME_OPTIONS = {
   format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Un cronómetro. Cada acierto suma tiempo.']],
-  difficulty: [['easy', 'Fácil', 'Tiempo y recarga originales.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
+  difficulty: [['easy', 'Fácil', 'Más margen para practicar.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
   route: [['normal', 'Normal', 'Elige el camino que prefieras.'], ['hard', 'Contraintuitivo', 'Llega a las doce por el camino largo.']],
 };
 function syncSelector(animate = false) {
@@ -928,4 +929,6 @@ document.querySelectorAll('.setting-row input').forEach(input => input.addEventL
 }));
 chooseDifficulty(selectedDifficulty);
 showMenu();
+music.autoplay();
+playIntro(document.querySelector('#start-title'));
 requestAnimationFrame(frame);

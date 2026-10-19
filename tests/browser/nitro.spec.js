@@ -78,7 +78,8 @@ test('survival recovers time, keeps counting through celebrations and crosses cy
   await expect(page.locator('body')).toHaveAttribute('data-format', 'survival');
   await page.clock.runFor(2000);
   await solve(page);
-  expect(Number(await page.locator('#time').textContent())).toBeGreaterThan(16);
+  expect(Number(await page.locator('#time').textContent())).toBeGreaterThan(11);
+  expect(Number(await page.locator('#time').textContent())).toBeLessThan(12);
   await expect(page.locator('#nitro-message')).toContainText('S');
   const recovered = Number(await page.locator('#time').textContent());
   await page.clock.runFor(1020);

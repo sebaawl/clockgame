@@ -15,7 +15,8 @@ test('recorded loops follow menu and game, settings muffle music, and volume per
   await page.goto('/');
   const menu = page.locator('audio[data-music="menu"]');
   const game = page.locator('audio[data-music="game"]');
-  await expect(menu).toHaveJSProperty('paused', true);
+  // Chrome may block startup playback until a gesture; native Android permits it.
+  await expect(menu).toHaveAttribute('src', /data:audio/);
   await page.locator('#settings-button').click();
   await expect(menu).toHaveJSProperty('paused', false);
   await expect(menu).toHaveJSProperty('loop', true);

@@ -1,12 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { startGame, createGame, moveGame, advanceGame, consumeNitro, nitroCapacity } from '../src/game.js';
-const near = () => .99;
+const near = () => .9999;
 const start = (difficulty = 'easy', boost = null, format = 'classic') => startGame(createGame(), 0, near, 'normal', format, { difficulty, boost });
 function solve(g, now = 1) { for (let i = 0; i < g.optimalSteps; i++) moveGame(g, g.optimalDirection, now); }
-test('easy retains current time and harder difficulties decrease time and earned Nitro', () => {
+test('easy starts with twelve seconds and harder difficulties decrease time and earned Nitro', () => {
   const games = ['easy', 'medium', 'hard'].map(d => start(d));
-  assert.equal(games[0].budget, 15);
+  assert.equal(games[0].budget, 12);
   assert.ok(games[1].budget < games[0].budget && games[2].budget < games[1].budget);
   games.forEach(g => { g.nitro = 0; solve(g); });
   assert.deepEqual(games.map(g => g.nitro), [5, 3.75, 2.5]);

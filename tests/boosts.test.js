@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, startGame, moveGame, advanceGame, settleGame, pauseGame, resumeGame, nitroDrain } from '../src/game.js';
-const near = () => .99;
+const near = () => .9999;
 const start = (boost, mode = 'normal', difficulty = 'easy') => startGame(createGame(), 0, near, mode, 'classic', { boost, difficulty });
 function solve(g, accelerated = false) {
   const count = g.optimalSteps, direction = g.optimalDirection;
@@ -43,7 +43,7 @@ test('manual solves do not spend Lock uses and pause/time never refill the coold
   assert.equal(g.lockCooldown, 3); assert.equal(g.lockUses, 0);
 });
 test('Lock does not validate the counterintuitive shortcut; no boost still passes twelve freely', () => {
-  const hard = startGame(createGame(), 0, () => .21, 'hard', 'classic', { boost: 'lock' });
+  const hard = startGame(createGame(), 0, () => .05, 'hard', 'classic', { boost: 'lock' });
   for (let i = 0; i < 3; i++) moveGame(hard, -1, 1, { deferSolve: true });
   assert.equal(hard.position, 0); assert.equal(hard.status, 'playing'); assert.equal(hard.lockUses, 3);
   const plain = start(null); solve(plain, true);
@@ -57,7 +57,7 @@ test('paired boosts apply together and survive cycle changes without duplication
   solve(g, true); assert.equal(g.nitroLocked, true); assert.equal(g.nitro, 50); assert.equal(g.lockUses, 2);
   advanceGame(g, 1, near); assert.deepEqual(g.boosts, ['recharge', 'lock']);
   const tank = startGame(createGame(), 0, near, 'normal', 'survival', { boosts: ['tank', 'time', 'tank'] });
-  assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 16.5);
+  assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 13.5);
 });
 
 test('new boosts preserve hours precision limits and reward only perfect routes', () => {

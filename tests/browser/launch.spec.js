@@ -10,14 +10,14 @@ test('guide waits without spending time; first tap launches without changing the
   await expect(page.locator('#control-guide')).toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'ready');
   await page.clock.runFor(20000);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
   const target = await page.locator('#clock').getAttribute('aria-label');
   await page.locator('#tap-left').click();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'launching');
   const frames = await page.locator('#clock').evaluate(el => el.getAnimations().flatMap(a => a.effect.getKeyframes()));
   expect(frames.some(f => f.transform?.includes('-360deg'))).toBe(true);
   await page.clock.runFor(559);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
   await page.clock.runFor(1);
   await expect(page.locator('#control-guide')).not.toBeVisible();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
@@ -25,7 +25,7 @@ test('guide waits without spending time; first tap launches without changing the
   await expect(page.locator('#score')).toHaveText('0');
   expect(await page.locator('#success-glow').evaluate(el => el.getAnimations().length)).toBeGreaterThan(0);
   await page.clock.runFor(1020);
-  await expect(page.locator('#time')).toHaveText('14.0');
+  await expect(page.locator('#time')).toHaveText('11.0');
   await page.locator('#tap-left').click();
   await expect(page.locator('#clock')).not.toHaveAttribute('aria-label', target);
 });
@@ -39,5 +39,5 @@ test('reduced motion starts with a short fade instead of the spinning jump', asy
   await page.keyboard.press('ArrowRight');
   await page.clock.runFor(160);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
 });

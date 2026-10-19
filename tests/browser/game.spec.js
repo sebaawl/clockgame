@@ -16,7 +16,7 @@ test('mode menu comes first, then phase one and hour for exactly three seconds w
   await page.clock.runFor(2999);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
   await page.clock.runFor(1);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
   await expect(page.locator('#score')).toHaveText('0');
   await expect(page.locator('body')).toHaveAttribute('data-phase', '1');
   await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 5\./);
@@ -44,7 +44,7 @@ test('normal mode turns both ways with a satisfying bump and no scroll', async (
 
 test('hard mode rejects the intuitive shortcut and any last-tap bypass, then accepts a full long route', async ({ page }) => {
   await play(page, 'hard');
-  await expect(page.locator('#time')).toHaveText('12.0');
+  await expect(page.locator('#time')).toHaveText('9.0');
   await expect(page.locator('body')).toHaveAttribute('data-mode', 'hard');
   for (let i = 0; i < 5; i++) await page.keyboard.press('ArrowLeft');
   await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 0\./);
@@ -85,7 +85,7 @@ test('cycle changes and a full phase still pause, reset the timer and keep the b
       await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
       await expect(page.locator('#break-title')).toHaveText(i === 9 ? 'MINUTO' : 'SEGUNDO');
       await page.clock.runFor(3000);
-      await expect(page.locator('#time')).toHaveText('15.0');
+      await expect(page.locator('#time')).toHaveText('12.0');
     }
   }
   await expect(page.locator('body')).toHaveAttribute('data-round', '2');
@@ -93,7 +93,7 @@ test('cycle changes and a full phase still pause, reset the timer and keep the b
   await expect(page.locator('#break-detail')).toHaveText('FASE 2');
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--background').trim())).toBe('#000000');
   await page.clock.runFor(3000);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
 });
 
 test('backgrounding play and breaks preserves both timers', async ({ page }) => {

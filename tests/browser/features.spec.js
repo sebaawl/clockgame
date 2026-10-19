@@ -99,11 +99,11 @@ test('timeout immediately presents the exact score and retry button on a red pan
   await expect(page.locator('#break-detail')).toHaveText('FASE 1');
   await expect(page.locator('#score')).toHaveText('0');
   await page.clock.runFor(3000);
-  await expect(page.locator('#time')).toHaveText('15.0');
+  await expect(page.locator('#time')).toHaveText('12.0');
   await page.keyboard.press('ArrowRight');
   await page.clock.runFor(560);
   await page.clock.runFor(15050);
-  await page.getByRole('button', { name: 'Cambiar modo', exact: true }).click();
+  await page.getByRole('button', { name: 'Menú principal', exact: true }).click();
   await expect(page.locator('#start-menu')).toBeVisible();
 });
 
@@ -121,7 +121,7 @@ test('restart in settings clears score and returns to the first intro in the sam
   await expect(page.locator('#break-detail')).toHaveText('FASE 1');
   await expect(page.locator('#score')).toHaveText('0');
   await page.clock.runFor(3000);
-  await expect(page.locator('#time')).toHaveText('12.0');
+  await expect(page.locator('#time')).toHaveText('9.0');
 });
 
 test('settings have titles only and can return to the game menu', async ({ page }) => {

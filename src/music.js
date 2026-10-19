@@ -94,6 +94,7 @@ export function createMusic(getPreferences) {
       submerged = settingsOpen && requested === 'game';
       apply();
     },
+    autoplay: unlock,
     startRun() { newGame = true; },
     refresh() { previous = ''; apply(); },
   };

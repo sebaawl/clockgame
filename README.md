@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.15.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.16.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -15,12 +15,12 @@ Las nuevas versiones se entregan como HTML en el chat. No se suben automáticame
 
 ## Inicio y modos
 
-Primero aparece el selector de modo. Al pulsar **Jugar**, se muestra **FASE 1 · HORA** durante tres segundos y comienza el primer ajuste con cero puntos. No hay ensayo ni jugada previa.
+Al abrir se muestra una intro del reloj que se transforma en el logo; después aparece el selector de modo. Al pulsar **Jugar**, se muestra **FASE 1 · HORA** durante tres segundos y comienza el primer ajuste con cero puntos. No hay ensayo ni jugada previa.
 
-- **Normal:** cualquier dirección sirve para llegar a las doce. Cada ciclo empieza con 15 segundos.
-- **Difícil:** solo cuenta completar el recorrido más largo, con un 20 % menos de tiempo. Si marca las 3, hay que avanzar en sentido horario durante nueve pasos. Llegar por el atajo antihorario no da puntos ni supera el ajuste. El progreso neto impide saltarse la regla invirtiendo el último toque. Los empates a las seis se excluyen de este modo para que el recorrido largo sea inequívoco. Los aciertos válidos reciben ×1,5 puntos.
+- **Normal:** cualquier dirección sirve para llegar a las doce. Cada ciclo empieza con 12 segundos antes de aplicar la dificultad.
+- **Difícil:** solo cuenta completar el recorrido más largo, con un 25 % menos de tiempo. Si marca las 3, hay que avanzar en sentido horario durante nueve pasos. Llegar por el atajo antihorario no da puntos ni supera el ajuste. El progreso neto impide saltarse la regla invirtiendo el último toque. Los empates a las seis se excluyen de este modo para que el recorrido largo sea inequívoco. Los aciertos válidos reciben ×1,5 puntos.
 
-Las posiciones iniciales se eligen de toda la esfera: cerca o lejos de las doce, desde el primer ajuste y en todos los ciclos.
+Las posiciones iniciales se eligen de toda la esfera; las posiciones cercanas a las doce aparecen aproximadamente el 2% de las veces.
 
 ## Controles y ajustes
 
@@ -88,8 +88,8 @@ Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus senti
 
 ## Nitro, combos y formatos (0.2.0)
 
-- **Clásico:** mantiene las tres fases de HORA → MINUTO → SEGUNDO. Los límites avanzados se revisaron: minutos tienen mínimos de 9/7/6 segundos; segundos 12/10/9; horas conservan 7/5/3. Difícil aplica su factor de 0,8, con un margen mínimo adicional según el recorrido (pasos/9 + 0,75 s), para poder completarlo con nueve pulsaciones manuales por segundo sin Nitro.
-- **Supervivencia:** empieza con 15 s en un único cronómetro, hasta un máximo de 25 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(1,3; 3,1 − aciertos × 0,015)` segundos y una solución perfecta añade 0,6 s. Cambia de ciclo cada diez relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
+- **Clásico:** mantiene las tres fases de HORA → MINUTO → SEGUNDO. Los límites avanzados se revisaron: minutos tienen mínimos de 7/5,5/4,5 segundos; segundos 9/7/5,5; horas 6/4/2,5. El recorrido contraintuitivo aplica su factor de 0,75, con un margen mínimo adicional según el recorrido (pasos/9 + 0,75 s), para poder completarlo con nueve pulsaciones manuales por segundo sin Nitro.
+- **Supervivencia:** empieza con 12 s en un único cronómetro, hasta un máximo de 15 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(0,55; 1,4 − aciertos × 0,008)` segundos y una solución perfecta añade 0,25 s; ambos se reducen según la dificultad. Cambia de ciclo cada diez relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
 - **Arcade:** solo aparece como próximo modo. Todavía no cambia direcciones ni introduce movimientos automáticos.
 
 Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **150 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **32 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
@@ -127,7 +127,7 @@ La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desb
 
 Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. Doble depósito almacena 200 y divide el indicador en dos barras: empieza con 40 y respeta el techo de precisión de horas. Un respiro añade 1,5 s a cada reloj de Clásico o al tiempo inicial de Supervivencia. Doble ranura permite combinar dos boosts distintos; no duplica el mismo boost.
 
-La dificultad se elige independientemente del recorrido Normal/Contraintuitivo. **Fácil conserva el equilibrio anterior**. Media multiplica el tiempo por 0,82 y la recarga por 0,75; Difícil por 0,65 y 0,5. En Supervivencia también cambia el tiempo recuperado. Los récords de fácil usan las claves previas y los de media/difícil se guardan por separado. Las compras no cambian las reglas de una partida ya iniciada.
+La dificultad se elige independientemente del recorrido Normal/Contraintuitivo. **Fácil usa el tiempo y la recarga base**. Media multiplica el tiempo por 0,82 y la recarga por 0,75; Difícil por 0,65 y 0,5. En Supervivencia también cambia el tiempo recuperado. Los récords de fácil usan las claves previas y los de media/difícil se guardan por separado. Las compras no cambian las reglas de una partida ya iniciada.
 
 El progreso usa `clocking:progress:v1` en localStorage. Los tests cubren cobro único, cambio de día, fondos insuficientes, desbloqueo por récord, persistencia, equipamiento y efectos reales de boosts/dificultad. El HTML incluye la tienda, sus iconos y recursos, y funciona sin conexión.
 
@@ -200,3 +200,12 @@ Reemplazadas las músicas anteriores por Clocking Menu Theme 1 y 2, y Clocking G
 ### Bucle por partida (0.3.15)
 
 La pista elegida se repite sin cambiar al terminar. El menú vuelve a sortear su tema al regresar desde la partida; el juego lo hace al iniciar o reiniciar una partida. Ajustes, pausas, ciclos y pestañas conservan la selección.
+
+### Apertura y presión del tiempo (0.3.16)
+
+- Intro al abrir: un reloj completa una vuelta, se convierte en la «o» de clocking y el logo aterriza sobre el título del menú. Se puede saltar tocando; respeta el modo claro y movimiento reducido.
+- La música del menú intenta empezar desde la apertura. Android permite reproducción sin gesto; Chrome puede esperar al primer toque. El tema elegido sigue en bucle hasta cambiar entre menú y partida.
+- Derrota con una onda sinusoidal descendente de 190 a 42 Hz, respetando el interruptor de sonido.
+- Clásico empieza con 12 segundos; la ruta contraintuitiva dispone de un 25% menos. Los mínimos por tanda son 6/4/2,5 s en horas, 7/5,5/4,5 s en minutos y 9/7/5,5 s en segundos, manteniendo el margen según el recorrido manual.
+- Supervivencia comienza con 12 s y permite acumular hasta 15 s antes de los factores de dificultad. Cada acierto devuelve de 1,392 a 0,55 s según el progreso, más 0,25 s si es perfecto; también se aplica el factor de dificultad.
+- Las posiciones en el sexto más próximo a las doce aparecen aproximadamente el 2% de las veces. Todas las posiciones válidas siguen siendo posibles y se conserva la animación por el arco más corto.

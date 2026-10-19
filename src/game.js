@@ -2,36 +2,45 @@ export const STAGES = ['horas', 'minutos', 'segundos'];
 export const FLOORS = [7, 5, 3];
 export const PHASES = 10;
 export const TOTAL_PHASES = PHASES * STAGES.length * FLOORS.length;
-export const HARD_TIME_FACTOR = 0.8;
+export const HARD_TIME_FACTOR = 0.75;
 export const NITRO_INITIAL = 40;
 export const NITRO_DRAIN = 32;
 export const DIFFICULTIES = { easy: { name: 'Fácil', time: 1, recharge: 1 }, medium: { name: 'Media', time: .82, recharge: .75 }, hard: { name: 'Difícil', time: .65, recharge: .5 } };
 export const hasBoost = (game, id) => game.boosts?.includes(id) || game.boost === id;
 export const nitroDrain = game => NITRO_DRAIN * (hasBoost(game, 'efficient') ? .75 : 1);
 export const nitroCapacity = game => hasBoost(game, 'tank') ? 200 : 100;
-export const SURVIVAL_CAP = 25;
+export const SURVIVAL_CAP = 15;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
 export const phaseBudget = (round, phase, mode = 'normal', stage = 0, difficulty = 'easy') => {
-  const floor = [[7, 5, 3], [9, 7, 6], [12, 10, 9]][stage][clamp(round, 0, 2)];
-  return (15 - (15 - floor) * (phase - 1) / (PHASES - 1)) * (mode === 'hard' ? HARD_TIME_FACTOR : 1) * (DIFFICULTIES[difficulty]?.time ?? 1);
+  const floor = [[6, 4, 2.5], [7, 5.5, 4.5], [9, 7, 5.5]][stage][clamp(round, 0, 2)];
+  return (12 - (12 - floor) * (phase - 1) / (PHASES - 1)) * (mode === 'hard' ? HARD_TIME_FACTOR : 1) * (DIFFICULTIES[difficulty]?.time ?? 1);
 };
 export function createGame() {
   return {
     status: 'menu', difficulty: 'easy', boost: null, boosts: [], mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
     completed: 0, taps: 0, position: 0, rotation: 0,
-    budget: 15, remaining: 15, deadline: 0, resumeStatus: null,
+    budget: 12, remaining: 12, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
     nitro: NITRO_INITIAL, combo: 0, hourPerfectStreak: 0, attemptSteps: 0, optimalSteps: 0,
     optimalDirection: 0, perfectRoute: true, perfect: false, perfectNitro: false, nitroLocked: false, lockUses: 3, lockCooldown: 0,
-    lastNitroGain: 0, lastTimeGain: 0, solveRemaining: 15, solveBudget: 15,
+    lastNitroGain: 0, lastTimeGain: 0, solveRemaining: 12, solveBudget: 12,
   };
 }
 export function randomPosition(stage, mode = 'normal', random = Math.random) {
   const count = positions(stage);
   const choices = Array.from({ length: count - 1 }, (_, i) => i + 1)
     .filter(position => mode !== 'hard' || position !== count / 2);
-  return choices[clamp(Math.floor(random() * choices.length), 0, choices.length - 1)];
+  // Positions within the nearest sixth of the dial are rare (about 2%).
+  // Every unsolved target remains possible, with no reroll loops.
+  const weight = position => Math.min(position, count - position) <= count / 6 ? .035 : 1;
+  const total = choices.reduce((sum, position) => sum + weight(position), 0);
+  let cursor = clamp(random(), 0, 1) * total;
+  for (const position of choices) {
+    cursor -= weight(position);
+    if (cursor < 0) return position;
+  }
+  return choices.at(-1);
 }
 function preparePhase(game, now, random) {
   const count = positions(game.stage);
@@ -62,7 +71,7 @@ export function startGame(game, now, random = Math.random, mode = 'normal', form
   game.difficulty = Object.hasOwn(DIFFICULTIES, options.difficulty) ? options.difficulty : 'easy';
   game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock', 'efficient', 'precision'].includes(id)).slice(0, 2);
   game.boost = game.boosts[0] || null;
-  if (game.format === 'survival') game.remaining = 15 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
+  if (game.format === 'survival') game.remaining = 12 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
   return preparePhase(game, now, random);
 }
 export function tickGame(game, now) {
@@ -104,7 +113,7 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   game.lastNitroGain = game.nitro - previousNitro;
   game.completed += 1;
   if (game.format === 'survival') {
-    const gain = (Math.max(1.3, 3.1 - game.completed * .015) + (game.perfect ? .6 : 0)) * DIFFICULTIES[game.difficulty].time;
+    const gain = (Math.max(.55, 1.4 - game.completed * .008) + (game.perfect ? .25 : 0)) * DIFFICULTIES[game.difficulty].time;
     game.lastTimeGain = Math.min(gain, SURVIVAL_CAP - game.remaining);
     game.remaining += game.lastTimeGain;
     game.deadline = now + game.remaining * 1000;

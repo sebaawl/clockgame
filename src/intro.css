@@ -1,0 +1,13 @@
+#startup-intro {
+  position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center;
+  width: 100%; height: 100%; padding: 0; margin: 0; border: 0;
+  background: var(--surface); color: var(--foreground); cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.intro-word { display: flex; align-items: baseline; font: 700 clamp(44px, 14vw, 64px)/1 'Poppins', sans-serif; letter-spacing: -.065em; white-space: nowrap; transform-origin: center; }
+.intro-letters { opacity: 0; }
+.intro-o { position: relative; display: inline-block; align-self: center; width: .64em; height: .64em; margin: .17em -.015em 0 -.015em; opacity: 0; transform-origin: center; }
+.intro-o svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 11; stroke-linecap: round; overflow: visible; }
+.intro-spinner { transform-origin: 50px 50px; }
+.intro-pin { fill: currentColor; stroke: none; }
+.intro-active #start-menu, .intro-active .hud, .intro-active .app-nav { visibility: hidden; }
