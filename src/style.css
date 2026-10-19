@@ -336,3 +336,19 @@ body[data-state='cleared'] #success-glow[data-combo='true'] ~ .clock-wrap { opac
 ::view-transition-new(root) { z-index: 2; }
 .theme-changing *, .theme-changing *::before, .theme-changing *::after { transition: none !important; }
 .theme-fading body, .theme-fading .game, .theme-fading .settings, .theme-fading button, .theme-fading .clock-face { transition: color 550ms ease, background-color 550ms ease, fill 550ms ease, stroke 550ms ease, border-color 550ms ease; }
+
+.extras-preview { position: sticky; top: -13px; z-index: 3; display: grid; grid-template-columns: 94px minmax(0, 1fr) 38px; align-items: center; gap: 12px; min-height: 132px; padding: 12px 0; border-bottom: 1px solid var(--line); background: var(--surface); color: var(--foreground); }
+.extras-preview .extras-clock { width: 94px; height: 94px; }
+.demo-hand { transform-origin: 50px 50px; transform: rotate(90deg); }
+.preview-copy > span:first-child { display: block; font-size: 7px; font-weight: 300; letter-spacing: .15em; margin-bottom: 8px; }
+.preview-copy strong { display: block; font-size: 16px; font-weight: 600; line-height: 1.2; letter-spacing: -.03em; }
+.preview-copy p { margin: 6px 0 0; font-size: 9px; font-weight: 300; line-height: 1.5; }
+.extras-preview button { display: grid; place-items: center; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--foreground); padding: 9px; }
+.extras-preview button svg { width: 18px; height: 18px; }
+.extras-preview[data-kind='boost']:not([data-preview='none']) .demo-hand { stroke: var(--accent); }
+.preview-meter { position: relative; height: 3px; margin-top: 12px; overflow: hidden; border-radius: 99px; background: var(--line); }
+.preview-meter > span { display: block; height: 100%; width: 40%; background: var(--accent); }
+.preview-meter[data-double='true']::after { content: ''; position: absolute; left: 50%; top: 0; height: 100%; width: 2px; background: var(--surface); }
+.preview-time { display: block; margin-top: 8px; font-size: 18px; font-weight: 600; }
+.preview-feedback { display: block; font-size: 8px; margin-top: 6px; font-weight: 300; }
+.preview-feedback:empty { display: none; }

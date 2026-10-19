@@ -1,3 +1,4 @@
+import { extrasPreview, animateExtrasPreview } from './extras-preview.js';
 import { createMusic } from './music.js';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
@@ -600,6 +601,7 @@ function openSettings() {
   feedback.unlock();
   feedback.interrupt();
   feedback.ui('open');
+  previewExtra = progress.cosmetic;
   syncSoundOptions();
   settingsTab(false);
   delete settings.dataset.closing;
@@ -627,9 +629,12 @@ function closeSettings() {
   settingsCloseTimer = setTimeout(finish, 240);
 }
 
+let previewExtra = null;
+function currentPreviewItem() { return ITEMS.find(item => item.id === previewExtra) || (previewExtra === 'none' ? { id: 'none', kind: 'boost', name: 'Sin boost' } : ITEMS.find(item => item.id === progress.cosmetic)); }
+function playExtrasPreview(playSound = false) { animateExtrasPreview(document.querySelector('.extras-preview'), currentPreviewItem(), reducedMotion.matches, feedback, playSound); }
 function syncSoundOptions() {
   const sections = [['cosmetic', 'Relojes'], ['sound', 'Sonidos'], ['boost', 'Boosts']];
-  $('settings-extras').innerHTML = sections.map(([kind, title]) => {
+  $('settings-extras').innerHTML = extrasPreview(currentPreviewItem(), progress.cosmetic) + sections.map(([kind, title]) => {
     const items = ITEMS.filter(item => item.kind === kind && progress.owned.includes(item.id));
     const buttons = items.map(item => {
       const selected = kind === 'cosmetic' ? progress.cosmetic === item.id : kind === 'sound' ? progress.soundPreset === item.id.slice(6) : equippedBoosts(progress).includes(item.id);
@@ -646,19 +651,22 @@ function settingsTab(extras) {
   $('tab-extras').setAttribute('aria-selected', String(extras));
   const panel = $(extras ? 'settings-extras' : 'settings-game');
   reveal(panel, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 220);
+  if (extras) playExtrasPreview();
 }
 $('tab-game').addEventListener('click', () => settingsTab(false));
 $('tab-extras').addEventListener('click', () => settingsTab(true));
 $('settings-extras').addEventListener('click', event => {
+  if (event.target.closest('[data-preview-replay]')) { playExtrasPreview(true); return; }
   const button = event.target.closest('[data-extra]');
   if (!button || !equipItem(progress, button.dataset.extra)) return;
+  previewExtra = button.dataset.extra;
   preferences.soundPreset = progress.soundPreset;
   savePreferences(); saveProgress(progress, storage);
   runCosmetic = progress.cosmetic;
   game.boosts = [...equippedBoosts(progress)]; game.boost = game.boosts[0] || null;
   game.nitro = Math.min(game.nitro, nitroCapacity(game));
   syncSoundOptions(); render();
-  if (button.dataset.sound) feedback.preview();
+  playExtrasPreview(Boolean(button.dataset.sound));
 });
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
@@ -842,7 +850,7 @@ document.addEventListener('click', event => {
   if (!button || button.matches('.tap-zone')) return;
   if (button.matches('[data-cycle], [data-action=tab], [data-action=section]')) {
     if (button.getAttribute('aria-pressed') !== 'true') feedback.ui('slide');
-  } else if (!button.matches('[data-action="preview"], [data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
+  } else if (!button.matches('[data-action="preview"], [data-sound-preview], [data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
     feedback.ui(button.matches('#change-mode') ? 'transition' : button.matches('#start-game, #restart-game') ? 'start' : 'press');
   }
   if (reducedMotion.matches) return;

@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test';
+import { installClock, play } from './helpers.js';
+
+test('in-game extras preview the selected clock, replay sounds and demonstrate boosts without spending resources', async ({ page }) => {
+  await installClock(page, { feedback: true });
+  await page.addInitScript(() => localStorage.setItem('clocking:progress:v1', JSON.stringify({ version: 1, owned: ['original', 'diamond', 'sound-wood', 'speed', 'tank', 'lock', 'time', 'precision', 'efficient'] })));
+  await page.goto('/'); await play(page);
+  await page.locator('#settings-button').click(); await page.locator('#tab-extras').click();
+  const preview = page.locator('.extras-preview');
+  await expect(preview).toHaveAttribute('data-preview', 'original');
+  await page.locator('[data-extra="diamond"]').click();
+  await expect(preview.locator('.extras-clock')).toHaveAttribute('data-skin', 'diamond');
+  await expect(preview.locator('.shop-square')).toHaveCSS('display', 'block');
+  await page.locator('[data-extra="sound-wood"]').click();
+  await expect(preview.locator('strong')).toHaveText('Grave');
+  const ticks = await page.evaluate(() => window.__ticks);
+  const saved = await page.evaluate(() => localStorage.getItem('clocking:progress:v1'));
+  await page.getByRole('button', { name: 'Escuchar Grave', exact: true }).click();
+  expect(await page.evaluate(() => window.__ticks)).toBe(ticks + 1);
+  expect(await page.evaluate(() => localStorage.getItem('clocking:progress:v1'))).toBe(saved);
+  await page.locator('[data-extra="speed"]').click();
+  const before = await page.locator('#time, #score, #nitro-value').allTextContents();
+  await expect(preview).toHaveAttribute('data-preview', 'speed');
+  await page.getByRole('button', { name: 'Repetir vista previa de Nitro ×2', exact: true }).click();
+  expect(await preview.locator('.demo-hand').evaluate(el => el.getAnimations()[0].effect.getKeyframes().at(-1).transform)).toBe('rotate(720deg)');
+  await page.clock.runFor(3000);
+  expect(await page.locator('#time, #score, #nitro-value').allTextContents()).toEqual(before);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'paused');
+  await page.locator('[data-extra="time"]').click();
+  await expect(preview.locator('.preview-time')).toHaveText('+1,5 s');
+  const boxes = await preview.evaluate(el => ({ top: el.getBoundingClientRect().top, sheet: document.querySelector('#settings').getBoundingClientRect().top }));
+  expect(boxes.top).toBeGreaterThanOrEqual(boxes.sheet - 1);
+  await page.locator('[data-extra="none"]').click();
+  await expect(preview.locator('.preview-meter')).toHaveCount(0);
+});
