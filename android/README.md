@@ -1,6 +1,6 @@
 # clocking para Android
 
-Aplicación offline a pantalla completa, compatible con Android 8.0 o posterior. El APK de lanzamiento está en [`../downloads/clocking-0.3.23.apk`](../downloads/clocking-0.3.23.apk). Está firmado con un certificado de lanzamiento propio, no con una clave de depuración.
+Aplicación offline a pantalla completa, compatible con Android 8.0 o posterior. El APK de lanzamiento está en [`../downloads/clocking-0.3.24.apk`](../downloads/clocking-0.3.24.apk). Está firmado con un certificado de lanzamiento propio, no con una clave de depuración.
 
 El contenedor nativo usa Android WebView y lleva el HTML, fuentes y audios integrados. No solicita permiso de Internet. Permite vibración; los botones físicos de volumen controlan el audio multimedia. Al cambiar de aplicación, la partida se pausa. Atrás cierra ajustes, abre ajustes desde el juego, vuelve al menú desde resultados o sale desde el menú.
 
@@ -25,14 +25,14 @@ Para una actualización, usa **la misma clave** y aumenta el código de versión
 python3 scripts/build-android.py \
   --keystore /ruta/privada/clocking-release.p12 \
   --password-file /ruta/privada/keystore.pass \
-  --version-name 0.3.24 --version-code 35
+  --version-name 0.3.25 --version-code 36
 ```
 
 Sin esa clave, Android no permitirá instalar una actualización sobre esta versión. El certificado público se incluye en `signing-certificate.pem`; su huella se puede contrastar con el APK:
 
 ```sh
 java -jar "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" verify \
-  --verbose --print-certs downloads/clocking-0.3.23.apk
+  --verbose --print-certs downloads/clocking-0.3.24.apk
 ```
 
 La clave privada y su contraseña se entregan por separado al propietario, nunca en GitHub. Guarda esa copia privada antes de descartar el entorno de compilación.
@@ -40,3 +40,5 @@ La clave privada y su contraseña se entregan por separado al propietario, nunca
 ## Instalación
 
 Descarga el APK en el teléfono, ábrelo y autoriza a tu navegador a instalar esta aplicación si Android lo solicita. No requiere Google Play ni conexión después de instalarse. Es una firma propia: Android puede mostrar una advertencia para aplicaciones instaladas fuera de Google Play.
+
+La introducción espera la confirmación de vista dibujable de Android (`onPageCommitVisible` / `postVisualStateCallback`). Cada regreso desde segundo plano (`onRestart`) solicita una nueva introducción; las señales duplicadas del primer arranque se descartan. La partida se conserva en pausa.

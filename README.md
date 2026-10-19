@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.23.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.24.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -263,3 +263,11 @@ La ventana es simétrica: hasta 45 ms otorga 48 puntos y 0,65 segundos; hasta 95
 El selector principal incorpora dos partidas independientes. **1 vs 1** alterna relojes que avanzan solos en una dirección y relojes que cambian de rumbo, con cuenta atrás recuperable. **Ritmo** presenta únicamente aros, sin cuenta atrás ni recompensas de tiempo: la precisión solo mejora el puntaje y las tres vidas duran toda la partida. El intervalo entre aros es de 1,1 / 0,95 / 0,8 segundos según la dificultad. Récords y selección se guardan por modo.
 
 La presentación inicial no consume pulsos ni acumula movimientos del primer duelo. Reiniciar restablece las vidas. Verificación: 76 pruebas de lógica y 14 de navegador en escritorio y móvil, incluyendo supervivencia anterior, pulsaciones, pausas, precisión y transición al siguiente reloj.
+
+### Apertura visible, quince paletas y luna/sol (0.3.24)
+
+La introducción ya no se cancela cuando Android oculta las barras del sistema y cambia la altura. El primer reloj permanece visible y espera a que la WebView pueda dibujarse antes de iniciar la vuelta. Una página oculta tampoco puede consumir la animación. Cada reapertura desde segundo plano vuelve a presentarla; los avisos duplicados no la reinician. Volver al menú dentro de una partida o cambiar la orientación no dispara otra introducción. La partida en curso permanece en pausa, sin perder puntos. Movimiento reducido muestra el logotipo con un fundido breve en lugar de omitir la presentación.
+
+El juego alterna quince paletas con saturaciones y luminosidades diferenciadas, además del blanco/negro inicial. Cambian cada 7,5 segundos activos mediante el fundido existente, en orden aleatorio sin repetir ninguna hasta recorrer las quince. Los colores de Nitro y destellos complementan cada fondo y cuentan con versiones claras y oscuras. Perder la racha sigue restableciendo el fondo monocromático.
+
+El control de tema transforma una luna en un sol al activar el modo claro, y a la inversa al volver al oscuro, con máscara vectorial y rayos progresivos. Comprobación: 77 pruebas de lógica; 32 casos únicos de navegador en escritorio y móvil, incluyendo arranque nativo simulado, documento oculto, reaperturas, cambios de altura, partida conservada y controles de tema.

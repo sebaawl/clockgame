@@ -3,7 +3,7 @@ import { LOGO_UNITS, LOGO_GLYPHS } from './intro-glyphs.js';
 import { clockContour, glyphPath, handFrames, GLYPH_CENTER, GLYPH_RADIUS } from './intro-geometry.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
-let played = false;
+let played = false, waitingForVisibility = false;
 const node = (tag, attributes = {}) => {
   const element = document.createElementNS(SVG, tag);
   for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, value);
@@ -12,13 +12,24 @@ const node = (tag, attributes = {}) => {
 
 // All native animations share one timeline origin; the final paths come from
 // the actual bundled font, while positions and spacing come from the real h1.
-export function playIntro(heading, feedback) {
-  if (played || !heading) return;
-  played = true;
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    document.querySelector('.start-content')?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160 });
+export function playIntro(heading, feedback, { replay = false } = {}) {
+  if (!heading || document.querySelector('#startup-intro') || (played && !replay)) return;
+  // WebViews may execute the document while still behind the launcher surface.
+  if (document.hidden) {
+    if (!waitingForVisibility) {
+      waitingForVisibility = true;
+      const visible = () => {
+        if (document.hidden) return;
+        document.removeEventListener('visibilitychange', visible);
+        waitingForVisibility = false;
+        playIntro(heading, feedback, { replay });
+      };
+      document.addEventListener('visibilitychange', visible);
+    }
     return;
   }
+  played = true;
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const text = heading.textContent;
   const oIndex = text.indexOf('o');
   if (oIndex < 0 || [...text].some(char => !LOGO_GLYPHS[char])) return;
@@ -50,30 +61,54 @@ export function playIntro(heading, feedback) {
   app.inert = true; document.body.append(overlay);
   feedback?.unlock(); // Decode/prewarm the embedded recording before frame zero.
   const animations = [];
-  let finished = false, measurement, fallbackFrame, stopClicks = () => {};
+  let finished = false, measurement, fallbackFrame, stopClicks = () => {}, removeNativeReady = () => {};
   const cleanup = () => {
     if (finished) return;
     finished = true;
     cancelAnimationFrame(fallbackFrame);
-    stopClicks();
+    stopClicks(); removeNativeReady();
     animations.forEach(animation => animation.cancel());
     measurement?.remove(); overlay.remove();
     document.body.classList.remove('intro-active', 'intro-landed');
     app.inert = wasInert;
-    window.removeEventListener('resize', cleanup);
+    window.removeEventListener('resize', onResize);
     document.removeEventListener('visibilitychange', onVisibility);
     document.removeEventListener('keydown', onKey, true);
+  };
+  const initialWidth = innerWidth;
+  const onResize = () => {
+    // System bars and the Android keyboard resize height at startup. They must
+    // never cancel the intro. A real rotation may finish it without replaying.
+    if (Math.abs(innerWidth - initialWidth) > Math.max(80, initialWidth * .25)) cleanup();
   };
   const onVisibility = () => { if (document.hidden) cleanup(); };
   const onKey = event => { if (['Escape', 'Enter', ' '].includes(event.key)) { event.preventDefault(); event.stopImmediatePropagation(); cleanup(); } };
   overlay.addEventListener('click', cleanup);
-  window.addEventListener('resize', cleanup, { once: true });
+  window.addEventListener('resize', onResize);
   document.addEventListener('visibilitychange', onVisibility);
   document.addEventListener('keydown', onKey, true);
 
   (async () => {
     await document.fonts.ready;
+    // Hold the first frame until Android confirms its WebView can be drawn.
+    // This prevents the complete animation playing behind the native splash.
+    if (/ clocking\//.test(navigator.userAgent) && !window.__clockingVisibleLaunch && !finished) {
+      await new Promise(resolve => {
+        const ready = () => { removeNativeReady(); resolve(); };
+        removeNativeReady = () => window.removeEventListener('clocking:launch', ready);
+        window.addEventListener('clocking:launch', ready, { once: true });
+      });
+    }
     if (finished) return;
+    if (reduced) {
+      scene.remove();
+      const label = document.createElement('span');
+      label.className = 'intro-reduced-logo'; label.textContent = text;
+      overlay.append(label);
+      const fade = overlay.animate([{ opacity: 0 }, { opacity: 1, offset: .2 }, { opacity: 1, offset: .75 }, { opacity: 0 }], { duration: 900, fill: 'both' });
+      animations.push(fade); fade.finished.then(cleanup).catch(cleanup);
+      return;
+    }
     // Cancel the existing boot reveal before measuring its final, stable layout.
     document.querySelector('.start-content').getAnimations().forEach(animation => animation.cancel());
     const style = getComputedStyle(heading), header = heading.getBoundingClientRect();
@@ -140,10 +175,10 @@ export function playIntro(heading, feedback) {
         }
         promises.push(animate(dial, [{ transform: initialTransform(box.left, box.top) }, { transform: letterTransforms[0] }], 600, 1500));
         word.querySelectorAll('.intro-letter').forEach(letter => promises.push(animate(letter, [{ opacity: 0 }, { opacity: 1 }], 570, 1530)));
-        const landing = animate(word, [
+        const landing = animate(word, header.width > 0 ? [
           { transform: `translate(${box.left}px, ${box.top}px) scale(1)` },
           { transform: `translate(${header.left}px, ${header.top}px) scale(${headerSize / size})` },
-        ], 600, 2100);
+        ] : [{ opacity: 1 }, { opacity: 0 }], 600, 2100);
         promises.push(landing);
         promises.push(animate(overlay, [{ backgroundColor: 'var(--surface)' }, { backgroundColor: 'transparent' }], 1, 2600, 'linear'));
         menu.forEach((element, i) => {

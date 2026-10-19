@@ -9,3 +9,5 @@
 .intro-measure { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); visibility: hidden; white-space: pre; margin: 0; padding: 0; border: 0; }
 .intro-baseline { display: inline-block; width: 0; height: 0; margin: 0; padding: 0; border: 0; vertical-align: baseline; }
 .intro-active:not(.intro-landed) #start-title { visibility: hidden; }
+
+.intro-reduced-logo { font-family: Poppins, Arial, sans-serif; font-weight: 700; font-size: min(64px, 17vw); line-height: 1; letter-spacing: -.065em; }

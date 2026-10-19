@@ -26,7 +26,9 @@ test('intro can be skipped and honors light theme and reduced motion', async ({ 
   await expect(page.locator('#start-title')).toBeVisible();
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.reload();
-  await expect(page.locator('#startup-intro')).toHaveCount(0);
+  await expect(page.locator('#startup-intro')).toBeVisible();
+  await expect(page.locator('.intro-reduced-logo')).toHaveText('clocking');
+  await expect(page.locator('#startup-intro')).toHaveCount(0, { timeout: 3000 });
   await expect(page.locator('#start-title')).toBeVisible();
 });
 

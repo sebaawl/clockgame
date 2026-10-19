@@ -21,11 +21,12 @@ import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resu
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
-import { BACKDROP_MS, DARK_BACKDROPS, LIGHT_BACKDROPS, nextBackdrop, backdropColors } from './ambience.js';
+import { BACKDROP_MS, DARK_BACKDROPS, LIGHT_BACKDROPS, createPaletteSequence, backdropColors } from './ambience.js';
 
 const SUCCESS_MS = 1000;
 const BREAK_MS = 3000;
 const CYCLE_NAMES = ['HORA', 'MINUTO', 'SEGUNDO'];
+const paletteSequence = createPaletteSequence();
 let backdropIndex = 0;
 let backdropElapsed = 0;
 let lastBackdropAt = null;
@@ -156,7 +157,7 @@ document.querySelector('#app').innerHTML = `
   </div></nav>
   <dialog id="settings" class="settings" aria-labelledby="settings-title">
     <div class="sheet-handle" aria-hidden="true"></div>
-    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><label class="theme-toggle" title="Modo claro"><input id="setting-light" type="checkbox" role="switch" aria-label="Modo claro">${icon('<path d="M20.5 13A8.5 8.5 0 0 1 11 3.5 8.5 8.5 0 1 0 20.5 13Z"/>')}</label></div>
+    <div class="settings-heading"><h2 id="settings-title">Ajustes</h2><label class="theme-toggle" title="Modo claro"><input id="setting-light" type="checkbox" role="switch" aria-label="Modo claro">${icon('<defs><mask id="theme-disc-mask" maskUnits="userSpaceOnUse" x="-12" y="-12" width="48" height="48"><rect x="-12" y="-12" width="48" height="48" fill="white" stroke="none"/><circle class="theme-cutout" cx="16" cy="7" r="8" fill="black" stroke="none"/></mask></defs><circle class="theme-disc" cx="12" cy="12" r="8" fill="currentColor" stroke="none" mask="url(#theme-disc-mask)"/><g class="theme-rays"><path d="M12 1v2m0 18v2M1 12h2m18 0h2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></g>')}</label></div>
     <p class="settings-note">Tu tiempo está en pausa.</p>
     <div class="settings-tabs" role="tablist" aria-label="Apartados de ajustes"><button id="tab-game" role="tab" aria-selected="true" aria-controls="settings-game" type="button">Juego</button><button id="tab-extras" role="tab" aria-selected="false" aria-controls="settings-extras" type="button">Extras</button></div>
     <section id="settings-game" role="tabpanel" aria-labelledby="tab-game">
@@ -308,7 +309,7 @@ function applyTheme() {
   const colors = backdropColors(backdropIndex, preferences.theme === 'light');
   document.documentElement.style.setProperty('--accent', colors.accent);
   document.documentElement.style.setProperty('--combo-flash', colors.flash);
-  document.documentElement.style.setProperty('--combo-overlay', preferences.theme === 'light' && backdropIndex !== 0 ? `hsl(${(backdropIndex - 1) * 20} 75% 70%)` : colors.flash);
+  document.documentElement.style.setProperty('--combo-overlay', colors.overlay || colors.flash);
   document.body.dataset.backdrop = String(backdropIndex);
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.style.setProperty('--background', background);
@@ -430,6 +431,7 @@ function clearRun() {
   bumpAnimation?.cancel();
   comboAnimation?.cancel();
   $('combo-celebration').hidden = true;
+  paletteSequence.reset();
   backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = null;
   points = 0;
   streak = 0;
@@ -946,7 +948,22 @@ function pauseForBackground() {
     render();
   } else pause();
 }
-document.addEventListener('visibilitychange', () => { if (document.hidden) pauseForBackground(); });
+function replayOpening() {
+  pauseForBackground();
+  if (settings.open) {
+    clearTimeout(settingsCloseTimer); settingsMotion?.cancel();
+    resumeAfterSettings = false; settings.close(); delete settings.dataset.closing;
+  }
+  if (designer?.panel.open) designer.close();
+  if (game.status === 'menu' && menuTab !== 'play') store.close();
+  playIntro($('start-title'), feedback, { replay: true });
+}
+window.addEventListener('clocking:launch', replayOpening);
+window.addEventListener('pageshow', event => { if (event.persisted) replayOpening(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) pauseForBackground();
+  else replayOpening();
+});
 window.addEventListener('clocking:pause', pauseForBackground);
 window.addEventListener('clocking:back', () => {
   if (designer?.panel.open) { designer.close(); return; }
@@ -964,7 +981,7 @@ function updateAmbience(now) {
   lastBackdropAt = now;
   if (backdropElapsed >= BACKDROP_MS) {
     backdropElapsed %= BACKDROP_MS;
-    backdropIndex = nextBackdrop(backdropIndex);
+    backdropIndex = paletteSequence.next(backdropIndex);
     applyTheme();
   }
 }

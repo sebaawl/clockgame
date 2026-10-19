@@ -22,6 +22,8 @@ import java.nio.charset.StandardCharsets;
 /** Offline game host. No network permission, remote navigation or native JS bridge. */
 public final class MainActivity extends Activity {
     private WebView game;
+    private boolean returningToApp;
+    private boolean visiblePageSignaled;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override public void onCreate(Bundle state) {
@@ -40,8 +42,20 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.23");
+        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.24");
         game.setWebViewClient(new WebViewClient() {
+            @Override public void onPageCommitVisible(WebView view, String url) {
+                // Signal a visible cold launch, not merely an HTML load behind
+                // Android's startup surface. JS deduplicates an active intro.
+                if (!visiblePageSignaled) signalVisibleLaunch(view);
+            }
+            @Override public void onPageFinished(WebView view, String url) {
+                view.postVisualStateCallback(0, new WebView.VisualStateCallback() {
+                    @Override public void onComplete(long requestId) {
+                        if (game == view && !visiblePageSignaled) signalVisibleLaunch(view);
+                    }
+                });
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 return true;
             }
@@ -66,6 +80,10 @@ public final class MainActivity extends Activity {
         }
     }
 
+    private void signalVisibleLaunch(WebView view) {
+        visiblePageSignaled = true;
+        view.evaluateJavascript("window.__clockingVisibleLaunch = true; window.dispatchEvent(new Event('clocking:launch'))", null);
+    }
     private void enterFullscreen() {
         if (Build.VERSION.SDK_INT >= 30) {
             getWindow().setDecorFitsSystemWindows(false);
@@ -92,9 +110,20 @@ public final class MainActivity extends Activity {
         }
         super.onPause();
     }
+    @Override protected void onRestart() {
+        super.onRestart();
+        returningToApp = true;
+    }
     @Override protected void onResume() {
         super.onResume();
-        if (game != null) game.onResume();
+        if (game != null) {
+            game.onResume();
+            if (returningToApp) {
+                returningToApp = false;
+                WebView view = game;
+                view.post(() -> { if (game == view) signalVisibleLaunch(view); });
+            }
+        }
     }
     @Override public void onBackPressed() {
         game.evaluateJavascript("(() => { if (document.body.dataset.state === 'menu' && document.body.dataset.menuTab === 'play' && !document.querySelector('dialog[open]')) return 'exit'; window.dispatchEvent(new Event('clocking:back')); return 'handled'; })()", result -> {
