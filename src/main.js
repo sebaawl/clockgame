@@ -117,7 +117,7 @@ document.querySelector('#app').innerHTML = `
       <div class="start-content">
         <header class="home-header"><h1 id="start-title">clocking</h1><div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div></header>
         <div class="home-selection">
-          ${[['format', 'PARTIDA', 'Partida'], ['difficulty', 'DIFICULTAD', 'Dificultad'], ['route', 'RECORRIDO', 'Recorrido']].map(([id, label, name]) => `<section class="choice-block" data-choice="${id}" role="group" aria-label="${name}"><button type="button" data-cycle="${id}" data-step="-1" aria-label="${name} anterior">${icon('<path d="m15 6-6 6 6 6"/>')}</button><div class="choice-copy" id="${id}-copy" aria-live="polite" aria-atomic="true"><div class="choice-caption"><span>${label}</span><span id="${id}-index"></span></div><h2 id="${id}-current"></h2><p id="${id}-description"></p></div><button type="button" data-cycle="${id}" data-step="1" aria-label="${name} siguiente">${icon('<path d="m9 6 6 6-6 6"/>')}</button></section>`).join('')}
+          ${[['format', 'PARTIDA', 'Partida'], ['difficulty', 'DIFICULTAD', 'Dificultad'], ['route', 'RECORRIDO', 'Recorrido']].map(([id, label, name]) => `<section class="choice-block" data-choice="${id}" role="group" aria-label="${name}"><button type="button" data-cycle="${id}" data-step="-1" aria-label="${name} anterior">${icon('<path d="m15 6-6 6 6 6"/>')}</button><div class="choice-copy" id="${id}-copy" aria-live="polite" aria-atomic="true"><div class="choice-caption"><span>${label}</span><span id="${id}-index" class="sr-only"></span></div><h2><button type="button" data-choice-info="${id}" aria-controls="${id}-description" aria-expanded="false"><span id="${id}-current"></span></button></h2><p id="${id}-description" hidden></p></div><button type="button" data-cycle="${id}" data-step="1" aria-label="${name} siguiente">${icon('<path d="m9 6 6 6-6 6"/>')}</button></section>`).join('')}
         </div>
         <div class="home-play"><p class="equipped-note" id="equipped-note"></p><button id="start-game" class="primary-action" type="button">Jugar</button></div>
         <nav class="progress-actions" aria-label="Progreso"><button id="open-store" type="button">${icon('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}<span>Tienda</span><span id="menu-coins" class="home-badge"></span></button><button id="open-daily" type="button">${icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9 12 2 2 4-5"/>')}<span>Misiones</span><span id="daily-ready" class="home-badge"></span></button></nav>
@@ -254,6 +254,7 @@ function syncSelector(animate = false) {
     $(kind + '-current').textContent = title;
     $(kind + '-description').textContent = description;
     $(kind + '-index').textContent = `${index + 1} / ${options.length}`;
+    if (changed) { $(kind + '-description').hidden = true; document.querySelector(`[data-choice-info="${kind}"]`).setAttribute('aria-expanded', 'false'); }
     if (animate && changed) reveal($(kind + '-copy'), [{ opacity: 0, transform: 'translateX(8px)' }, { opacity: 1, transform: 'translateX(0)' }], 220);
   }
 }
@@ -668,6 +669,15 @@ $('settings-extras').addEventListener('click', event => {
   syncSoundOptions(); render();
   playExtrasPreview(Boolean(button.dataset.sound));
 });
+document.querySelectorAll('[data-choice-info]').forEach(button => button.addEventListener('click', () => {
+  const kind = button.dataset.choiceInfo;
+  const open = $(kind + '-description').hidden;
+  for (const name of Object.keys(HOME_OPTIONS)) {
+    $(name + '-description').hidden = !(name === kind && open);
+    document.querySelector(`[data-choice-info="${name}"]`).setAttribute('aria-expanded', String(name === kind && open));
+  }
+  if (open) reveal($(kind + '-description'), [{ opacity: 0, transform: 'translateY(-4px)' }, { opacity: 1, transform: 'translateY(0)' }], 240);
+}));
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
 document.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {

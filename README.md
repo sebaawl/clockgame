@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.9.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.10.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -176,3 +176,7 @@ Botones para escuchar los sonidos antes de comprarlos, sin cambiar equipo ni sal
 ### Vista previa de extras (0.3.9)
 
 Panel fijo dentro de Extras con el reloj equipado, reproducción del sonido elegido y demostraciones animadas de los boosts. El botón de repetir no altera saldo, equipo ni recursos de la partida pausada. Respeta el tema y el movimiento reducido.
+
+### Menú abierto (0.3.10)
+
+Selectores centrados con texto grande y flechas, sin recuadros. Al pulsar una opción se despliega su descripción; vuelve a ocultarse al cambiarla. Contraste del botón Jugar conservado en ambos temas.
