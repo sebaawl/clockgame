@@ -46,6 +46,37 @@ export function createFeedback(getPreferences) {
       return context;
     } catch { return null; }
   }
+  function introClicks(startedAt) {
+    const audio = unlock();
+    if (!audio) return () => {};
+    let cancelled = false, filter;
+    const scheduled = new Set();
+    const schedule = () => {
+      if (cancelled || !getPreferences().sound || document.hidden || audio.state !== 'running') return;
+      const now = performance.now(), audioNow = audio.currentTime;
+      const times = Array.from({ length: 12 }, (_, i) => startedAt + (i + 1) * 125).filter(time => time >= now);
+      if (!times.length) return; // Never replay missed clicks after autoplay unlock.
+      filter = audio.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.value = 1400; filter.Q.value = .6; filter.connect(master);
+      for (const time of times) {
+        const source = audio.createBufferSource(), gain = audio.createGain();
+        const start = audioNow + (time - now) / 1000;
+        source.buffer = recording; source.playbackRate.value = .75;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(.2, start + .002);
+        gain.gain.linearRampToValueAtTime(0, start + .045);
+        source.connect(gain).connect(filter); scheduled.add(source);
+        source.onended = () => { source.disconnect(); gain.disconnect(); scheduled.delete(source); if (!scheduled.size) filter.disconnect(); };
+        source.start(start, 0, .045 * .75);
+      }
+    };
+    if (audio.state === 'running') schedule();
+    else audio.resume().then(schedule).catch(() => {});
+    return () => {
+      cancelled = true;
+      for (const source of scheduled) { try { source.stop(); } catch {} }
+      filter?.disconnect();
+    };
+  }
   function foley({ rate = .7, cutoff = 1200, volume = .25, length = .065 } = {}, delay = 0) {
     const audio = unlock();
     if (!audio) return;
@@ -261,7 +292,7 @@ export function createFeedback(getPreferences) {
     },
     guide() { vibrate([10, 20, 10]); },
     interrupt() { vibrate([24, 30, 58]); },
-    unlock, ui, success, preview: tick,
+    unlock, introClicks, ui, success, preview: tick,
     mute() { nitroStop(); for (const player of media.values()) { player.pause(); player.currentTime = 0; } if (context?.state === 'running') context.suspend().catch(() => {}); },
   };
 }

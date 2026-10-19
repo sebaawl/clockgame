@@ -993,5 +993,5 @@ document.querySelectorAll('.setting-row input').forEach(input => input.addEventL
 chooseDifficulty(selectedDifficulty);
 showMenu();
 music.autoplay();
-playIntro(document.querySelector('#start-title'));
+playIntro(document.querySelector('#start-title'), feedback);
 requestAnimationFrame(frame);

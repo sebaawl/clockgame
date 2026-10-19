@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.21.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.22.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -245,3 +245,11 @@ Triple ranura cuesta 1000 monedas o un récord de 30000. Es una mejora permanent
 El contador temporal de Supervivencia se sitúa por encima del arco superior derecho de la esfera. Los clics realizados aparecen en grande y el objetivo debajo; en los duelos, ese lugar muestra el sentido de giro.
 
 Brújula se representa con una manecilla fantasma cuando llega el momento de girar hacia las doce. Parte de la posición actual y barre repetidamente el sentido indicado, con transparencias, una estela y un halo suave. Se queda apuntando hacia las doce al alcanzar la cuenta exacta. La animación se congela al pausar; movimiento reducido utiliza una indicación estática. Extras muestra también la manecilla espectral en la vista previa.
+
+### Introducción con transformación tipográfica (0.3.22)
+
+El reloj completa doce movimientos con clics precargados en 1,5 segundos. Sus dos contornos se interpolan hasta convertirse en la letra «o» real de Poppins Bold 700, mientras desaparecen agujas y marcas. Las demás letras usan los mismos contornos del tipo original y el espaciado se mide sobre texto nativo completo. El logotipo existente permanece intacto: solo letras.
+
+La transformación termina a los 2,1 segundos; el nombre llega a las coordenadas reales del encabezado a los 2,7 y el menú aparece escalonado hasta los 3,3. Tema y sonido guardados se respetan. Movimiento reducido simplifica la apertura; se puede saltar y no se repite al regresar al menú ni al cambiar la orientación. Los clics bloqueados por autoplay se descartan, sin reproducirse de golpe después.
+
+Los contornos están generados en `src/intro-glyphs.js`. Para regenerarlos tras cambiar la fuente: `python3 scripts/generate-intro-glyphs.py` (requiere fontTools y `npm ci`). No se necesita analizar fuentes durante la ejecución.

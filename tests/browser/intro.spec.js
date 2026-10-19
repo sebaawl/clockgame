@@ -5,11 +5,12 @@ test('opening clock turns into the logo, lands on the heading, and reveals a usa
   await installClock(page);
   await page.goto('/');
   await expect(page.locator('#startup-intro')).toBeVisible();
-  await expect(page.locator('#start-menu')).not.toBeVisible();
+  await expect(page.locator('#start-title')).not.toBeVisible();
+  await expect(page.locator('#app')).toHaveJSProperty('inert', true);
   await expect(page.locator('#startup-intro')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('#startup-intro')).toHaveCount(0, { timeout: 7000 });
   await expect(page.locator('#start-title')).toBeVisible();
-  const landing = await page.evaluate(() => window.__motions.find(m => m.frames.some(f => /translate\([^)]*,/.test(f.transform || '')) && m.options.duration === 800));
+  const landing = await page.evaluate(() => window.__motions.find(m => m.options.duration === 600 && m.options.delay === 2100));
   expect(landing).toBeTruthy();
   await play(page);
   await expect(page.locator('#startup-intro')).toHaveCount(0);
