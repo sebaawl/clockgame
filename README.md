@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.0.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.1.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -121,6 +121,8 @@ La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desb
 | Nitro ×2 | 100 | 5000 |
 | Doble depósito | 140 | 7000 |
 | Un respiro | 180 | 9000 |
+| Recarga ×2 | 150 | 8000 |
+| Nitro Lock | 200 | 10000 |
 
 Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. Doble depósito almacena 200 y divide el indicador en dos barras: empieza con 40 y respeta el techo de precisión de horas. Un respiro añade 1,5 s a cada reloj de Clásico o al tiempo inicial de Supervivencia. No se apilan boosts.
 
@@ -134,3 +136,12 @@ El progreso usa `clocking:progress:v1` en localStorage. Los tests cubren cobro �
 `npm run build:designer` activa herramientas locales de prueba: toca siete veces el título **clocking** en el inicio (sin pausas mayores a 800 ms). Permite sumar engranajes de metas y monedas con cantidades de 1 a 1 000 000. No modifica récords, metas ni puntajes de partidas. Los cambios se guardan en el mismo progreso local. Es una herramienta oculta para una compilación privada, no autenticación.
 
 La compilación normal (`npm run build`) elimina el código del menú. No publiques el HTML o APK generado con `VITE_DESIGNER=true` como versión para jugadores. Para empaquetarlo, ejecuta el script Android con `--skip-web-build` después de generar el HTML de diseñador y usa un código de versión igual o superior al instalado. Los artefactos privados se entregan aparte; `downloads/` mantiene solo la versión pública.
+
+
+### Boosts de Nitro (0.3.1)
+
+**Recarga ×2** duplica todos los premios de Nitro, después del factor de dificultad, y acelera también el techo de precisión de horas. Se mantienen los límites del depósito y el consumo habitual.
+
+**Nitro Lock** frena y resuelve automáticamente al alcanzar las doce con Nitro, conservando el combo si el recorrido es perfecto. Tiene tres usos por partida; solo se gasta un uso cuando interviene. Al agotar los tres, los siguientes tres relojes completados recargan el bloqueo. El tercer uso no cuenta como recuperación; esperar, pausar y cambiar de ciclo tampoco recargan el bloqueo. Se muestra el saldo de usos y los ajustes pendientes bajo la barra. No valida un atajo contraintuitivo ni concede el bono de soltar manualmente un Perfect Nitro. El dedo que sigue apoyado no activa el siguiente reloj.
+
+Ambos se compran o desbloquean por récord como el resto de boosts y respetan un único boost equipado. La versión de diseñador sigue siendo una compilación separada con su menú oculto.

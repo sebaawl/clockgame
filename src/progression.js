@@ -6,6 +6,8 @@ export const ITEMS = [
   { id: 'square', kind: 'cosmetic', name: 'Cuadrante', detail: 'Una esfera cuadrada, suave y gruesa.', price: 140, target: 7500 },
   { id: 'speed', kind: 'boost', name: 'Nitro ×2', detail: 'El doble de velocidad al acelerar.', price: 100, target: 5000 },
   { id: 'tank', kind: 'boost', name: 'Doble depósito', detail: 'Almacena hasta 200 de Nitro. Empiezas con 40.', price: 140, target: 7000 },
+  { id: 'recharge', kind: 'boost', name: 'Recarga ×2', detail: 'Gana el doble de Nitro por acierto y por bonus.', price: 150, target: 8000 },
+  { id: 'lock', kind: 'boost', name: 'Nitro Lock', detail: 'Frena en las doce: 3 usos. Después, resuelve 3 relojes para recargarlo.', price: 200, target: 10000 },
   { id: 'time', kind: 'boost', name: 'Un respiro', detail: '+1,5 s por reloj en Clásico; +1,5 s iniciales en Supervivencia.', price: 180, target: 9000 },
 ];
 export const PACKS = [

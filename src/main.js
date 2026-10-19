@@ -167,7 +167,7 @@ function updateProgressMenu() {
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
   $('result-daily').textContent = ready ? `Metas diarias · ${ready} por recoger` : 'Metas diarias';
-  $('equipped-note').textContent = progress.boost ? `BOOST · ${{ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO' }[progress.boost]}` : '';
+  $('equipped-note').textContent = progress.boost ? `BOOST · ${{ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' }[progress.boost]}` : '';
   document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
 }
 function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocking:best:${format}:${mode}${difficulty === 'easy' ? '' : ':' + difficulty}`; }
@@ -202,6 +202,7 @@ function updateResources() {
   $('combo').setAttribute('aria-label', `Combo: ${game.combo}`);
   document.body.dataset.hot = String(game.combo >= 5);
   let message = game.status === 'cleared' ? game.perfectNitro ? 'PERFECT NITRO' : game.perfect ? 'PERFECTO' : '' : nitroRunning ? 'NITRO' : value <= 0 ? 'SIN CARGA' : '';
+  if (game.boost === 'lock') message = game.nitroLocked && game.status === 'cleared' ? `LOCK · ${game.lockUses ? game.lockUses + '/3' : 'RECARGA 3'}` : game.lockCooldown > 0 ? `LOCK · FALTAN ${game.lockCooldown} AJUSTES` : `LOCK · ${game.lockUses}/3`;
   if (game.status === 'cleared' && game.format === 'survival') message += `${message ? ' · ' : ''}+${game.lastTimeGain.toFixed(1)} S`;
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
@@ -548,7 +549,7 @@ function finishAdjustment() {
   saveProgress(progress, storage);
   if (!reducedMotion.matches) score.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.13)' }, { transform: 'scale(1)' }], { duration: 240, easing: 'ease-out' });
   render();
-  announce(game.perfectNitro ? 'Perfect Nitro. Las doce.' : 'Las doce.');
+  announce(game.nitroLocked ? 'Nitro Lock. Las doce.' : game.perfectNitro ? 'Perfect Nitro. Las doce.' : 'Las doce.');
   celebrate();
 }
 function tap(direction, { accelerated = false } = {}) {
