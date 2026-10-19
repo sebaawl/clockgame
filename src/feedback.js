@@ -194,7 +194,7 @@ export function createFeedback(getPreferences) {
     wood: { rate: .5, cutoff: 1000, volume: .4, length: .085 },
     clock: { rate: .85, cutoff: 1800, volume: .22, length: .065 },
   };
-  function tick() { foley(profiles[getPreferences().soundPreset] || profiles.felt); }
+  function tick(preset = getPreferences().soundPreset) { return foley(profiles[preset] || profiles.felt); }
   function ui(kind = 'press') {
     if (kind === 'success') { success(); return; }
     if (!getPreferences().sound || performance.now() - lastUI < 35) return;

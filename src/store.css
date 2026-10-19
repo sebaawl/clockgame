@@ -116,3 +116,16 @@ body[data-skin='dots'] .clock-face { stroke-width: 5; }
 .designer label { display: block; font-size: 12px; margin-bottom: 12px; }
 .designer-input { display: flex; gap: 10px; }
 .designer input { width: 0; flex: 1; min-width: 80px; min-height: 46px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--foreground); padding: 10px 16px; font: inherit; font-size: 18px; }
+
+body[data-skin='eclipse'] .clock-face { stroke-width: 15; }
+body[data-skin='eclipse'] .tick, .shop-clock[data-skin='eclipse'] .shop-tick { display: none; }
+.shop-clock[data-skin='eclipse'] .shop-ring { stroke-width: 5; }
+body[data-skin='pulse'] .clock-face { stroke-width: 6; stroke-dasharray: 12 8; }
+body[data-skin='pulse'] .tick, .shop-clock[data-skin='pulse'] .shop-tick { display: none; }
+body[data-skin='pulse'] .hand-line, body[data-skin='pulse'] .fixed-hand { stroke-width: 5; }
+.shop-clock[data-skin='pulse'] .shop-ring { stroke-width: 2; stroke-dasharray: 3.5 2.5; }
+.shop-clock[data-skin='pulse'] .shop-hand { stroke-width: 1.8; }
+body[data-skin='diamond'] .clock-face, .shop-clock[data-skin='diamond'] .shop-ring { display: none; }
+body[data-skin='diamond'] .square-face { display: block; fill: var(--background); stroke-width: 8; transform: translate(160px, 160px) rotate(45deg) scale(.72) translate(-160px, -160px); }
+.shop-clock[data-skin='diamond'] .shop-square { display: block; stroke-width: 3; transform: translate(50px, 50px) rotate(45deg) scale(.72) translate(-50px, -50px); }
+body[data-skin='diamond'] .tick:not(:nth-of-type(3n + 1)), .shop-clock[data-skin='diamond'] .shop-tick:not(:nth-of-type(3n + 1)) { display: none; }

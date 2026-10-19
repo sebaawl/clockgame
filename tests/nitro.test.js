@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { createNitroControl } from '../src/nitro.js';
 import { createGame, startGame, moveGame, settleGame, advanceGame, consumeNitro, pauseGame, resumeGame, tickGame } from '../src/game.js';
 
-function harness(initial = 100, velocity = 42) {
+function harness(initial = 100, velocity = 42, drain = 32) {
   let time = 0, charge = initial, steps = 0, taps = 0, active = false, playing = true, release = null, serial = 0;
   const jobs = new Map();
   const control = createNitroControl({
     now: () => time, schedule: (fn, delay) => { const id = ++serial; jobs.set(id, { at: time + delay, fn }); return id; }, unschedule: id => jobs.delete(id),
-    canPlay: () => playing, charge: () => charge, spend: amount => { charge = Math.max(0, charge - amount); }, speed: () => velocity,
+    canPlay: () => playing, charge: () => charge, spend: amount => { charge = Math.max(0, charge - amount); }, speed: () => velocity, drain: () => drain,
     step: () => steps++, shortTap: () => taps++, released: exact => { release = exact; }, activeChanged: value => { active = value; },
   });
   function advance(ms) {
@@ -190,4 +190,11 @@ test('an extra movement resets the perfect hours streak without confiscating sto
   solve(game, 14);
   assert.equal(game.hourPerfectStreak, 1);
   assert.ok(game.nitro < 100);
+});
+
+test('efficient Nitro spends 24 per second and empties cleanly after its longer run', () => {
+  const h = harness(100, 42, 24); h.control.press(1, 1); h.advance(1150); h.control.release(1);
+  assert.ok(Math.abs(h.state().charge - 76) < 1e-8);
+  const empty = harness(100, 42, 24); empty.control.press(1, 1); empty.advance(4400);
+  assert.equal(empty.state().charge, 0); assert.equal(empty.state().active, false);
 });

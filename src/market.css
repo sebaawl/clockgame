@@ -71,3 +71,9 @@
 .goal-footer button:not(:disabled) { background: var(--foreground); color: var(--surface); }
 .store .mission-exchange { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 24px; font-size: 12px; }
 .mission-exchange svg { width: 19px; height: 19px; }
+
+.store .sound-preview { display: grid; place-items: center; width: 42px; padding: 10px; }
+.sound-preview svg { width: 18px; height: 18px; }
+.sound-preview.previewing svg { animation: sound-preview-pulse 450ms ease-out; }
+@keyframes sound-preview-pulse { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.3); } }
+@media (prefers-reduced-motion: reduce) { .sound-preview.previewing svg { animation: none; } }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, startGame, moveGame, advanceGame, settleGame, pauseGame, resumeGame } from '../src/game.js';
+import { createGame, startGame, moveGame, advanceGame, settleGame, pauseGame, resumeGame, nitroDrain } from '../src/game.js';
 const near = () => .99;
 const start = (boost, mode = 'normal', difficulty = 'easy') => startGame(createGame(), 0, near, mode, 'classic', { boost, difficulty });
 function solve(g, accelerated = false) {
@@ -58,4 +58,15 @@ test('paired boosts apply together and survive cycle changes without duplication
   advanceGame(g, 1, near); assert.deepEqual(g.boosts, ['recharge', 'lock']);
   const tank = startGame(createGame(), 0, near, 'normal', 'survival', { boosts: ['tank', 'time', 'tank'] });
   assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 16.5);
+});
+
+test('new boosts preserve hours precision limits and reward only perfect routes', () => {
+  const efficient = start('efficient'); assert.equal(nitroDrain(efficient), 24);
+  assert.equal(nitroDrain(start(null)), 32);
+  const plain = start(null), precision = start('precision'); solve(plain); solve(precision);
+  assert.ok(precision.nitro > plain.nitro); assert.ok(precision.nitro <= 46);
+  const later = start('precision'); later.phase = 10; later.status = 'cleared'; advanceGame(later, 1, near); later.nitro = 0; later.perfectRoute = false; solve(later);
+  assert.equal(later.lastNitroGain, 2);
+  const perfect = start('precision'); perfect.phase = 10; perfect.status = 'cleared'; advanceGame(perfect, 1, near); perfect.nitro = 0; solve(perfect);
+  assert.equal(perfect.lastNitroGain, 8);
 });

@@ -7,6 +7,7 @@ export const NITRO_INITIAL = 40;
 export const NITRO_DRAIN = 32;
 export const DIFFICULTIES = { easy: { name: 'Fácil', time: 1, recharge: 1 }, medium: { name: 'Media', time: .82, recharge: .75 }, hard: { name: 'Difícil', time: .65, recharge: .5 } };
 export const hasBoost = (game, id) => game.boosts?.includes(id) || game.boost === id;
+export const nitroDrain = game => NITRO_DRAIN * (hasBoost(game, 'efficient') ? .75 : 1);
 export const nitroCapacity = game => hasBoost(game, 'tank') ? 200 : 100;
 export const SURVIVAL_CAP = 25;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
@@ -59,7 +60,7 @@ function preparePhase(game, now, random) {
 export function startGame(game, now, random = Math.random, mode = 'normal', format = 'classic', options = {}) {
   Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: format === 'survival' ? 'survival' : 'classic' });
   game.difficulty = Object.hasOwn(DIFFICULTIES, options.difficulty) ? options.difficulty : 'easy';
-  game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock'].includes(id)).slice(0, 2);
+  game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock', 'efficient', 'precision'].includes(id)).slice(0, 2);
   game.boost = game.boosts[0] || null;
   if (game.format === 'survival') game.remaining = 15 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
   return preparePhase(game, now, random);
@@ -91,7 +92,7 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   }
   game.combo += 1;
   const milestone = game.combo % 10 === 0 ? 6 : game.combo % 5 === 0 ? 4 : 0;
-  game.lastNitroGain = 2 + (game.perfect ? 3 : 0) + milestone + (game.perfectNitro ? 3 : 0);
+  game.lastNitroGain = 2 + (game.perfect ? 3 + (hasBoost(game, 'precision') ? 3 : 0) : 0) + milestone + (game.perfectNitro ? 3 : 0);
   game.lastNitroGain *= DIFFICULTIES[game.difficulty].recharge * (hasBoost(game, 'recharge') ? 2 : 1);
   const previousNitro = game.nitro;
   if (game.stage === 0) {

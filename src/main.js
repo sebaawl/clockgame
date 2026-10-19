@@ -10,7 +10,7 @@ import './home.css';
 import './market.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots } from './progression.js';
-import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, hasBoost } from './game.js';
+import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
@@ -171,7 +171,7 @@ function updateProgressMenu() {
   $('menu-coins').textContent = progress.coins ? progress.coins.toLocaleString('es-CL') : '';
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
-  $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
+  $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ efficient: 'AHORRO', precision: 'PULSO PERFECTO', speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
   document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
 }
 function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocking:best:${format}:${mode}${difficulty === 'easy' ? '' : ':' + difficulty}`; }
@@ -184,7 +184,7 @@ function chooseDifficulty(difficulty) {
 const input = createNitroControl({
   now: () => performance.now(), schedule: (fn, ms) => setTimeout(fn, ms), unschedule: clearTimeout,
   canPlay: () => game.status === 'playing' && !settings.open && !document.hidden,
-  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), speed: () => NITRO_SPEED[game.stage] * (hasBoost(game, 'speed') ? 2 : 1),
+  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), drain: () => nitroDrain(game), speed: () => NITRO_SPEED[game.stage] * (hasBoost(game, 'speed') ? 2 : 1),
   step: direction => tap(direction, { accelerated: true }), shortTap: direction => tap(direction),
   released: exact => { if (settleGame(game, performance.now(), { perfectNitro: exact })) finishAdjustment(); else render(); },
   activeChanged: (value, direction) => {
@@ -735,7 +735,34 @@ $('setting-success').addEventListener('change', event => {
   if (preferences.successSound) feedback.success(); else feedback.ui('toggle');
 });
 $('setting-vibration').addEventListener('change', event => { preferences.vibration = event.target.checked; feedback.ui('toggle'); savePreferences(); });
-$('setting-light').addEventListener('change', event => { preferences.theme = event.target.checked ? 'light' : 'dark'; feedback.ui('toggle'); applyTheme(); savePreferences(); });
+let themeTransition, themeGeneration = 0, themeTimer;
+$('setting-light').addEventListener('change', async event => {
+  const theme = event.target.checked ? 'light' : 'dark';
+  const generation = ++themeGeneration;
+  themeTransition?.skipTransition();
+  feedback.ui('toggle');
+  const update = () => { if (generation === themeGeneration) { preferences.theme = theme; applyTheme(); savePreferences(); } };
+  if (reducedMotion.matches) { update(); return; }
+  const rect = document.querySelector('.theme-toggle').getBoundingClientRect();
+  const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+  const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+  if (!document.startViewTransition) {
+    document.documentElement.classList.add('theme-fading'); update();
+    clearTimeout(themeTimer); themeTimer = setTimeout(() => document.documentElement.classList.remove('theme-fading'), 600);
+    return;
+  }
+  document.documentElement.classList.add('theme-changing');
+  const transition = document.startViewTransition(update);
+  themeTransition = transition;
+  try {
+    await transition.ready;
+    if (generation === themeGeneration) await document.documentElement.animate([
+      { clipPath: `circle(0px at ${x}px ${y}px)` },
+      { clipPath: `circle(${radius}px at ${x}px ${y}px)` },
+    ], { duration: 620, easing: 'cubic-bezier(.2,.75,.25,1)', fill: 'both', pseudoElement: '::view-transition-new(root)' }).finished;
+  } catch { update(); }
+  finally { if (generation === themeGeneration) { themeTransition = null; document.documentElement.classList.remove('theme-changing'); } }
+});
 for (const [id, direction] of [['tap-left', -1], ['tap-right', 1]]) {
   const zone = $(id);
   zone.addEventListener('pointerdown', event => {
@@ -815,7 +842,7 @@ document.addEventListener('click', event => {
   if (!button || button.matches('.tap-zone')) return;
   if (button.matches('[data-cycle], [data-action=tab], [data-action=section]')) {
     if (button.getAttribute('aria-pressed') !== 'true') feedback.ui('slide');
-  } else if (!button.matches('[data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
+  } else if (!button.matches('[data-action="preview"], [data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
     feedback.ui(button.matches('#change-mode') ? 'transition' : button.matches('#start-game, #restart-game') ? 'start' : 'press');
   }
   if (reducedMotion.matches) return;

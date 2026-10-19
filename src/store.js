@@ -14,7 +14,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   let tab = 'cosmetic', view = 'shop', motion, closing = false, tabTimer, dayTimer, market = 'buy';
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
-  const compactDetail = { 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
+  const compactDetail = { eclipse: 'Aro limpio y grueso', pulse: 'Trazo discontinuo', diamond: 'Cuatro puntos cardinales', efficient: 'Consumo −25%', precision: 'Perfectos +3 Nitro', 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
   function purchaseActions(item, owned, equipped = false) {
     if (item.kind === 'upgrade' && owned) return `<span class="upgrade-owned">${symbols.check} Permanente</span>`;
     if (owned) {
@@ -28,11 +28,11 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     if (item.kind === 'cosmetic') return miniClock(item.id);
     if (item.id === 'lock') return svg('<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>');
     if (item.id === 'tank') return svg('<rect x="3" y="4" width="6" height="16" rx="2"/><rect x="15" y="4" width="6" height="16" rx="2"/><path d="M3 12h6m6 0h6"/>');
-    return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', dual: '2' })[item.id]}</span>`;
+    return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', efficient: '−25%', precision: '+3', dual: '2' })[item.id]}</span>`;
   }
   function itemCard(item) {
     const owned = progress.owned.includes(item.id), equipped = item.kind === 'sound' ? progress.soundPreset === item.id.slice(6) : item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
-    return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${purchaseActions(item, owned, equipped)}</div></article>`;
+    return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${item.kind === 'sound' ? `<button class="sound-preview" data-action="preview" data-id="${item.id}" aria-label="Escuchar ${item.name}">${svg('<path d="m9 5 10 7-10 7V5Z"/>')}</button>` : ''}${purchaseActions(item, owned, equipped)}</div></article>`;
   }
   function render() {
     const goals = dailyGoals(progress);
@@ -109,6 +109,12 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     if (!button || button.disabled) return;
     const { action, id } = button.dataset, rect = button.getBoundingClientRect();
     const notice = dialog.querySelector('#store-notice'); let message = '', reward = 0;
+    if (action === 'preview') {
+      if (!feedback.preview(id.slice(6))) { notice.textContent = 'Activa Sonido en ajustes para escuchar.'; return; }
+      button.classList.remove('previewing'); void button.offsetWidth; button.classList.add('previewing');
+      notice.textContent = ITEMS.find(item => item.id === id).name;
+      return;
+    }
     if (action === 'close') { close(); return; }
     if (action === 'daily') { clearTimeout(tabTimer); view = view === 'daily' ? 'shop' : 'daily'; render(); return; }
     if (action === 'section') { clearTimeout(tabTimer); view = 'shop'; market = id; render(); if (!reducedMotion.matches) dialog.querySelector('#store-content').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220 }); return; }
