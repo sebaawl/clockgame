@@ -2,14 +2,26 @@
 
 Un juego de precisión para móvil: lleva un reloj desajustado a las doce tocando las dos mitades de la pantalla. Prototipo web responsive, en español, sin cuentas, servicios externos ni claves de API.
 
+## Jugar sin instalar nada
+
+1. Descarga el ZIP del repositorio desde **Code → Download ZIP**.
+2. Extrae el ZIP completo.
+3. Abre **index.html** con tu navegador (doble clic en ordenador).
+
+El `index.html` de la carpeta principal ya incluye el juego, los estilos y las fuentes. Funciona sin conexión y no necesita Node.js ni un servidor. También puedes copiar ese archivo solo a otra carpeta. En móvil, ábrelo en un navegador que permita ejecutar archivos HTML locales; algunas aplicaciones de archivos solo muestran una vista previa.
+
 ## Desarrollo
 
 Requiere Node.js 20.19+ o 22.12+ (validado con Node.js 24).
 
 ```sh
-npm ci --cache /workspace/.cache/npm
+npm ci
 npm run dev -- --port 5173
 ```
+
+El código editable está en `src/`, incluida la plantilla `src/index.html`. `npm run build` genera una versión autónoma en `dist/index.html` y actualiza el `index.html` de la carpeta principal. No edites el HTML generado a mano. Antes de subir cambios, vuelve a compilar para incluir la versión descargable actualizada.
+
+En el entorno de Codex, utiliza `npm ci --cache /workspace/.cache/npm` si la caché predeterminada no tiene permisos de escritura.
 
 ## Reglas implementadas
 
@@ -46,7 +58,9 @@ Si hay un Chromium del sistema, puede reutilizarse sin descargar otro navegador:
 CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e
 ```
 
-Playwright inicia su propio servidor en el puerto 4173 y prueba escritorio y móvil. Las fuentes se incluyen con la aplicación: no hay peticiones a Google Fonts.
+El comando de integración compila primero el HTML descargable. Playwright inicia su propio servidor en el puerto 4173 y prueba escritorio y móvil. También carga el contenido de una copia aislada de `index.html` en un documento sin origen, con la red desactivada, y comprueba que el juego funcione incluso con el almacenamiento local bloqueado. Las fuentes se incluyen con la aplicación: no hay peticiones a Google Fonts.
+
+Una prueba adicional abre el archivo mediante `file://` y verifica que funcione incluso al renombrarlo. Si el navegador administrado prohíbe las rutas `file://`, esa comprobación se registra como omitida; las pruebas del contenido autónomo sin conexión se ejecutan igualmente.
 
 ## Alcance
 

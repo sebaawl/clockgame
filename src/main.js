@@ -38,7 +38,7 @@ const ticks = Array.from({ length: 60 }, (_, i) => {
 document.querySelector('#app').innerHTML = `
   <div class="app-shell">
     <header class="site-header">
-      <a class="wordmark" href="/" aria-label="clocking, inicio">clocking<span>.</span></a>
+      <a class="wordmark" href="" aria-label="clocking, inicio">clocking<span>.</span></a>
       <span class="header-note"><span class="tiny-clock"></span> un pequeño respiro para tu mente</span>
       <nav class="header-actions" aria-label="Opciones de juego">
         <button id="sound-button" class="icon-button" aria-label="Activar sonido" aria-pressed="false">${icon('muted')}</button>
@@ -321,11 +321,16 @@ function mainAction() {
 }
 
 nodes['main-action'].addEventListener('click', mainAction);
-nodes['restart-button'].addEventListener('click', () => {
+function resetGame() {
   clearTimeout(advanceTimer);
   Object.assign(game, createGame());
   render();
   nodes['main-action'].focus({ preventScroll: true });
+}
+nodes['restart-button'].addEventListener('click', resetGame);
+document.querySelector('.wordmark').addEventListener('click', (event) => {
+  event.preventDefault();
+  resetGame();
 });
 
 for (const [id, direction] of [['tap-left', -1], ['tap-right', 1]]) {
