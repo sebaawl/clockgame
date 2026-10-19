@@ -9,7 +9,7 @@ const position = page => page.locator('#clock').getAttribute('aria-label');
 
 test.beforeEach(async ({ page }) => { await installClock(page); await page.goto('/'); });
 
-test('short taps move once on release, and exactly 250 ms activates Nitro without an extra tap', async ({ page }) => {
+test('short taps move once on release, and exactly 150 ms activates Nitro without an extra tap', async ({ page }) => {
   await play(page);
   await holdLeft(page);
   await page.clock.runFor(100);
@@ -18,7 +18,7 @@ test('short taps move once on release, and exactly 250 ms activates Nitro withou
   await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 4\./);
   await expect(page.locator('#nitro-value')).toHaveText('40%');
   await holdLeft(page);
-  await page.clock.runFor(249);
+  await page.clock.runFor(149);
   await expect(page.locator('body')).toHaveAttribute('data-nitro', 'false');
   await page.clock.runFor(1);
   await expect(page.locator('body')).toHaveAttribute('data-nitro', 'true');
@@ -30,7 +30,7 @@ test('short taps move once on release, and exactly 250 ms activates Nitro withou
 test('passing twelve does not auto-solve; releasing at twelve rewards Perfect Nitro and stops immediately', async ({ page }) => {
   await play(page);
   await holdLeft(page);
-  await page.clock.runFor(790);
+  await page.clock.runFor(690);
   await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 0\./);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
   await expect(page.locator('#score')).toHaveText('0');
@@ -49,7 +49,7 @@ test('passing twelve does not auto-solve; releasing at twelve rewards Perfect Ni
 test('overshoot requires correction and pause cancels the held control without free moves', async ({ page }) => {
   await play(page);
   await holdLeft(page);
-  await page.clock.runFor(900);
+  await page.clock.runFor(800);
   await page.mouse.up();
   await expect(page.locator('#clock')).toHaveAttribute('aria-label', /hora 11\./);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');

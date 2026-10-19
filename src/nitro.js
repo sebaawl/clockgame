@@ -1,4 +1,4 @@
-export const HOLD_MS = 250;
+export const HOLD_MS = 150;
 export const RAMP_MS = 100;
 export const NITRO_SPEED = [10, 28, 42];
 // The control owns exactly one pointer. Timing and charge are independent of FPS.

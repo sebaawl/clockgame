@@ -5,12 +5,14 @@ import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resu
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
+import { BACKDROP_MS, DARK_BACKDROPS, LIGHT_BACKDROPS, nextBackdrop } from './ambience.js';
 
 const SUCCESS_MS = 1000;
 const BREAK_MS = 3000;
 const CYCLE_NAMES = ['HORA', 'MINUTO', 'SEGUNDO'];
-const DARK_COLORS = ['#000000', '#000000', '#000000'];
-const LIGHT_COLORS = ['#ffffff', '#ffffff', '#ffffff'];
+let backdropIndex = 0;
+let backdropElapsed = 0;
+let lastBackdropAt = null;
 const SOUND_PRESETS = ['felt', 'wood', 'clock'];
 const preferences = (() => {
   try {
@@ -40,7 +42,7 @@ let streak = 0;
 let attemptTaps = 0;
 let optimalSteps = 1;
 let lossStarted = false;
-let flashAnimation;
+let comboAnimation;
 let resumeAfterSettings = false;
 let settingsMotion;
 let settingsCloseTimer;
@@ -59,7 +61,7 @@ let descriptionMotion;
 
 document.querySelector('#app').innerHTML = `
   <main class="game" aria-label="clocking">
-    <p class="sr-only" id="instructions">Lleva el reloj a las doce con las mitades izquierda y derecha de la pantalla. El botón de ajustes pausa la partida. Espacio también pausa. Mantén 0,25 segundos para activar Nitro y suelta en las doce; no se detiene automáticamente. En modo difícil solo cuenta completar el recorrido largo.</p>
+    <p class="sr-only" id="instructions">Lleva el reloj a las doce con las mitades izquierda y derecha de la pantalla. El botón de ajustes pausa la partida. Espacio también pausa. Mantén 0,15 segundos para activar Nitro y suelta en las doce; no se detiene automáticamente. En modo difícil solo cuenta completar el recorrido largo.</p>
     <div id="success-glow" class="success-glow" aria-hidden="true"></div>
     <div class="hud" id="hud"><div class="hud-row">
       <div id="cycle-label" class="cycle-label">HORA</div>
@@ -89,7 +91,7 @@ document.querySelector('#app').innerHTML = `
     <div id="control-guide" class="control-guide" hidden aria-hidden="true">
       <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA IZQUIERDA</strong><span>Gira en sentido antihorario</span></div></div>
       <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span><strong>TOCA A LA DERECHA</strong><span>Gira en sentido horario</span></div></div>
-      <p class="guide-nitro">TOCA: UN PASO · MANTÉN 0,25 S: NITRO<br>SUELTA EN LAS DOCE</p><p class="guide-start">UN TOQUE PARA EMPEZAR</p>
+      <p class="guide-nitro">TOCA: UN PASO · MANTÉN 0,15 S: NITRO<br>SUELTA EN LAS DOCE</p><p class="guide-start">UN TOQUE PARA EMPEZAR</p>
     </div>
     <section id="start-menu" class="start-menu" aria-labelledby="start-title">
       <div class="start-content">
@@ -110,7 +112,7 @@ document.querySelector('#app').innerHTML = `
       <output id="final-score" class="final-score" aria-label="Puntaje final">0</output><p class="result-unit">PUNTOS</p><p id="result-mode" class="result-mode">NORMAL</p><p id="best-score" class="best-score"></p>
       <button id="restart-game" class="primary-action" type="button">Reintentar</button><button id="change-mode" class="text-action" type="button">Cambiar modo</button>
     </div></section>
-    <div id="red-flash" class="red-flash" aria-hidden="true"></div>
+    <div id="combo-celebration" class="combo-celebration" hidden aria-hidden="true"><span>COMBO</span><strong id="combo-big">5×</strong></div>
     <p class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></p>
   </main>
   <dialog id="settings" class="settings" aria-labelledby="settings-title">
@@ -174,7 +176,8 @@ function savePreferences() {
 }
 function announce(message) { $('announcer').textContent = message; }
 function applyTheme() {
-  const background = (preferences.theme === 'light' ? LIGHT_COLORS : DARK_COLORS)[Math.min(2, game.round)];
+  const background = (preferences.theme === 'light' ? LIGHT_BACKDROPS : DARK_BACKDROPS)[backdropIndex];
+  document.body.dataset.backdrop = String(backdropIndex);
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.style.setProperty('--background', background);
   document.querySelector('meta[name="theme-color"]').content = background;
@@ -261,7 +264,9 @@ function clearRun() {
   clearTimeout(breakTimer);
   glowAnimation?.cancel();
   bumpAnimation?.cancel();
-  flashAnimation?.cancel();
+  comboAnimation?.cancel();
+  $('combo-celebration').hidden = true;
+  backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = null;
   points = 0;
   streak = 0;
   lossStarted = false;
@@ -311,8 +316,10 @@ function positionGlow() {
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   Object.assign(glow.style, { left: `${x}px`, top: `${y}px`, width: `${radius * 2 + 4}px`, height: `${radius * 2 + 4}px` });
 }
-function animateGlow(frames, options) {
+function animateGlow(frames, options, color = 'var(--success-color)') {
   glowAnimation?.cancel();
+  glow.style.background = color;
+  glow.dataset.combo = String(preferences.flash && !reducedMotion.matches && color === 'var(--accent)');
   glowAnimation = preferences.flash ? glow.animate(frames, options) : null;
 }
 function celebrate() {
@@ -329,9 +336,28 @@ function celebrate() {
     { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.72, easing: 'ease-out' },
     { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ];
-  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' });
+  const milestone = game.combo > 0 && game.combo % 5 === 0;
+  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' }, milestone ? 'var(--accent)' : 'var(--success-color)');
+  if (milestone) showCombo();
   transitionRemaining = SUCCESS_MS;
   scheduleAdvance();
+}
+function showCombo() {
+  comboAnimation?.cancel();
+  const badge = $('combo-celebration');
+  $('combo-big').textContent = `${game.combo}×`;
+  badge.style.color = preferences.flash && !reducedMotion.matches ? 'var(--background)' : 'var(--foreground)';
+  badge.hidden = false;
+  comboAnimation = badge.animate(reducedMotion.matches ? [
+    { opacity: 0 }, { opacity: 1, offset: .15 }, { opacity: 1, offset: .8 }, { opacity: 0 },
+  ] : [
+    { opacity: 0, transform: 'translate(-50%, -50%) scale(.65)', easing: 'cubic-bezier(.2,1.35,.35,1)' },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1.08)', offset: .24 },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: .36 },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: .78 },
+    { opacity: 0, transform: 'translate(-50%, -56%) scale(.98)' },
+  ], { duration: 950, easing: 'ease-out' });
+  comboAnimation.onfinish = () => { badge.hidden = true; };
 }
 function scheduleAdvance() {
   clearTimeout(advanceTimer);
@@ -438,16 +464,16 @@ function lose() {
   glowAnimation?.cancel();
   if (settings.open) { resumeAfterSettings = false; settings.close(); }
   showResult(false);
-  flashAnimation = $('red-flash').animate([
-    { opacity: 0 }, { opacity: reducedMotion.matches ? 0.15 : 0.85, offset: 0.13 }, { opacity: 0 },
-  ], { duration: 360, easing: 'ease-out' });
+  comboAnimation?.cancel();
+  $('combo-celebration').hidden = true;
   announce(`Se acabó el tiempo. ${points} puntos. Puedes reintentar o cambiar de modo.`);
 }
 function pause() {
+  lastBackdropAt = null;
   input.cancel();
   if (!['playing', 'cleared', 'break'].includes(game.status)) return;
   if (game.status === 'break') { breakRemaining = Math.max(0, breakAt - performance.now()); clearTimeout(breakTimer); }
-  if (game.status === 'cleared') { transitionRemaining = Math.max(0, advanceAt - performance.now()); glowAnimation?.pause(); }
+  if (game.status === 'cleared') { transitionRemaining = Math.max(0, advanceAt - performance.now()); glowAnimation?.pause(); comboAnimation?.pause(); }
   pauseGame(game, performance.now());
   if (game.status === 'lost') { lose(); return; }
   clearTimeout(advanceTimer);
@@ -455,9 +481,10 @@ function pause() {
   announce('En pausa. Toca para continuar.');
 }
 function resume() {
+  lastBackdropAt = null;
   resumeGame(game, performance.now());
   if (game.status === 'break') scheduleBreakEnd();
-  if (game.status === 'cleared') { glowAnimation?.play(); scheduleAdvance(); }
+  if (game.status === 'cleared') { glowAnimation?.play(); comboAnimation?.play(); scheduleAdvance(); }
   render();
 }
 function finishAdjustment() {
@@ -596,7 +623,7 @@ $('setting-sound').addEventListener('change', event => {
 });
 $('setting-flash').addEventListener('change', event => {
   preferences.flash = event.target.checked;
-  if (!preferences.flash) { glowAnimation?.cancel(); glowAnimation = null; }
+  if (!preferences.flash) { glowAnimation?.cancel(); glowAnimation = null; glow.dataset.combo = 'false'; $('combo-celebration').style.color = 'var(--foreground)'; }
   feedback.ui('toggle');
   savePreferences();
 });
@@ -649,7 +676,19 @@ window.addEventListener('clocking:back', () => {
 });
 window.addEventListener('blur', pauseForBackground);
 window.addEventListener('resize', () => { positionGlow(); syncSelector(); });
+function updateAmbience(now) {
+  const active = game.status === 'playing' || (game.format === 'survival' && game.status === 'cleared');
+  if (!active) { lastBackdropAt = null; return; }
+  if (lastBackdropAt !== null) backdropElapsed += Math.max(0, now - lastBackdropAt);
+  lastBackdropAt = now;
+  if (backdropElapsed >= BACKDROP_MS) {
+    backdropElapsed %= BACKDROP_MS;
+    backdropIndex = nextBackdrop(backdropIndex);
+    applyTheme();
+  }
+}
 function frame() {
+  updateAmbience(performance.now());
   if (game.status === 'playing' || (game.format === 'survival' && game.status === 'cleared')) {
     tickGame(game, performance.now());
     if (game.status === 'lost') lose();

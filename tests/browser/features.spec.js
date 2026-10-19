@@ -81,7 +81,7 @@ test('light mode has a black solid success circle, retains preferences, and resp
   await expect(page.getByRole('switch', { name: /^Sonido$/ })).not.toBeChecked();
 });
 
-test('timeout immediately presents the exact score and retry button with a red flash, never floating text', async ({ page }) => {
+test('timeout immediately presents the exact score and retry button on a red panel sliding up, never floating loss text', async ({ page }) => {
   await play(page);
   await solve(page);
   await expect(page.locator('#score')).toHaveText('22');
@@ -92,7 +92,8 @@ test('timeout immediately presents the exact score and retry button with a red f
   await expect(page.locator('#final-score')).toHaveText('22');
   await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
   expect(await page.locator('#loss-message, #loss-intro').count()).toBe(0);
-  expect(await page.locator('#red-flash').evaluate(el => el.getAnimations()[0].effect.getTiming().duration)).toBe(360);
+  await expect(page.locator('#game-over')).toHaveCSS('background-color', 'rgb(223, 38, 59)');
+  await expect(page.locator('#game-over')).toHaveCSS('animation-name', 'game-over-rise');
   await page.getByRole('button', { name: 'Reintentar', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
   await expect(page.locator('#break-detail')).toHaveText('FASE 1');

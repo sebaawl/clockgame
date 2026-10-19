@@ -17,10 +17,10 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body, #app { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { min-height: 100svh; background: var(--background); overscroll-behavior: none; transition: background-color 600ms ease; }
+body { min-height: 100svh; background: var(--background); overscroll-behavior: none; transition: background-color 1400ms ease; }
 button, input, summary { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 button { font-family: inherit; user-select: none; -webkit-user-select: none; }
-.game { position: fixed; inset: 0; isolation: isolate; background: var(--background); transition: background-color 600ms ease; }
+.game { position: fixed; inset: 0; isolation: isolate; background: var(--background); transition: background-color 1400ms ease; }
 .hud { position: absolute; z-index: 4; width: min(100%, 520px); top: max(calc(env(safe-area-inset-top) + 22px), 8svh); left: 50%; transform: translateX(-50%); pointer-events: none; }
 .hud-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; }
 .cycle-label { grid-column: 1; justify-self: start; margin-left: clamp(20px, 6vw, 40px); font-size: 11px; font-weight: 300; line-height: 1.5; letter-spacing: .14em; }
@@ -33,7 +33,7 @@ body[data-state='menu'] .hud { z-index: 7; }
 .score-panel > span { font-size: 8px; font-weight: 300; letter-spacing: .2em; line-height: 1.5; }
 .clock-wrap { position: absolute; z-index: 2; top: 54%; left: 50%; transform: translate(-50%, -50%); width: var(--dial-size); aspect-ratio: 1; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--foreground); pointer-events: none; }
 .clock { display: block; width: 100%; height: 100%; overflow: visible; }
-.clock-face { fill: var(--background); stroke: var(--foreground); stroke-width: 9; transition: fill 600ms ease, stroke 200ms; }
+.clock-face { fill: var(--background); stroke: var(--foreground); stroke-width: 9; transition: fill 1400ms ease, stroke 200ms; }
 .tick { stroke: var(--foreground); stroke-width: 5.5; stroke-linecap: round; }
 .fixed-hand, .hand-line { stroke: var(--foreground); stroke-width: 8.5; stroke-linecap: round; }
 .active-hand { transform-origin: 160px 160px; transition: transform 280ms cubic-bezier(.22,1.55,.4,1); }
@@ -75,7 +75,6 @@ button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px 
 .primary-action { display: block; width: 100%; min-height: 48px; padding: 12px 20px; border: 1px solid var(--foreground); border-radius: 10px; color: var(--foreground); background: var(--background); font-size: 12px; font-weight: 700; cursor: pointer; }
 .continue-game { margin-top: 23px; }
 .game-over { position: absolute; inset: 0; z-index: 6; text-align: center; overflow: hidden; }
-.red-flash { position: absolute; inset: 0; z-index: 8; background: #ee3c3c; opacity: 0; pointer-events: none; }
 .result-panel { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(78vw, 330px); animation: arrive-result 400ms ease-out both; }
 .result-kicker { font-size: 9px; font-weight: 300; letter-spacing: .18em; margin: 0 0 20px; }
 .result-panel h2 { font-size: clamp(34px, 8vw, 48px); font-weight: 700; letter-spacing: -.05em; line-height: 1.12; margin: 0 0 26px; }
@@ -207,8 +206,8 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
 /* Difference blending inverts the score over the actual expanding disk in either theme. */
 .score-panel { color: #fff; mix-blend-mode: difference; }
 
-:root { --accent: #ff9147; }
-:root[data-theme='light'] { --accent: #c64c00; }
+:root { --accent: #54d8ff; }
+:root[data-theme='light'] { --accent: #007fa8; }
 .format-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
 .format-option { min-height: 42px; padding: 10px 8px; color: var(--foreground); background: var(--background); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; cursor: pointer; }
 .format-option[aria-pressed='true'] { border-color: var(--foreground); }
@@ -219,7 +218,7 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
 .nitro-meter { width: 100%; height: 3px; border-radius: 3px; background: rgb(128 128 128 / 30%); overflow: hidden; }
 #nitro-fill { display: block; width: 100%; height: 100%; background: currentColor; transform-origin: left center; transition: transform 70ms linear; }
 .nitro-message { display: block; min-height: 14px; margin-top: 9px; text-align: center; font-size: 8px; font-weight: 300; letter-spacing: .12em; }
-body[data-hot='true'] .combo-count { color: #ff9147; }
+body[data-hot='true'] .combo-count { color: #54d8ff; }
 body[data-hot='true'] .tick:nth-child(3n) { stroke: var(--accent); }
 body[data-hot='true'] .clock-face { animation: combo-breathe 1.6s ease-in-out infinite; }
 .nitro-trail { opacity: 0; transition: opacity 100ms ease; }
@@ -232,7 +231,7 @@ body[data-nitro='true'] .active-hand { transition: transform 18ms linear; }
 body[data-nitro='true'] .hand-line, body[data-nitro='true'] .center { stroke: var(--accent); }
 body[data-nitro='true'] .center { fill: var(--accent); }
 body[data-nitro='true'] .nitro-trail { opacity: 1; }
-body[data-nitro='true'] #nitro-fill { background: #ff9147; }
+body[data-nitro='true'] #nitro-fill { background: #54d8ff; }
 body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out infinite; }
 .best-score { margin: -10px 0 20px; font-size: 9px; font-weight: 300; letter-spacing: .12em; }
 .guide-nitro { position: absolute; bottom: max(8svh, 45px); width: 100%; margin: 0; text-align: center; font-size: 8px; line-height: 1.8; font-weight: 300; letter-spacing: .06em; }
@@ -253,10 +252,10 @@ body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out inf
   body[data-danger='true'] .timer, body[data-hot='true'] .clock-face { animation: none; }
 }
 .combo-count::before { content: 'COMBO '; font-size: 7px; font-weight: 300; letter-spacing: .05em; vertical-align: middle; }
-/* Compensate difference blending so accents remain orange on the light background. */
+/* Compensate difference blending so accents remain sky blue on the light background. */
 :root[data-theme='light'] body[data-hot='true'] .combo-count,
-:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { color: #39b3ff; }
-:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { background: #39b3ff; }
+:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { color: #ff8057; }
+:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { background: #ff8057; }
 @media (orientation: portrait) and (max-height: 700px) {
   .guide-control { bottom: 76px; gap: 5px; }
   .guide-arrow { width: 30px; height: 30px; }
@@ -266,3 +265,19 @@ body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out inf
   body[data-state='ready'] .clock-wrap, body[data-state='launching'] .clock-wrap { top: 51%; }
   body[data-state='ready'] .score-panel { visibility: hidden; }
 }
+
+.settings { --background: var(--surface); }
+body[data-state='lost'] .game-over {
+  --background: #df263b; --foreground: #fff; --line: rgb(255 255 255 / 30%);
+  background: var(--background); color: var(--foreground);
+  animation: game-over-rise 460ms cubic-bezier(.2,.8,.25,1) both;
+}
+@keyframes game-over-rise { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.combo-celebration { position: absolute; z-index: 5; top: 54%; left: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+.combo-celebration > span { font-size: 12px; font-weight: 300; letter-spacing: .3em; margin-left: .3em; }
+.combo-celebration strong { font-size: clamp(96px, 32vw, 170px); font-weight: 700; line-height: 1.15; letter-spacing: -.07em; }
+@media (prefers-reduced-motion: reduce) { body[data-state='lost'] .game-over { animation: none; } }
+
+.success-glow[data-combo='true'] { z-index: 4; }
+body[data-state='cleared'] #success-glow[data-combo='true'] ~ .resources { mix-blend-mode: normal; color: var(--background); }
+body[data-state='cleared'] #success-glow[data-combo='true'] ~ .resources .combo-count { color: inherit; }

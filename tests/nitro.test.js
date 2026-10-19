@@ -23,18 +23,18 @@ function harness(initial = 100, velocity = 42) {
   return { control, advance, state: () => ({ time, charge, steps, taps, active, release }), setPlaying: v => { playing = v; } };
 }
 
-test('249 ms is one tap; 250 ms activates without a duplicate initial move', () => {
+test('149 ms is one tap; 150 ms activates without a duplicate initial move', () => {
   const h = harness();
-  h.control.press(1, 1); h.advance(249); h.control.release(1);
+  h.control.press(1, 1); h.advance(149); h.control.release(1);
   assert.deepEqual([h.state().taps, h.state().steps, h.state().charge], [1, 0, 100]);
-  h.control.press(1, 2); h.advance(249); assert.equal(h.state().active, false);
+  h.control.press(1, 2); h.advance(149); assert.equal(h.state().active, false);
   h.advance(1); assert.equal(h.state().active, true); assert.equal(h.state().steps, 0);
   h.advance(100); assert.ok(h.state().steps > 0); h.control.release(2);
   assert.equal(h.state().taps, 1); assert.equal(h.state().release, true);
 });
 
 test('Nitro drains 40 percent per second and stops moving on release', () => {
-  const h = harness(); h.control.press(1, 1); h.advance(1250); h.control.release(1);
+  const h = harness(); h.control.press(1, 1); h.advance(1150); h.control.release(1);
   assert.ok(Math.abs(h.state().charge - 60) < 1e-8);
   const steps = h.state().steps; h.advance(1000);
   assert.equal(h.state().steps, steps); assert.equal(h.state().active, false);
@@ -153,7 +153,7 @@ test('a throttled tab cannot replay a delayed burst or award a canceled release'
     step: () => stepCount++, shortTap: () => { throw new Error('unexpected tap'); },
     released: () => { throw new Error('unexpected solve'); }, activeChanged: () => {},
   });
-  control.press(1, 1); time = 250; latest();
+  control.press(1, 1); time = 150; latest();
   time = 5250; latest();
   assert.equal(control.holding, false); assert.equal(stepCount, 0); assert.equal(charge, 40);
   control.release(1);
