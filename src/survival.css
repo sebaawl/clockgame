@@ -1,0 +1,24 @@
+.challenge-panel { position: absolute; z-index: 4; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; width: min(92vw, 390px); transform: translateX(-50%); display: flex; align-items: center; flex-direction: column; gap: 3px; text-align: center; color: var(--foreground); pointer-events: none; }
+.challenge-panel > span:first-child { font-size: 14px; font-weight: 600; letter-spacing: .12em; }
+.challenge-panel strong { font-size: 30px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.challenge-panel > span:last-child { font-size: 14px; line-height: 1.5; font-weight: 400; }
+body:not([data-challenge='normal']) { --dial-size: min(66vw, 36svh, 320px); }
+body:not([data-challenge='normal']) .resources { top: calc(54% + var(--dial-size) / 2 + 6px); width: min(74vw, 240px); }
+body[data-challenge='duel'] .active-hand, body[data-challenge='chaos'] .active-hand { transition: transform 95ms ease-out; }
+body[data-challenge='duel'] #challenge-counter, body[data-challenge='chaos'] #challenge-counter { color: var(--accent); }
+@media (max-height: 600px) and (orientation: portrait) {
+  .challenge-panel { bottom: 12px; gap: 1px; }
+  .challenge-panel strong { font-size: 24px; }
+  .challenge-panel > span { font-size: 12px !important; }
+}
+@media (max-height: 540px) and (orientation: landscape) {
+  .challenge-panel { left: 84%; top: 42%; bottom: auto; width: 28%; }
+  body:not([data-challenge='normal']) .resources { top: auto; width: min(30vw, 210px); left: 17%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-challenge='duel'] .active-hand, body[data-challenge='chaos'] .active-hand { transition: none; }
+}
+
+body[data-nitro='true'] .active-hand { transition: transform 18ms linear; }
+
+body:not([data-challenge='normal']) .resource-labels > span { white-space: nowrap; }

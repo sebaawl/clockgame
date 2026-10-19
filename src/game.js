@@ -1,3 +1,4 @@
+import { prepareChallenge, tickChallenge, retryExact } from './survival.js';
 export const STAGES = ['horas', 'minutos', 'segundos'];
 export const FLOORS = [7, 5, 3];
 export const PHASES = 10;
@@ -19,7 +20,7 @@ export const phaseBudget = (round, phase, mode = 'normal', stage = 0, difficulty
 export function createGame() {
   return {
     status: 'menu', difficulty: 'easy', boost: null, boosts: [], mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
-    completed: 0, taps: 0, position: 0, rotation: 0,
+    completed: 0, taps: 0, position: 0, rotation: 0, challenge: 'normal', targetClicks: 0, challengeDirection: 0, challengeRetries: 0, extraTurns: 0, driftInterval: 0, driftDirection: 0,
     budget: 12, remaining: 12, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
     nitro: NITRO_INITIAL, combo: 0, hourPerfectStreak: 0, attemptSteps: 0, optimalSteps: 0,
@@ -57,6 +58,7 @@ function preparePhase(game, now, random) {
   game.perfect = game.perfectNitro = game.nitroLocked = false;
   game.lastTimeGain = game.lastNitroGain = 0;
   game.hardProgress = 0;
+  prepareChallenge(game, now, count, random);
   if (game.format === 'classic') {
     // Nine deliberate taps per second remains a viable route without spending Nitro.
     game.budget = Math.max(phaseBudget(game.round, game.phase, game.mode, game.stage, game.difficulty), (game.optimalSteps / 9 + .75) * DIFFICULTIES[game.difficulty].time) + (hasBoost(game, 'time') ? 1.5 : 0);
@@ -78,12 +80,14 @@ export function tickGame(game, now) {
   if (game.status !== 'playing' && !(game.format === 'survival' && game.status === 'cleared')) return game;
   game.remaining = Math.max(0, (game.deadline - now) / 1000);
   if (game.remaining === 0) { game.status = 'lost'; game.combo = 0; }
+  else tickChallenge(game, now, positions(game.stage));
   return game;
 }
 export function settleGame(game, now, { perfectNitro = false, nitroLock = false } = {}) {
   if (game.status !== 'playing') return false;
   tickGame(game, now);
   if (game.status !== 'playing' || game.position !== 0 || game.attemptSteps === 0
+      || (game.challenge === 'exact' && game.attemptSteps !== game.targetClicks)
       || (game.mode === 'hard' && game.hardProgress < game.requiredSteps)) return false;
   game.solveBudget = game.budget;
   game.solveRemaining = game.remaining;
@@ -113,7 +117,7 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   game.lastNitroGain = game.nitro - previousNitro;
   game.completed += 1;
   if (game.format === 'survival') {
-    const gain = (Math.max(.55, 1.4 - game.completed * .008) + (game.perfect ? .25 : 0)) * DIFFICULTIES[game.difficulty].time;
+    const gain = (Math.max(.55, 1.4 - game.completed * .008) + (game.perfect ? .25 : 0) + (game.challenge === 'exact' ? 1.25 * game.extraTurns : game.driftInterval ? .45 : 0)) * DIFFICULTIES[game.difficulty].time;
     game.lastTimeGain = Math.min(gain, SURVIVAL_CAP - game.remaining);
     game.remaining += game.lastTimeGain;
     game.deadline = now + game.remaining * 1000;
@@ -127,7 +131,7 @@ export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   if (game.status !== 'playing') return false;
   const count = positions(game.stage);
   if (!game.optimalDirection) game.optimalDirection = direction;
-  if (direction !== game.optimalDirection || game.position === 0 || game.attemptSteps >= game.optimalSteps) {
+  if (direction !== game.optimalDirection || (game.position === 0 && game.challenge !== 'exact') || game.attemptSteps >= game.optimalSteps) {
     game.perfectRoute = false;
     game.hourPerfectStreak = 0;
     game.combo = 0;
@@ -137,6 +141,7 @@ export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   game.taps += 1;
   game.attemptSteps += 1;
   game.hardProgress += direction * game.requiredDirection;
+  retryExact(game, now, count);
   if (!deferSolve) settleGame(game, now);
   else if (hasBoost(game, 'lock') && game.lockUses > 0 && game.position === 0) settleGame(game, now, { nitroLock: true });
   return true;
@@ -166,6 +171,8 @@ export function pauseGame(game, now) {
   if (!['playing', 'cleared', 'break'].includes(game.status)) return game;
   tickGame(game, now);
   if (game.status === 'lost') return game;
+  game.driftRemaining = Math.max(0, game.driftNext - now);
+  game.flipRemaining = Math.max(0, game.flipNext - now);
   game.resumeStatus = game.status;
   game.status = 'paused';
   return game;
@@ -173,6 +180,8 @@ export function pauseGame(game, now) {
 export function resumeGame(game, now) {
   if (game.status !== 'paused') return game;
   game.deadline = now + game.remaining * 1000;
+  game.driftNext = now + game.driftRemaining;
+  game.flipNext = now + game.flipRemaining;
   game.status = game.resumeStatus || 'playing';
   game.resumeStatus = null;
   return game;

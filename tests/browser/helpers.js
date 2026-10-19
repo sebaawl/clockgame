@@ -62,8 +62,9 @@ export async function solve(page) {
     const position = Number(label.match(/(?:hora|minuto|segundo) (\d+)/)[1]);
     const count = label.includes('hora ') ? 12 : label.includes('minuto ') ? 60 : 120;
     const hard = document.body.dataset.mode === 'hard';
-    const direction = hard ? (position < count / 2 ? 1 : -1) : (position <= count / 2 ? -1 : 1);
-    const steps = direction === 1 ? count - position : position;
+    const exact = document.body.dataset.challenge === 'exact';
+    const direction = exact ? Number(document.body.dataset.challengeDirection) : hard ? (position < count / 2 ? 1 : -1) : (position <= count / 2 ? -1 : 1);
+    const steps = exact ? Number(document.body.dataset.targetClicks) - Number(document.body.dataset.clicks) : direction === 1 ? count - position : position;
     for (let i = 0; i < steps; i++) document.dispatchEvent(new KeyboardEvent('keydown', { key: direction === 1 ? 'ArrowRight' : 'ArrowLeft', bubbles: true }));
   });
   await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');

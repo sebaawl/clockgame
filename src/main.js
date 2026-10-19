@@ -12,6 +12,7 @@ import './store.css';
 import './home.css';
 import './market.css';
 import './typography.css';
+import './survival.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots, boostLoadout, removeBoost } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
@@ -115,6 +116,7 @@ document.querySelector('#app').innerHTML = `
       <button id="tap-left" class="tap-zone" aria-label="Girar en sentido antihorario" aria-describedby="instructions"></button>
       <button id="tap-right" class="tap-zone" aria-label="Girar en sentido horario" aria-describedby="instructions"></button>
     </div>
+    <aside id="challenge-panel" class="challenge-panel" hidden aria-label="Desafío de supervivencia"><span id="challenge-title"></span><strong id="challenge-counter"></strong><span id="challenge-hint"></span></aside>
     <div id="control-guide" class="control-guide" hidden aria-hidden="true">
       <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
       <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
@@ -223,6 +225,31 @@ function updateResources() {
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
 
+let challengeKey = '';
+function updateChallengePanel() {
+  const visible = game.format === 'survival' && game.challenge !== 'normal' && ['playing', 'paused', 'cleared'].includes(game.status);
+  const panel = $('challenge-panel');
+  panel.hidden = !visible;
+  document.body.dataset.challenge = visible ? game.challenge : 'normal';
+  document.body.dataset.targetClicks = String(game.targetClicks);
+  document.body.dataset.clicks = String(game.attemptSteps);
+  document.body.dataset.challengeDirection = String(game.challengeDirection);
+  if (!visible) { challengeKey = ''; return; }
+  const exact = game.challenge === 'exact';
+  const direction = exact ? game.challengeDirection : game.driftDirection;
+  const arrow = direction === 1 ? '↻' : '↺';
+  const title = exact ? 'VUELTA EXACTA' : game.challenge === 'chaos' ? 'RELOJ IMPREDECIBLE' : 'DUELO CONTRA EL RELOJ';
+  $('challenge-title').textContent = title;
+  $('challenge-counter').textContent = exact ? `${game.attemptSteps} / ${game.targetClicks}` : arrow;
+  $('challenge-hint').textContent = exact ? `${arrow} ${game.challengeRetries ? 'Nueva cuenta · −1 s' : 'Llega a las 12 · Nitro cuenta'}` : game.challenge === 'chaos' ? 'Cambia de dirección. Atrapa las doce.' : 'La manecilla se mueve. Llévala a las doce.';
+  const key = `${game.completed}:${game.challenge}:${game.challengeRetries}`;
+  if (key !== challengeKey) {
+    challengeKey = key;
+    reveal(panel, [{ opacity: 0, transform: 'translateX(-50%) translateY(10px)' }, { opacity: 1, transform: 'translateX(-50%) translateY(0)' }], 300);
+    announce(`${title}. ${exact ? `${game.targetClicks} movimientos exactos. ${direction === 1 ? 'Horario' : 'Antihorario'}. El Nitro cuenta cada paso.` : $('challenge-hint').textContent}`);
+  }
+}
+
 function savePreferences() {
   try { localStorage.setItem('clocking:preferences', JSON.stringify(preferences)); } catch { /* The game also works with storage disabled. */ }
 }
@@ -253,7 +280,7 @@ function reveal(element, frames, duration = 380) {
   if (!reducedMotion.matches) element.animate(frames, { duration, easing: 'cubic-bezier(.2,.85,.3,1)' });
 }
 const HOME_OPTIONS = {
-  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Un cronómetro. Cada acierto suma tiempo.']],
+  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Relojes vivos y cuentas exactas. Cada acierto suma tiempo.']],
   difficulty: [['easy', 'Fácil', 'Más margen para practicar.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
   route: [['normal', 'Normal', 'Elige el camino que prefieras.'], ['hard', 'Contraintuitivo', 'Llega a las doce por el camino largo.']],
 };
@@ -319,6 +346,7 @@ function render() {
   handLine.style.strokeWidth = [9, 7, 5][game.stage];
   clock.setAttribute('aria-label', `Manecilla en ${['hora', 'minuto', 'segundo'][game.stage]} ${game.position}. Objetivo: las doce. ${game.mode === 'hard' ? 'Recorrido contraintuitivo: completa el camino largo.' : ''}`);
   displayTime();
+  updateChallengePanel();
   const screen = inMenu ? 'menu' : inBreak ? 'break' : ended ? 'result' : 'game';
   if (screen !== lastScreen) {
     if (screen === 'menu') {
@@ -581,6 +609,7 @@ function tap(direction, { accelerated = false } = {}) {
   if (game.status !== 'playing') return;
   const previousCombo = game.combo;
   if (!moveGame(game, direction, performance.now(), { deferSolve: accelerated })) { if (game.status === 'lost') lose(); return; }
+  if (game.status === 'lost') { lose(); return; }
   if (previousCombo > 0 && !game.perfectRoute) {
     backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
     applyTheme();
@@ -880,7 +909,9 @@ function updateAmbience(now) {
 function frame() {
   updateAmbience(performance.now());
   if (game.status === 'playing' || (game.format === 'survival' && game.status === 'cleared')) {
+    const previousRotation = game.rotation, previousDirection = game.driftDirection;
     tickGame(game, performance.now());
+    if (game.rotation !== previousRotation || game.driftDirection !== previousDirection) render();
     if (game.status === 'lost') lose();
     else {
       displayTime();

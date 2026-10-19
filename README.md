@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.18.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.19.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -219,3 +219,13 @@ La tienda añade Papel (65 monedas / récord 4000), Broche (95 / 5500), Terciope
 ### Música de tienda (0.3.18)
 
 Entrar a Tienda aplica a la música el mismo filtro de paso bajo de 440 Hz que los ajustes durante una partida. Las vistas previas de sonidos mantienen su audio directo. Al cambiar a Jugar o Misiones vuelve suavemente el sonido normal, sin reiniciar ni cambiar el tema elegido.
+
+### Desafíos de Supervivencia (0.3.19)
+
+Entre relojes normales aparecen desafíos en los ajustes 3, 6 y 9 de cada ciclo:
+
+- **Vuelta exacta**, en horas: alcanza las doce en el número exacto de movimientos indicado, incluyendo una o dos vueltas extra. El contador desaparece en los relojes normales. Cada paso de Nitro cuenta. Pasar antes por las doce no resuelve; Nitro Lock espera al movimiento final válido. La flecha sugiere un recorrido perfecto, aunque cualquier recorrido que cumpla la cuenta puede resolverlo. Fallar la cuenta rompe la racha, resta un segundo y genera otra cuenta desde la posición actual.
+- **Duelo contra el reloj**: la manecilla avanza sola en un sentido y debes llevarla a las doce con tus ajustes. La velocidad se adapta al ciclo y dificultad.
+- **Reloj impredecible**: la manecilla invierte regularmente su dirección, obligando a corregir el recorrido. En minutos y segundos sustituye Vuelta exacta un duelo adicional para evitar exigir vueltas de 60/120 clics.
+
+El movimiento autónomo no gasta Nitro, no suma pulsaciones y nunca resuelve por sí solo. Pausar y abrir ajustes congelan tanto los pasos como los cambios de dirección. Los retos de cuenta conceden una pequeña reserva inicial de tiempo y mayor recuperación al completarse; los duelos añaden 0,45 s a la recompensa base antes de aplicar dificultad. Clásico conserva sus reglas.
