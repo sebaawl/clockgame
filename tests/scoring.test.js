@@ -1,42 +1,71 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scoreAdjustment } from '../src/scoring.js';
+import { scoreAdjustment, classifyAdjustment } from '../src/scoring.js';
 
-const perfect = { remaining: 10, budget: 10, optimalSteps: 2, taps: 2, stage: 0, round: 0, streak: 1 };
+const perfect = { remaining: 15, budget: 15, optimalSteps: 5, taps: 5, stage: 0, round: 0, streak: 1 };
+const scoreAt = (elapsed, extra = {}) => scoreAdjustment({ ...perfect, remaining: 15 - elapsed, ...extra });
 
-test('a fast and exact first solve earns 3 base, 4 speed and 1 precision', () => {
-  assert.equal(scoreAdjustment(perfect), 8);
+test('absolute elapsed seconds classify every inclusive tier boundary', () => {
+  for (const [elapsed, expected] of [[0, 'excelente'], [1, 'excelente'], [1.001, 'bien'], [2, 'bien'], [2.001, 'insuficiente'], [3, 'insuficiente'], [3.001, 'malo'], [10, 'malo']]) {
+    assert.equal(classifyAdjustment(elapsed), expected);
+  }
 });
 
-test('wasted taps and slower solves can only reduce the same solve reward', () => {
-  const base = scoreAdjustment(perfect);
-  assert.ok(scoreAdjustment({ ...perfect, taps: 10 }) < base);
-  assert.ok(scoreAdjustment({ ...perfect, remaining: 2 }) < base);
-  assert.ok(scoreAdjustment({ ...perfect, taps: 10, remaining: 2 }) < scoreAdjustment({ ...perfect, remaining: 2 }));
+test('one-second solves clearly outscore two, three and slower solves', () => {
+  assert.equal(scoreAt(0), 22);
+  assert.equal(scoreAt(1), 20);
+  assert.equal(scoreAt(2), 10);
+  assert.equal(scoreAt(3), 4);
+  assert.equal(scoreAt(3.001), 2);
+  assert.equal(scoreAt(5.001), 1);
 });
 
-test('harder cycles and phases reward more points and the streak caps at twenty percent', () => {
-  assert.ok(scoreAdjustment({ ...perfect, stage: 2, round: 2 }) > scoreAdjustment(perfect));
-  assert.equal(scoreAdjustment({ ...perfect, streak: 2 }), 8);
-  assert.equal(scoreAdjustment({ ...perfect, streak: 11 }), 10);
-  assert.equal(scoreAdjustment({ ...perfect, streak: 100 }), 10);
+test('slow solves remain tiny regardless of difficulty, streak, precision or mode', () => {
+  for (const mode of ['normal', 'hard']) {
+    assert.equal(scoreAt(3.5, { stage: 2, round: 2, streak: 100, mode }), 2);
+    assert.equal(scoreAt(7, { stage: 2, round: 2, streak: 100, mode }), 1);
+  }
 });
 
-test('invalid attempts never earn points and clock rounding cannot exceed speed bonus', () => {
-  assert.equal(scoreAdjustment({ ...perfect, taps: 0 }), 0);
-  assert.equal(scoreAdjustment({ ...perfect, budget: 0 }), 0);
-  assert.equal(scoreAdjustment({ ...perfect, remaining: 100 }), 8);
-  assert.equal(scoreAdjustment({ ...perfect, remaining: -1 }), 4);
+test('score never rises with elapsed time and extra taps never increase rewards', () => {
+  for (const mode of ['normal', 'hard']) {
+    let previous = Infinity;
+    for (let i = 0; i < 1500; i++) {
+      const score = scoreAt(i / 100, { mode, stage: 2, round: 2, streak: 10 });
+      assert.ok(score <= previous);
+      assert.ok(scoreAt(i / 100, { taps: 20, mode, stage: 2, round: 2, streak: 10 }) <= score);
+      previous = score;
+    }
+  }
 });
 
-test('a completed hard route earns a fifty-percent difficulty premium', () => {
-  assert.equal(scoreAdjustment({ ...perfect, mode: 'hard' }), 12);
+test('time grades use seconds rather than the percentage of the budget', () => {
+  assert.equal(scoreAt(1), scoreAdjustment({ ...perfect, budget: 3, remaining: 2 }));
+  assert.equal(scoreAt(2.5), scoreAdjustment({ ...perfect, budget: 3, remaining: .5 }));
 });
 
-test('one thousand points requires more than eighty perfect normal solves', () => {
-  let total = 0;
-  for (let i = 0; i < 80; i++) total += scoreAdjustment({ ...perfect, stage: Math.floor(i / 10) % 3, round: Math.floor(i / 30), streak: i + 1 });
-  assert.ok(total < 1000);
-  total += scoreAdjustment({ ...perfect, stage: 2, round: 2, streak: 81 });
-  assert.ok(total >= 1000);
+test('hard route keeps its premium and streak multipliers have a small fixed cap', () => {
+  assert.equal(scoreAt(0, { mode: 'hard' }), 33);
+  assert.equal(scoreAt(0, { streak: 11 }), 24);
+  assert.equal(scoreAt(0, { streak: 100 }), 24);
+});
+
+test('zero-time and invalid attempts never earn points', () => {
+  for (const extra of [{ taps: 0 }, { budget: 0 }, { remaining: 0 }, { remaining: -1 }, { remaining: NaN }, { taps: Infinity }]) {
+    assert.equal(scoreAdjustment({ ...perfect, ...extra }), 0);
+  }
+});
+
+test('a thousand requires a substantial run of fast solves, but fewer than before', () => {
+  function reach(elapsed) {
+    let total = 0;
+    for (let i = 0; i < 90; i++) {
+      total += scoreAt(elapsed, { stage: Math.floor(i / 10) % 3, round: Math.floor(i / 30), streak: i + 1 });
+      if (total >= 1000) return i + 1;
+    }
+    return Infinity;
+  }
+  assert.ok(reach(1) >= 35 && reach(1) <= 50);
+  assert.ok(reach(1.5) >= 50 && reach(1.5) <= 75);
+  assert.equal(reach(3.5), Infinity);
 });

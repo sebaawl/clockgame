@@ -203,3 +203,6 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
   .guide-start { bottom: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { .control-guide, .guide-arrow, .guide-clock-hand { animation: none !important; } }
+
+/* Difference blending inverts the score over the actual expanding disk in either theme. */
+.score-panel { color: #fff; mix-blend-mode: difference; }

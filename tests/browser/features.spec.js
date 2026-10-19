@@ -84,12 +84,12 @@ test('light mode has a black solid success circle, retains preferences, and resp
 test('timeout immediately presents the exact score and retry button with a red flash, never floating text', async ({ page }) => {
   await play(page);
   await solve(page);
-  await expect(page.locator('#score')).toHaveText('8');
+  await expect(page.locator('#score')).toHaveText('22');
   await page.clock.runFor(1000);
   await page.clock.runFor(14200);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'lost');
   await expect(page.locator('#result-panel')).toBeVisible();
-  await expect(page.locator('#final-score')).toHaveText('8');
+  await expect(page.locator('#final-score')).toHaveText('22');
   await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toBeVisible();
   expect(await page.locator('#loss-message, #loss-intro').count()).toBe(0);
   expect(await page.locator('#red-flash').evaluate(el => el.getAnimations()[0].effect.getTiming().duration)).toBe(360);

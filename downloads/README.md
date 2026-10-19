@@ -1,6 +1,6 @@
 # Descargar clocking
 
-[**clocking 0.1.0 — APK firmado**](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.0.apk)
+[**clocking 0.1.1 — APK firmado**](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.1.apk)
 
 Android 8.0 o posterior. Una vez descargado, ábrelo en el teléfono para instalarlo. Si Android lo solicita, permite la instalación desde el navegador que usaste.
 

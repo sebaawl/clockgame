@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.0.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.1.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -44,9 +44,11 @@ Al agotarse el tiempo aparecen inmediatamente el puntaje y **Reintentar**, con u
 
 ## Puntaje
 
-Cada acierto da 3 puntos base, hasta 4 por tiempo restante y hasta 1 por precisión. En normal, precisión es distancia mínima dividida por toques; en difícil se utiliza la longitud del recorrido obligatorio.
+La clasificación interna usa el tiempo activo absoluto: **excelente** hasta 1 segundo (20–22 puntos base), **bien** hasta 2 segundos (10–14), **insuficiente** hasta 3 segundos (4–6) y **malo** después de 3 segundos (2 puntos; 1 después de 5). La precisión reduce la recompensa si hay pulsaciones extra. Los ciclos y fases añaden un pequeño multiplicador, la racha se limita a un 10 % y difícil conserva ×1,5.
 
-El multiplicador de dificultad es `1 + ciclo × 0,15 + fase × 0,2`, contando desde cero. La racha crece un 2 % por acierto consecutivo hasta ×1,2. Difícil añade ×1,5. Los toques extra no suman puntos y reducen la precisión.
+Las resoluciones de más de tres segundos siempre dan 1–2 puntos, sin multiplicadores. En normal, 1000 puntos requieren alrededor de 40 resoluciones excelentes o 60 buenas, según precisión y avance. La espera de los descansos y las pausas no se cuenta.
+
+El ajuste **Destello de acierto** desactiva tanto el círculo de acierto como el del aterrizaje inicial. El puntaje invierte su color sobre el círculo para seguir visible en ambos temas.
 
 ## Desarrollo y validación
 
@@ -72,7 +74,7 @@ Los tests recorren los 90 ajustes en ambos modos, comprueban el bloqueo de atajo
 
 Prototipo web; no incluye paquetes nativos de iOS/Android.
 
-Los segundos tienen 120 pasos por vuelta (10 pulsaciones entre marcas); los minutos, 60 (5 entre marcas). Los ajustes permiten volver al menú sin reanudar la partida. El puntaje empieza en un máximo de 8 puntos por resolución normal; la racha se limita a un 20 % adicional.
+Los segundos tienen 120 pasos por vuelta (10 pulsaciones entre marcas); los minutos, 60 (5 entre marcas). Los ajustes permiten volver al menú sin reanudar la partida. El puntaje depende principalmente del tiempo activo de resolución.
 
 Los ajustes usan una superficie sólida (negra o blanca) con botones de iconos para volver al menú y reiniciar. El selector de modo comparte un contorno que se desplaza y dibuja su trazo. Botones, iconos, interruptores, cambios de pantalla y contenidos del panel tienen animaciones breves; se desactivan con la preferencia de movimiento reducido del sistema.
 

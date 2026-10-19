@@ -14,8 +14,8 @@ const SOUND_PRESETS = ['felt', 'wood', 'clock'];
 const preferences = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem('clocking:preferences') || '{}');
-    return { successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
-  } catch { return { successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
+    return { flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
+  } catch { return { flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
 })();
 const feedback = createFeedback(() => preferences);
 const game = createGame();
@@ -106,6 +106,7 @@ document.querySelector('#app').innerHTML = `
     <p class="settings-note">Tu tiempo está en pausa.</p>
     <label class="setting-row" for="setting-sound"><span><strong>Sonido</strong></span><input id="setting-sound" type="checkbox" role="switch"></label>
     <label class="setting-row" for="setting-success"><span><strong>Sonido de acierto</strong></span><input id="setting-success" type="checkbox" role="switch"></label>
+    <label class="setting-row" for="setting-flash"><span><strong>Destello de acierto</strong></span><input id="setting-flash" type="checkbox" role="switch"></label>
     <fieldset class="sound-picker"><legend>Sonido del reloj</legend><div class="sound-options" role="group" aria-label="Sonido del reloj">
       ${[['felt', 'Amortiguado'], ['wood', 'Grave'], ['clock', 'Mecánico']].map(([id, name]) => `<button class="sound-option" data-sound="${id}" aria-pressed="false" type="button">${name}</button>`).join('')}
     </div></fieldset>
@@ -256,6 +257,10 @@ function positionGlow() {
   const radius = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
   Object.assign(glow.style, { left: `${x}px`, top: `${y}px`, width: `${radius * 2 + 4}px`, height: `${radius * 2 + 4}px` });
 }
+function animateGlow(frames, options) {
+  glowAnimation?.cancel();
+  glowAnimation = preferences.flash ? glow.animate(frames, options) : null;
+}
 function celebrate() {
   feedback.ui('success');
   positionGlow();
@@ -270,7 +275,7 @@ function celebrate() {
     { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: 0.72, easing: 'ease-out' },
     { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
   ];
-  glowAnimation = glow.animate(frames, { duration: SUCCESS_MS, easing: 'linear' });
+  animateGlow(frames, { duration: SUCCESS_MS, easing: 'linear' });
   transitionRemaining = SUCCESS_MS;
   scheduleAdvance();
 }
@@ -333,7 +338,7 @@ function launchRun(direction) {
     if (game.status !== 'launching') return;
     positionGlow();
     glowAnimation?.cancel();
-    glowAnimation = glow.animate(reducedMotion.matches ? [{ opacity: .1 }, { opacity: 0 }] : [
+    animateGlow(reducedMotion.matches ? [{ opacity: .1 }, { opacity: 0 }] : [
       { opacity: 1, transform: 'translate(-50%, -50%) scale(0)' },
       { opacity: 1, transform: 'translate(-50%, -50%) scale(1)', offset: .65 },
       { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
@@ -428,6 +433,7 @@ function openSettings() {
   $('menu-settings').hidden = game.status === 'menu';
   $('setting-sound').checked = preferences.sound;
   $('setting-success').checked = preferences.successSound;
+  $('setting-flash').checked = preferences.flash;
   const canVibrate = typeof navigator.vibrate === 'function';
   $('setting-vibration').checked = preferences.vibration && canVibrate;
   $('setting-vibration').disabled = !canVibrate;
@@ -519,6 +525,12 @@ $('setting-sound').addEventListener('change', event => {
   preferences.sound = event.target.checked;
   if (preferences.sound) { feedback.unlock(); feedback.ui('toggle'); } else feedback.mute();
   syncSoundOptions();
+  savePreferences();
+});
+$('setting-flash').addEventListener('change', event => {
+  preferences.flash = event.target.checked;
+  if (!preferences.flash) { glowAnimation?.cancel(); glowAnimation = null; }
+  feedback.ui('toggle');
   savePreferences();
 });
 $('setting-success').addEventListener('change', event => {
