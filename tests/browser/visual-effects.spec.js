@@ -1,6 +1,6 @@
 import { backdropColors } from '../../src/ambience.js';
 import { test, expect } from '@playwright/test';
-import { installClock, play, solve } from './helpers.js';
+import { selectChoice, installClock, play, solve } from './helpers.js';
 
 test.beforeEach(async ({ page }) => { await installClock(page); await page.goto('/'); });
 
@@ -84,7 +84,7 @@ test('best scores follow the selected mode and remain visible on the controls gu
   });
   await page.reload();
   await expect(page.locator('#menu-best strong')).toHaveText('2.468');
-  await page.locator('#mode-hard').click();
+  await selectChoice(page, 'route', 'hard');
   await expect(page.locator('#menu-best strong')).toHaveText('864');
   await page.locator('#start-game').click();
   await page.clock.runFor(3000);

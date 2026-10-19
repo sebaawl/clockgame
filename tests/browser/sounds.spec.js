@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { installClock } from './helpers.js';
+import { installClock, selectChoice } from './helpers.js';
 
 test('pill actions, three recorded sounds, persistent selection and global mute', async ({ page }) => {
   await installClock(page, { feedback: true });
   await page.goto('/');
   await expect(page.locator('#start-game')).toHaveCSS('border-radius', '999px');
-  await page.locator('#mode-hard').click();
+  await selectChoice(page, 'route', 'hard');
   expect(await page.evaluate(() => window.__ticks)).toBeGreaterThan(0);
   await page.clock.runFor(100);
   const beforePanel = await page.evaluate(() => window.__ticks);
@@ -27,6 +27,6 @@ test('pill actions, three recorded sounds, persistent selection and global mute'
   await page.locator('[data-sound="clock"]').click();
   await page.locator('#continue-game').click();
   await page.clock.runFor(240);
-  await page.locator('#mode-normal').click();
+  await selectChoice(page, 'route', 'normal');
   expect(await page.evaluate(() => window.__ticks)).toBe(muted);
 });

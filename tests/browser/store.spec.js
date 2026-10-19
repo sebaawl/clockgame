@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createProgress, PROGRESS_KEY } from '../../src/progression.js';
-import { installClock, play, solve } from './helpers.js';
+import { selectChoice, installClock, play, solve } from './helpers.js';
 const now = new Date(2026, 9, 19, 12);
 async function setup(page, mutate = () => {}) {
   await installClock(page);
@@ -18,9 +18,10 @@ test('claim daily gears, exchange for coins, buy and equip a cosmetic, and retai
   await expect(page.locator('#wallet-points strong')).toHaveText('1.200');
   expect(await page.locator('.reward-particle').count()).toBeGreaterThan(0);
   await page.getByRole('button', { name: 'Ver tienda', exact: true }).click();
-  await page.locator('.coin-exchange summary').click();
+  await page.locator('[data-action="section"][data-id="exchange"]').click();
   await page.locator('[data-action="exchange"][data-id="large"]').click();
   await expect(page.locator('#wallet-coins strong')).toHaveText('90');
+  await page.locator('[data-action="section"][data-id="buy"]').click();
   await page.locator('[data-item="dots"] [data-action="buy"]').click();
   await page.locator('[data-item="dots"] [data-action="equip"]').click();
   expect((await state(page)).coins).toBe(30);
@@ -50,10 +51,10 @@ test('a challenging record unlocks a boost for free and Nitro really moves twice
 
 test('easy preserves existing play; medium/hard shorten the timer and persist separately', async ({ page }) => {
   await setup(page);
-  await expect(page.locator('button[data-difficulty="easy"]')).toHaveAttribute('aria-pressed', 'true');
-  await page.locator('button[data-difficulty="hard"]').click();
+  await expect(page.locator('#difficulty-current')).toHaveText('Fácil');
+  await selectChoice(page, 'difficulty', 'hard');
   await page.reload();
-  await expect(page.locator('button[data-difficulty="hard"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#difficulty-current')).toHaveText('Difícil');
   await play(page);
   await expect(page.locator('#time')).toHaveText('9.8');
   await solve(page);

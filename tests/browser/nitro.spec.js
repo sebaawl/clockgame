@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { installClock, play, solve } from './helpers.js';
+import { selectChoice, installClock, play, solve } from './helpers.js';
 
 async function holdLeft(page) {
   await page.mouse.move(30, page.viewportSize().height * .5);
@@ -73,7 +73,7 @@ test('overshoot requires correction and pause cancels the held control without f
 });
 
 test('survival recovers time, keeps counting through celebrations and crosses cycles without a break', async ({ page }) => {
-  await page.locator('#format-survival').click();
+  await selectChoice(page, 'format', 'survival');
   await play(page);
   await expect(page.locator('body')).toHaveAttribute('data-format', 'survival');
   await page.clock.runFor(2000);

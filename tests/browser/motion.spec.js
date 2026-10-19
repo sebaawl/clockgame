@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { installClock, play } from './helpers.js';
+import { selectChoice, installClock, play } from './helpers.js';
 
 test('mode selector travels and draws its outline; settings icons animate on an opaque surface', async ({ page }) => {
   await installClock(page);
   await page.goto('/');
-  await page.locator('#mode-hard').click();
-  const selector = await page.locator('#mode-selector').evaluate(el => ({ transform: el.style.transform, animation: window.__motions.findLast(motion => Array.isArray(motion.frames) && motion.frames.some(frame => frame.strokeDashoffset === 100)) }));
-  expect(selector.transform).not.toBe('translate(0px, 0px)');
-  expect(selector.animation.frames[0].strokeDashoffset).toBe(100);
+  await selectChoice(page, 'route', 'hard');
+  await expect(page.locator('#route-current')).toHaveText('Contraintuitivo');
+  expect(await page.evaluate(() => window.__motions.some(motion => motion.id === 'route-copy' && motion.options.duration === 220))).toBe(true);
   await play(page);
   await page.locator('#settings-button').click();
   await expect(page.locator('#settings')).toHaveCSS('background-color', 'rgb(0, 0, 0)');

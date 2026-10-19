@@ -1,6 +1,8 @@
 import { ITEMS, PACKS, dailyGoals, claimGoal, exchangeCoins, buyItem, equipItem, saveProgress, localDay, equippedBoosts, boostSlots } from './progression.js';
 
 export function createStore({ progress, storage, gear, changed, reducedMotion, feedback }) {
+  const svg = path => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${path}</svg>`;
+  const symbols = { bag: svg('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>'), exchange: svg('<path d="M4 8h16l-4-4M20 16H4l4 4"/>'), mission: svg('<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>'), trophy: svg('<path d="M8 3h8v6a4 4 0 0 1-8 0V3ZM8 5H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 13v6m-4 2h8"/>'), check: svg('<path d="m5 12 4 4L19 6"/>'), down: svg('<path d="M12 4v16m-6-6 6 6 6-6"/>'), info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>'), clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>') };
   const coin = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/></svg>';
   const dialog = document.createElement('dialog');
   dialog.id = 'store'; dialog.className = 'store'; dialog.setAttribute('aria-labelledby', 'store-title');
@@ -9,33 +11,56 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     <p id="store-notice" class="store-notice" role="status" aria-live="polite"></p>
     <div id="store-content"></div>`;
   document.body.append(dialog);
-  let tab = 'cosmetic', view = 'shop', motion, closing = false, tabTimer, dayTimer;
+  let tab = 'cosmetic', view = 'shop', motion, closing = false, tabTimer, dayTimer, market = 'buy';
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
+  const compactDetail = { original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
+  function purchaseActions(item, owned, equipped = false) {
+    if (item.kind === 'upgrade' && owned) return `<span class="upgrade-owned">${symbols.check} Permanente</span>`;
+    if (owned) {
+      const removable = item.kind === 'boost' && boostSlots(progress) === 2;
+      return `<button data-action="equip" data-id="${item.id}" ${equipped && !removable ? 'disabled' : ''}>${equipped ? removable ? 'Quitar ✓' : 'Equipado ✓' : 'Equipar'}</button>`;
+    }
+    return `<button data-action="buy" data-id="${item.id}" aria-label="Comprar ${item.name} por ${item.price} monedas" ${progress.coins < item.price ? 'disabled' : ''}>${coin}<strong>${format(item.price)}</strong></button><button class="score-unlock" data-action="unlock" data-id="${item.id}" aria-label="Desbloquear ${item.name} con récord de ${item.target} puntos" ${progress.best < item.target ? 'disabled' : ''}>${symbols.trophy} ${format(item.target)}</button>`;
+  }
+  function art(item) {
+    if (item.kind === 'cosmetic') return miniClock(item.id);
+    if (item.id === 'lock') return svg('<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>');
+    if (item.id === 'tank') return svg('<rect x="3" y="4" width="6" height="16" rx="2"/><rect x="15" y="4" width="6" height="16" rx="2"/><path d="M3 12h6m6 0h6"/>');
+    return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', dual: '2' })[item.id]}</span>`;
+  }
+  function itemCard(item) {
+    const owned = progress.owned.includes(item.id), equipped = item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
+    return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${purchaseActions(item, owned, equipped)}</div></article>`;
+  }
   function render() {
     const goals = dailyGoals(progress);
     dialog.querySelector('#wallet-points strong').textContent = format(progress.points);
     dialog.querySelector('#wallet-coins strong').textContent = format(progress.coins);
-    dialog.querySelector('#store-title').textContent = view === 'daily' ? 'Metas diarias' : 'Tienda';
-    dialog.querySelector('.daily-link').textContent = view === 'daily' ? 'Ver tienda' : 'Metas diarias';
+    dialog.querySelector('#store-title').textContent = view === 'daily' ? 'Misiones' : 'Tienda';
+    const dailyLink = dialog.querySelector('.daily-link');
+    dailyLink.innerHTML = view === 'daily' ? symbols.bag : symbols.mission;
+    dailyLink.setAttribute('aria-label', view === 'daily' ? 'Ver tienda' : 'Metas diarias');
+    dialog.querySelector('.store-back').innerHTML = svg('<path d="m14 6-6 6 6 6"/>');
     const content = dialog.querySelector('#store-content');
-    const exchangeOpen = content.querySelector('.coin-exchange')?.open;
     if (view === 'daily') {
       const now = new Date(), midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
       const minutes = Math.ceil((midnight - now) / 60000);
-      content.innerHTML = `<p class="store-intro">Juega. Cumple metas. Recoge engranajes.</p><p class="reset-time">Nuevas metas en ${Math.floor(minutes / 60)} h ${minutes % 60} min</p>
-        <div class="goal-list">${goals.map(goal => `<article class="goal" data-goal="${goal.id}"><div class="goal-heading"><h3>${goal.title}</h3><span class="gear-reward">${gear} ${goal.reward}</span></div><p>${goal.detail}</p><div class="goal-progress" role="progressbar" aria-label="${goal.title}" aria-valuenow="${Math.min(goal.target, goal.value)}" aria-valuemin="0" aria-valuemax="${goal.target}"><span style="width:${Math.min(100, goal.value / goal.target * 100)}%"></span></div><div class="goal-footer"><span>${format(Math.min(goal.target, goal.value))} / ${format(goal.target)}</span><button data-action="claim" data-id="${goal.id}" ${goal.claimed || goal.value < goal.target ? 'disabled' : ''}>${goal.claimed ? 'Recogido ✓' : 'Recoger'}</button></div></article>`).join('')}</div><p class="store-footnote">Los puntos de la partida no se gastan. Solo se canjean los engranajes recogidos de las metas.</p>`;
-    } else {
-      content.innerHTML = `<details class="coin-exchange" ${exchangeOpen ? 'open' : ''}><summary>Canjear engranajes por monedas <span>+</span></summary><div>${PACKS.map(pack => `<button data-action="exchange" data-id="${pack.id}" ${progress.points < pack.points ? 'disabled' : ''}><span>${gear} ${format(pack.points)}</span><span>→</span><strong>${coin} ${pack.coins}</strong></button>`).join('')}</div></details>
-      <div class="store-tabs" role="group" aria-label="Secciones de la tienda"><span class="store-tab-line" style="transform:translateX(${tab === 'cosmetic' ? 0 : 100}%)"></span><button data-action="tab" data-id="cosmetic" aria-pressed="${tab === 'cosmetic'}">Cosméticos</button><button data-action="tab" data-id="boost" aria-pressed="${tab === 'boost'}">Boosts</button></div>
-      <p class="store-intro">${tab === 'cosmetic' ? 'Tu reloj. Tu estilo.' : `Permanentes. ${equippedBoosts(progress).length}/${boostSlots(progress)} ranuras equipadas.`}</p>
-      ${tab === 'boost' ? `<button class="no-boost" data-action="equip" data-id="none" aria-pressed="${!equippedBoosts(progress).length}">${!equippedBoosts(progress).length ? '✓ Sin boost' : 'Jugar sin boost'}</button>` : ''}
-      ${tab === 'boost' ? `<article class="shop-item general-upgrade" data-item="dual"><div class="boost-symbol">2</div><div class="item-copy"><h3>Doble ranura</h3><p>Mejora general permanente. Combina dos boosts distintos.</p></div><div class="item-actions">${progress.owned.includes('dual') ? '<span>Desbloqueada ✓</span>' : `<button data-action="buy" data-id="dual" ${progress.coins < 600 ? 'disabled' : ''}>${coin} 600</button><button class="score-unlock" data-action="unlock" data-id="dual" ${progress.best < 20000 ? 'disabled' : ''}>${progress.best >= 20000 ? 'Desbloquear' : 'Récord'} 20.000</button>`}</div></article>` : ''}
-      <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(item => {
-        const owned = progress.owned.includes(item.id), equipped = item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
-        return `<article class="shop-item" data-item="${item.id}"><div class="item-art">${tab === 'cosmetic' ? miniClock(item.id) : `<span class="boost-symbol">${item.id === 'speed' ? '×2' : item.id === 'recharge' ? '+×2' : item.id === 'lock' ? '<svg width="56" height="56" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><rect x="10" y="21" width="28" height="21" rx="5"/><path d="M16 21v-7a8 8 0 0 1 16 0v7M24 29v5"/></svg>' : item.id === 'tank' ? '<svg width="56" height="56" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><rect x="7" y="7" width="12" height="34" rx="4"/><rect x="29" y="7" width="12" height="34" rx="4"/><path d="M7 24h12m10 0h12"/></svg>' : '+1,5'}</span>`}</div><div class="item-copy"><h3>${item.name}</h3><p>${item.detail}</p></div><div class="item-actions">${owned ? `<button data-action="equip" data-id="${item.id}" ${equipped && (item.kind === 'cosmetic' || boostSlots(progress) === 1) ? 'disabled' : ''}>${equipped ? item.kind === 'boost' && boostSlots(progress) === 2 ? 'Quitar ✓' : 'Equipado ✓' : 'Equipar'}</button>` : `<button data-action="buy" data-id="${item.id}" aria-label="Comprar ${item.name} por ${item.price} monedas" ${progress.coins < item.price ? 'disabled' : ''}>${coin} ${item.price}</button><button class="score-unlock" data-action="unlock" data-id="${item.id}" ${progress.best < item.target ? 'disabled' : ''}>${progress.best >= item.target ? 'Desbloquear' : 'Récord'} ${format(item.target)}</button>`}</div></article>`;
-      }).join('')}</div><p class="store-footnote">Compra con monedas o alcanza el récord indicado en una sola partida. Los cambios se aplican a tu próxima partida.</p><p class="store-best">TU MEJOR PARTIDA · ${format(progress.best)} PUNTOS</p>`;
+      content.innerHTML = `<div class="mission-section-head"><span>HOY</span><span class="reset-time" aria-label="Nuevas misiones en ${Math.floor(minutes / 60)} horas y ${minutes % 60} minutos">${symbols.clock} ${Math.floor(minutes / 60)}h ${minutes % 60}m</span></div><div class="goal-list">${goals.map(goal => {
+        const label = goal.id === 'precision' ? goal.detail.includes('perfectos') ? 'PERFECTOS' : 'RELOJES' : 'PUNTOS';
+        const context = goal.id === 'score' ? 'Una partida' : goal.id === 'precision' ? 'Acumulados hoy' : goal.detail.includes('Supervivencia') ? 'Supervivencia' : 'Clásico';
+        return `<article class="goal" data-goal="${goal.id}"><div class="goal-heading"><div class="mission-target"><span>${label}</span><h3>${format(goal.target)}</h3><p>${context}</p></div><span class="gear-reward">${gear}<strong>${goal.reward}</strong></span></div><div class="goal-progress" role="progressbar" aria-label="${goal.title}" aria-valuenow="${Math.min(goal.target, goal.value)}" aria-valuemin="0" aria-valuemax="${goal.target}"><span style="width:${Math.min(100, goal.value / goal.target * 100)}%"></span></div><div class="goal-footer"><span>${format(Math.min(goal.target, goal.value))} <span>/ ${format(goal.target)}</span></span><button data-action="claim" data-id="${goal.id}" aria-label="${goal.claimed ? 'Recompensa recogida' : 'Recoger recompensa de ' + goal.title}" ${goal.claimed || goal.value < goal.target ? 'disabled' : ''}>${goal.claimed ? symbols.check : symbols.down}</button></div></article>`;
+      }).join('')}</div><button class="mission-exchange" data-action="section" data-id="exchange">${symbols.exchange} Canjear</button>`;
+      return;
     }
+    const nav = `<div class="market-nav" role="group" aria-label="Acciones de tienda"><button data-action="section" data-id="buy" aria-pressed="${market === 'buy'}">${symbols.bag} Comprar</button><button data-action="section" data-id="exchange" aria-pressed="${market === 'exchange'}">${symbols.exchange} Canjear</button></div>`;
+    if (market === 'exchange') {
+      content.innerHTML = nav + `<section class="exchange-section" aria-labelledby="exchange-title"><h3 id="exchange-title">Engranajes <span>→</span> monedas</h3><div class="exchange-packs">${PACKS.map(pack => `<button data-action="exchange" data-id="${pack.id}" aria-label="Canjear ${pack.points} engranajes por ${pack.coins} monedas" ${progress.points < pack.points ? 'disabled' : ''}><span class="pack-cost">${gear}<span>${format(pack.points)}</span></span><span class="pack-arrow">→</span><strong>${coin}${pack.coins}</strong></button>`).join('')}</div></section>`;
+      return;
+    }
+    content.innerHTML = nav + `<div class="store-tabs" role="group" aria-label="Secciones de la tienda"><span class="store-tab-line" style="transform:translateX(${tab === 'cosmetic' ? 0 : 100}%)"></span><button data-action="tab" data-id="cosmetic" aria-pressed="${tab === 'cosmetic'}">${symbols.clock} Cosméticos</button><button data-action="tab" data-id="boost" aria-pressed="${tab === 'boost'}">${svg('<path d="m14 2-8 12h6l-2 8 8-12h-6l2-8Z"/>')} Boosts</button></div>
+      ${tab === 'boost' ? `<div class="loadout-heading"><span>RANURAS <strong>${equippedBoosts(progress).length}/${boostSlots(progress)}</strong></span><button class="no-boost" data-action="equip" data-id="none" aria-label="Quitar todos los boosts" aria-pressed="${!equippedBoosts(progress).length}">${svg('<path d="m6 6 12 12M18 6 6 18"/>')}</button></div><div class="general-label">MEJORA GENERAL</div>${itemCard(ITEMS.find(item => item.id === 'dual'))}<div class="general-label">BOOSTS</div>` : ''}
+      <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div><p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
   }
   function celebrate(type, amount, origin) {
     const target = dialog.querySelector(type === 'points' ? '#wallet-points' : '#wallet-coins');
@@ -60,7 +85,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   }
   function open(showDaily = false) {
     if (dialog.open) return;
-    view = showDaily ? 'daily' : 'shop'; render(); dialog.querySelector('#store-notice').textContent = '';
+    view = showDaily ? 'daily' : 'shop'; market = 'buy'; render(); dialog.querySelector('#store-notice').textContent = '';
     closing = false; dialog.showModal(); feedback.ui('open');
     clearInterval(dayTimer);
     dayTimer = setInterval(() => {
@@ -85,6 +110,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     const notice = dialog.querySelector('#store-notice'); let message = '', reward = 0;
     if (action === 'close') { close(); return; }
     if (action === 'daily') { clearTimeout(tabTimer); view = view === 'daily' ? 'shop' : 'daily'; render(); return; }
+    if (action === 'section') { clearTimeout(tabTimer); view = 'shop'; market = id; render(); if (!reducedMotion.matches) dialog.querySelector('#store-content').animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 220 }); return; }
     if (action === 'tab') {
       clearTimeout(tabTimer);
       const old = tab; tab = id;
@@ -101,7 +127,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       const previousDay = progress.daily.day; dailyGoals(progress);
       if (previousDay !== progress.daily.day) { persist(); render(); notice.textContent = 'Nuevas metas para hoy.'; return; }
     }
-    if (action === 'claim') { reward = claimGoal(progress, id); if (reward) message = `+${reward} puntos de metas`; }
+    if (action === 'claim') { reward = claimGoal(progress, id); if (reward) message = `+${reward} engranajes`; }
     if (action === 'exchange') { reward = exchangeCoins(progress, id); if (reward) message = `+${reward} monedas`; }
     if (action === 'buy' || action === 'unlock') { if (buyItem(progress, id, action === 'buy' ? 'coins' : 'score')) message = `${ITEMS.find(i => i.id === id).name} desbloqueado`; }
     if (action === 'equip') { if (equipItem(progress, id)) message = id === 'none' ? 'Sin boost' : `${ITEMS.find(i => i.id === id).name} ${equippedBoosts(progress).includes(id) || ITEMS.find(i => i.id === id).kind === 'cosmetic' ? 'equipado' : 'retirado'}`; }

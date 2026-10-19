@@ -1,8 +1,11 @@
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
+import '@fontsource/poppins/latin-400.css';
+import '@fontsource/poppins/latin-600.css';
 import './style.css';
 import './store.css';
 import './home.css';
+import './market.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, hasBoost } from './game.js';
@@ -109,13 +112,7 @@ document.querySelector('#app').innerHTML = `
       <div class="start-content">
         <header class="home-header"><h1 id="start-title">clocking</h1><div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div></header>
         <div class="home-selection">
-          <section class="home-setting" aria-labelledby="format-label"><h2 id="format-label">PARTIDA</h2><div class="format-options" role="group" aria-label="Tipo de partida"><button id="format-classic" class="format-option" aria-pressed="true" type="button">Clásico</button><button id="format-survival" class="format-option" aria-pressed="false" type="button">Supervivencia</button></div></section>
-          <section class="home-setting" aria-labelledby="difficulty-label"><h2 id="difficulty-label">DIFICULTAD</h2><div class="difficulty-picker" role="group" aria-label="Dificultad"><span class="difficulty-marker"></span>${Object.entries(DIFFICULTIES).map(([id, d], index) => `<button data-difficulty="${id}" type="button" aria-pressed="false"><span class="difficulty-dots" aria-hidden="true">${'<i></i>'.repeat(index + 1)}</span><span>${d.name}</span></button>`).join('')}</div></section>
-          <section class="home-setting" aria-labelledby="route-label"><h2 id="route-label">RECORRIDO</h2><div class="mode-options" role="group" aria-label="Recorrido">
-            <svg id="mode-selector" class="mode-selector" aria-hidden="true"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="24" pathLength="100"/></svg>
-            <button id="mode-normal" class="mode-option" type="button" aria-pressed="true"><strong>Normal</strong></button><button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Contraintuitivo</strong></button>
-          </div></section>
-          <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
+          ${[['format', 'PARTIDA', 'Partida'], ['difficulty', 'DIFICULTAD', 'Dificultad'], ['route', 'RECORRIDO', 'Recorrido']].map(([id, label, name]) => `<section class="choice-block" data-choice="${id}" role="group" aria-label="${name}"><button type="button" data-cycle="${id}" data-step="-1" aria-label="${name} anterior">${icon('<path d="m15 6-6 6 6 6"/>')}</button><div class="choice-copy" id="${id}-copy" aria-live="polite" aria-atomic="true"><div class="choice-caption"><span>${label}</span><span id="${id}-index"></span></div><h2 id="${id}-current"></h2><p id="${id}-description"></p></div><button type="button" data-cycle="${id}" data-step="1" aria-label="${name} siguiente">${icon('<path d="m9 6 6 6-6 6"/>')}</button></section>`).join('')}
         </div>
         <div class="home-play"><p class="equipped-note" id="equipped-note"></p><button id="start-game" class="primary-action" type="button">Jugar</button></div>
         <nav class="progress-actions" aria-label="Progreso"><button id="open-store" type="button">${icon('<path d="M5 8h14l1 13H4L5 8Z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>')}<span>Tienda</span><span id="menu-coins" class="home-badge"></span></button><button id="open-daily" type="button">${icon('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="m9 12 2 2 4-5"/>')}<span>Misiones</span><span id="daily-ready" class="home-badge"></span></button></nav>
@@ -177,8 +174,7 @@ function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocki
 function chooseDifficulty(difficulty) {
   selectedDifficulty = Object.hasOwn(DIFFICULTIES, difficulty) ? difficulty : 'easy';
   preferences.difficulty = selectedDifficulty;
-  document.querySelectorAll('button[data-difficulty]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.difficulty === selectedDifficulty)));
-  document.querySelector('.difficulty-marker').style.transform = `translateX(${Object.keys(DIFFICULTIES).indexOf(selectedDifficulty) * 100}%)`;
+
   savePreferences(); chooseMode(selectedMode);
 }
 const input = createNitroControl({
@@ -239,17 +235,21 @@ function displayTime() {
 function reveal(element, frames, duration = 380) {
   if (!reducedMotion.matches) element.animate(frames, { duration, easing: 'cubic-bezier(.2,.85,.3,1)' });
 }
+const HOME_OPTIONS = {
+  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Un cronómetro. Cada acierto suma tiempo.']],
+  difficulty: [['easy', 'Fácil', 'Tiempo y recarga originales.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
+  route: [['normal', 'Normal', 'Elige el camino que prefieras.'], ['hard', 'Contraintuitivo', 'Llega a las doce por el camino largo.']],
+};
 function syncSelector(animate = false) {
-  const target = $(selectedMode === 'hard' ? 'mode-hard' : 'mode-normal');
-  if (!target.offsetWidth) return;
-  const selector = $('mode-selector');
-  Object.assign(selector.style, { width: `${target.offsetWidth}px`, height: `${target.offsetHeight}px`, transform: `translate(${target.offsetLeft}px, ${target.offsetTop}px)` });
-  if (animate && !reducedMotion.matches) {
-    selectorMotion?.cancel();
-    selectorMotion = selector.firstElementChild.animate([
-      { strokeDasharray: '100', strokeDashoffset: 100 },
-      { strokeDasharray: '100', strokeDashoffset: 0 },
-    ], { duration: 500, easing: 'cubic-bezier(.2,.7,.3,1)' });
+  const selected = { format: selectedFormat, difficulty: selectedDifficulty, route: selectedMode };
+  for (const [kind, options] of Object.entries(HOME_OPTIONS)) {
+    const index = options.findIndex(option => option[0] === selected[kind]);
+    const [, title, description] = options[index];
+    const changed = $(kind + '-current').textContent !== title;
+    $(kind + '-current').textContent = title;
+    $(kind + '-description').textContent = description;
+    $(kind + '-index').textContent = `${index + 1} / ${options.length}`;
+    if (animate && changed) reveal($(kind + '-copy'), [{ opacity: 0, transform: 'translateX(8px)' }, { opacity: 1, transform: 'translateX(0)' }], 220);
   }
 }
 let lastScreen;
@@ -331,24 +331,14 @@ function chooseMode(mode) {
   const changed = selectedMode !== mode;
   selectedMode = mode === 'hard' ? 'hard' : 'normal';
   preferences.mode = selectedMode;
-  $('mode-normal').setAttribute('aria-pressed', String(selectedMode === 'normal'));
-  $('mode-hard').setAttribute('aria-pressed', String(selectedMode === 'hard'));
-  $('mode-description').textContent = selectedFormat === 'survival' ? 'Gana tiempo. Supera tu récord.' : selectedMode === 'hard'
-    ? 'En contra de tu intuición.'
-    : `${Number((15 * DIFFICULTIES[selectedDifficulty].time).toFixed(2)).toLocaleString('es-CL')} segundos. Encuentra las doce.`;
   updateBest();
-  syncSelector(changed);
-  if (changed && !reducedMotion.matches) {
-    descriptionMotion?.cancel();
-    descriptionMotion = $('mode-description').animate([{ opacity: 0, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280, easing: 'ease-out' });
-  }
+  syncSelector(true);
   savePreferences();
 }
 function chooseFormat(format) {
   selectedFormat = format === 'survival' ? 'survival' : 'classic';
   preferences.format = selectedFormat;
-  $('format-classic').setAttribute('aria-pressed', String(selectedFormat === 'classic'));
-  $('format-survival').setAttribute('aria-pressed', String(selectedFormat === 'survival'));
+
   chooseMode(selectedMode);
 }
 function showMenu() {
@@ -638,11 +628,13 @@ document.querySelectorAll('[data-sound]').forEach(button => button.addEventListe
 $('open-store').addEventListener('click', () => store.open());
 $('open-daily').addEventListener('click', () => store.open(true));
 $('result-daily').addEventListener('click', () => store.open(true));
-document.querySelectorAll('button[data-difficulty]').forEach(button => button.addEventListener('click', () => chooseDifficulty(button.dataset.difficulty)));
-$('format-classic').addEventListener('click', () => chooseFormat('classic'));
-$('format-survival').addEventListener('click', () => chooseFormat('survival'));
-$('mode-normal').addEventListener('click', () => chooseMode('normal'));
-$('mode-hard').addEventListener('click', () => chooseMode('hard'));
+document.querySelectorAll('[data-cycle]').forEach(button => button.addEventListener('click', () => {
+  const kind = button.dataset.cycle;
+  const options = HOME_OPTIONS[kind];
+  const current = { format: selectedFormat, difficulty: selectedDifficulty, route: selectedMode }[kind];
+  const index = (options.findIndex(option => option[0] === current) + Number(button.dataset.step) + options.length) % options.length;
+  ({ format: chooseFormat, difficulty: chooseDifficulty, route: chooseMode })[kind](options[index][0]);
+}));
 $('start-game').addEventListener('click', () => startRun());
 $('restart-game').addEventListener('click', () => startRun(game.mode));
 $('change-mode').addEventListener('click', showMenu);
@@ -779,7 +771,7 @@ function frame() {
 document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button || button.matches('.tap-zone')) return;
-  if (button.matches('.mode-option, .format-option, [data-difficulty], [data-action=tab]')) {
+  if (button.matches('[data-cycle], [data-action=tab], [data-action=section]')) {
     if (button.getAttribute('aria-pressed') !== 'true') feedback.ui('slide');
   } else if (!button.matches('[data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
     feedback.ui(button.matches('#change-mode') ? 'transition' : button.matches('#start-game, #restart-game') ? 'start' : 'press');

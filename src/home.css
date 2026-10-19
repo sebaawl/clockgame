@@ -52,3 +52,35 @@ body[data-state='menu'] .hud { top: max(14px, env(safe-area-inset-top)); }
   .start-content .menu-best > strong { font-size: 30px; }
 }
 @media (prefers-reduced-motion: reduce) { .difficulty-dots i { transition: none; } }
+/* Each choice is one framed control, navigated by its arrows. */
+.home-header { margin-bottom: clamp(28px, 5svh, 50px); }
+.home-selection { display: grid; gap: 12px; }
+.choice-block { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; align-items: center; min-height: 108px; border: 1px solid var(--line); border-radius: 22px; }
+.choice-block > button { display: grid; place-items: center; width: 42px; height: 60px; padding: 10px; color: var(--foreground); background: transparent; border: 0; border-radius: 999px; cursor: pointer; }
+.choice-block > button svg { width: 21px; height: 21px; }
+.choice-copy { padding: 15px 3px; }
+.choice-caption { display: flex; justify-content: space-between; gap: 8px; font-size: 7px; font-weight: 400; letter-spacing: .15em; opacity: .65; }
+.choice-caption > span:last-child { letter-spacing: .03em; }
+.choice-copy h2 { margin: 7px 0 4px; font-size: 21px; font-weight: 600; line-height: 1.25; letter-spacing: -.035em; }
+.choice-copy p { margin: 0; min-height: 28px; font-size: 10px; font-weight: 300; line-height: 1.45; }
+.home-play { padding-top: 28px; }
+.home-play .primary-action { color: #000; background: #fff; border-color: #fff; font-weight: 600; }
+@media (max-height: 700px) and (orientation: portrait) {
+  .start-content { padding-top: 56px; padding-bottom: 12px; }
+  .home-header { margin-bottom: 20px; }
+  .choice-block { min-height: 96px; }
+  .choice-copy { padding: 10px 3px; }
+  .choice-copy h2 { font-size: 19px; }
+  .home-selection { gap: 10px; }
+  .home-play { padding-top: 18px; }
+  .home-play .primary-action { min-height: 50px; }
+  .start-content .progress-actions { margin-top: 10px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .home-header { margin-bottom: 0; }
+  .home-selection { gap: 8px; }
+  .choice-block { min-height: 84px; }
+  .choice-copy { padding: 8px 0; }
+  .choice-copy h2 { margin-top: 5px; font-size: 18px; }
+  .choice-copy p { font-size: 9px; min-height: 24px; }
+}

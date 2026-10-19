@@ -1,0 +1,73 @@
+.store-header h2 { font-size: 28px; font-weight: 600; letter-spacing: -.05em; }
+.store .daily-link, .store .store-back { display: grid; place-items: center; width: 42px; height: 42px; padding: 9px; border: 0; }
+.store-header svg { width: 23px; height: 23px; }
+.wallet { padding: 16px 0 22px; }
+.wallet span { font-size: 7px; }
+.wallet strong { font-weight: 600; font-size: 34px; line-height: 1.2; }
+.store-notice:empty { min-height: 0; margin: 0; padding: 0; }
+.market-nav { display: flex; gap: 10px; margin: 24px 0 28px; }
+.store .market-nav button { display: flex; flex: 1; justify-content: center; align-items: center; gap: 9px; font-size: 13px; min-height: 48px; font-weight: 400; }
+.store .market-nav button[aria-pressed='true'] { color: var(--surface); background: var(--foreground); border-color: var(--foreground); font-weight: 600; }
+.market-nav svg { width: 20px; height: 20px; }
+.store-tabs { margin-top: 0; }
+.store-tabs button { display: flex; justify-content: center; align-items: center; gap: 8px; font-weight: 300; }
+.store-tabs svg { width: 17px; height: 17px; }
+.store-tabs button[aria-pressed='true'] { font-weight: 600; }
+.shop-item { grid-template-columns: 84px minmax(0, 1fr); gap: 12px 18px; padding: 25px 0; }
+.item-art > svg { width: 72px; height: 72px; }
+.item-art > svg:not(.shop-clock) { width: 54px; height: 54px; stroke-width: 1.2; }
+.item-copy h3 { font-size: 19px; font-weight: 600; letter-spacing: -.04em; }
+.item-copy > p { font-size: 10px; font-weight: 300; margin-top: 6px; }
+.item-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.item-details { flex-shrink: 0; }
+.item-details summary { display: grid; place-items: center; width: 28px; height: 28px; list-style: none; cursor: pointer; }
+.item-details summary::-webkit-details-marker { display: none; }
+.item-details summary svg { width: 15px; height: 15px; opacity: .6; }
+.item-details[open] { position: relative; }
+.item-details > p { position: absolute; right: 0; z-index: 5; width: min(240px, 60vw); box-sizing: border-box; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-size: 11px; font-weight: 300; line-height: 1.6; }
+.item-actions { gap: 7px; }
+.item-actions button { min-height: 40px; padding: 8px 12px; font-size: 11px; }
+.item-actions button strong { font-size: 14px; font-weight: 600; }
+.item-actions .score-unlock { font-size: 10px; font-weight: 300; }
+.item-actions .score-unlock svg { width: 15px; height: 15px; }
+.boost-symbol { font-size: 42px; font-weight: 300; }
+.loadout-heading { display: flex; align-items: center; justify-content: space-between; margin: 20px 0; }
+.loadout-heading > span { font-size: 8px; font-weight: 300; letter-spacing: .15em; }
+.loadout-heading strong { margin-left: 8px; font-size: 21px; font-weight: 600; letter-spacing: -.04em; }
+.store .loadout-heading .no-boost { display: grid; place-items: center; width: 40px; height: 40px; min-height: 40px; padding: 9px; }
+.no-boost svg { width: 17px; height: 17px; }
+.general-label { font-size: 8px; font-weight: 300; letter-spacing: .17em; margin: 22px 0 0; }
+.upgrade-owned { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 400; }
+.upgrade-owned svg { width: 16px; height: 16px; }
+.store-best { display: flex; align-items: center; gap: 10px; font-size: 8px; font-weight: 300; }
+.store-best svg { width: 18px; height: 18px; }
+.store-best strong { margin-left: auto; font-size: 18px; font-weight: 600; }
+.exchange-section h3 { margin: 38px 0 22px; font-size: 17px; font-weight: 400; letter-spacing: -.03em; }
+.exchange-section h3 span { padding: 0 6px; font-weight: 300; }
+.exchange-packs { display: grid; gap: 14px; }
+.store .exchange-packs button { display: flex; align-items: center; justify-content: space-between; border-radius: 22px; min-height: 118px; padding: 20px; }
+.pack-cost, .exchange-packs strong { display: flex; align-items: center; gap: 8px; }
+.pack-cost { font-size: 18px; font-weight: 300; }
+.pack-cost svg { width: 23px; height: 23px; }
+.exchange-packs strong { font-size: 36px; font-weight: 600; letter-spacing: -.05em; }
+.exchange-packs strong svg { width: 24px; height: 24px; }
+.pack-arrow { font-size: 20px; font-weight: 300; }
+.mission-section-head { display: flex; align-items: center; justify-content: space-between; margin-top: 28px; }
+.mission-section-head > span:first-child { font-size: 9px; font-weight: 400; letter-spacing: .18em; }
+.mission-section-head .reset-time { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 10px; font-weight: 300; }
+.reset-time svg { width: 15px; height: 15px; }
+.goal { padding: 28px 0 20px; }
+.mission-target > span { font-size: 8px; font-weight: 400; letter-spacing: .14em; }
+.mission-target h3 { font-size: 48px; font-weight: 300; line-height: 1.2; letter-spacing: -.065em; margin: 4px 0 0; }
+.mission-target p { font-size: 10px; font-weight: 300; margin: 2px 0 0; }
+.gear-reward { gap: 7px; }
+.gear-reward strong { font-size: 24px; font-weight: 600; letter-spacing: -.04em; }
+.gear-reward svg { width: 22px; height: 22px; }
+.goal-progress { height: 2px; margin-top: 22px; }
+.goal-footer > span { font-size: 12px; font-weight: 400; }
+.goal-footer > span > span { font-size: 10px; font-weight: 300; opacity: .6; }
+.store .goal-footer button { display: grid; place-items: center; width: 42px; height: 42px; padding: 10px; }
+.goal-footer button svg { width: 20px; height: 20px; }
+.goal-footer button:not(:disabled) { background: var(--foreground); color: var(--surface); }
+.store .mission-exchange { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 24px; font-size: 12px; }
+.mission-exchange svg { width: 19px; height: 19px; }

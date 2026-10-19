@@ -34,8 +34,18 @@ export async function installClock(page, { feedback = false } = {}) {
   await page.clock.pauseAt(new Date(instant.getTime() + 60_000));
 }
 
+export async function selectChoice(page, kind, value) {
+  const titles = { route: { normal: 'Normal', hard: 'Contraintuitivo' }, format: { classic: 'Clásico', survival: 'Supervivencia' }, difficulty: { easy: 'Fácil', medium: 'Media', hard: 'Difícil' } };
+  const wanted = titles[kind][value];
+  for (let i = 0; i < 3; i++) {
+    if (await page.locator(`#${kind}-current`).textContent() === wanted) return;
+    await page.locator(`[data-cycle="${kind}"][data-step="1"]`).click();
+  }
+  await expect(page.locator(`#${kind}-current`)).toHaveText(wanted);
+}
+
 export async function play(page, mode = 'normal') {
-  await page.locator(mode === 'hard' ? '#mode-hard' : '#mode-normal').click();
+  await selectChoice(page, 'route', mode);
   await page.getByRole('button', { name: 'Jugar', exact: true }).click();
   await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
   await page.clock.runFor(3000);
