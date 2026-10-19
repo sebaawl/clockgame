@@ -1,3 +1,4 @@
+import { SUCCESS_AUDIO } from './success-audio.js';
 import { CLOCK_CLICK } from './clock-click.js';
 import { BUTTON_AUDIO, TRANSITION_AUDIO } from './ui-audio.js';
 
@@ -7,6 +8,7 @@ export function createFeedback(getPreferences) {
   let master;
   let recording;
   let successBuffer;
+  let successVoice;
   let lastNitroSound = -Infinity;
   const nitroVoices = [];
   const uiBuffers = new Map();
@@ -166,21 +168,26 @@ export function createFeedback(getPreferences) {
     if (!audio) return;
     try {
       if (!successBuffer) {
-        const duration = .26;
-        successBuffer = audio.createBuffer(1, Math.ceil(audio.sampleRate * duration), audio.sampleRate);
+        const bytes = Uint8Array.from(atob(SUCCESS_AUDIO), char => char.charCodeAt(0));
+        const pcm = new DataView(bytes.buffer);
+        successBuffer = audio.createBuffer(1, bytes.length / 2, 22050);
         const samples = successBuffer.getChannelData(0);
-        for (let i = 0; i < samples.length; i++) {
-          const t = i / audio.sampleRate;
-          const envelope = Math.min(1, t / .012) * Math.exp(-t * 18) * (1 - t / duration);
-          samples[i] = (Math.sin(2 * Math.PI * 660 * t) + .23 * Math.sin(2 * Math.PI * 990 * t)) * envelope * .16;
-        }
+        for (let i = 0; i < samples.length; i++) samples[i] = pcm.getInt16(i * 2, true) / 32768;
       }
       const source = audio.createBufferSource();
       source.buffer = successBuffer;
-      source.connect(master);
-      source.onended = () => source.disconnect();
+      const gain = audio.createGain();
+      gain.gain.value = .7;
+      source.connect(gain).connect(master);
+      if (successVoice) {
+        successVoice.gain.gain.setTargetAtTime(0, audio.currentTime, .006);
+        successVoice.source.stop(audio.currentTime + .025);
+      }
+      const voice = { source, gain };
+      successVoice = voice;
+      source.onended = () => { source.disconnect(); gain.disconnect(); if (successVoice === voice) successVoice = null; };
       source.start();
-    } catch { /* Optional tone never blocks a solve. */ }
+    } catch { /* Optional recording never blocks a solve. */ }
   }
   const profiles = {
     felt: { rate: .65, cutoff: 850, volume: .4, length: .075 },

@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.5.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.6.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -102,4 +102,6 @@ Un indicador pequeño bajo el reloj muestra carga y combo. A partir de ×5 apare
 
 Los múltiplos de cinco del combo muestran un contador grande con un destello blanco sobre negro (si está habilitado). Nitro usa celeste sobre negro. En los fondos de color, el destello y los acentos usan un tono complementario con contraste adaptado al modo claro u oscuro. La entrada de game over cubre toda la pantalla en rojo con controles blancos; movimiento reducido evita el desplazamiento.
 
-En 0.2.5 los puntajes se duplican sin cambiar las categorías de tiempo. El récord del formato y dificultad seleccionados aparece en el inicio y en la guía de controles. Los fondos aleatorios incluyen 18 familias cromáticas, sin repetir inmediatamente. El círculo de destello usa composición por diferencia sobre toda la interfaz: reloj, contador, etiquetas, ajustes, puntos y barra de Nitro invierten su color al atravesarlo.
+En 0.2.6 los puntajes se duplican sin cambiar las categorías de tiempo. El récord del formato y dificultad seleccionados aparece en el inicio y en la guía de controles. Los fondos aleatorios incluyen 18 familias cromáticas, sin repetir inmediatamente. El círculo de destello usa composición por diferencia sobre toda la interfaz: reloj, contador, etiquetas, ajustes, puntos y barra de Nitro invierten su color al atravesarlo.
+
+El acierto al llegar a las doce reproduce el archivo aportado `audio/clockadj.wav`, integrado en el HTML como PCM mono. Mantiene su velocidad original y el interruptor «Sonido de acierto»; un nuevo acierto atenúa la cola anterior para evitar acumulación de sonidos.
