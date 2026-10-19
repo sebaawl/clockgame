@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.20.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.21.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -239,3 +239,9 @@ Supervivencia comienza con 14 s antes del factor de dificultad y permite acumula
 Brújula cuesta 130 monedas o se desbloquea con un récord de 7500. Equipada, indica cuándo quedan movimientos libres y cuándo es necesario girar hacia las doce para cumplir la cuenta exacta. Un aviso visual y una vibración breve señalan ese momento; al llegar pide soltar el Nitro. No mueve la manecilla ni altera el contador.
 
 Triple ranura cuesta 1000 monedas o un récord de 30000. Es una mejora permanente que permite equipar tres boosts distintos, incluye la capacidad de dos ranuras y conserva compras anteriores. La tercera ranura se puede seleccionar, vaciar y sustituir desde tienda o Extras durante la partida.
+
+### Contador junto a la esfera y Brújula espectral (0.3.21)
+
+El contador temporal de Supervivencia se sitúa por encima del arco superior derecho de la esfera. Los clics realizados aparecen en grande y el objetivo debajo; en los duelos, ese lugar muestra el sentido de giro.
+
+Brújula se representa con una manecilla fantasma cuando llega el momento de girar hacia las doce. Parte de la posición actual y barre repetidamente el sentido indicado, con transparencias, una estela y un halo suave. Se queda apuntando hacia las doce al alcanzar la cuenta exacta. La animación se congela al pausar; movimiento reducido utiliza una indicación estática. Extras muestra también la manecilla espectral en la vista previa.

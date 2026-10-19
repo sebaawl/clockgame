@@ -1,0 +1,35 @@
+/* The challenge count sits just outside the dial's upper-right arc. */
+.challenge-dock { position: absolute; z-index: 4; left: calc(50% + var(--dial-size) / 2 - 52px); top: calc(54% - var(--dial-size) / 2 - 80px); width: 90px; text-align: right; pointer-events: none; color: var(--foreground); }
+#challenge-counter-label { display: block; font-size: 12px; font-weight: 400; letter-spacing: .12em; line-height: 1.5; }
+#challenge-counter { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+.count-current { font-size: clamp(52px, 13vw, 64px); font-weight: 700; letter-spacing: -.06em; line-height: 1; }
+.count-total { font-size: 17px; font-weight: 400; letter-spacing: .02em; line-height: 1.5; }
+body[data-challenge='duel'] .count-current, body[data-challenge='chaos'] .count-current { color: var(--accent); }
+.compass-ghost { color: var(--accent); transform-origin: 160px 160px; transition: transform 100ms ease-out; pointer-events: none; }
+.spectral-sweep { transform-origin: 160px 160px; animation: spectral-drift 1100ms linear infinite; }
+.spectral-core { fill: url(#spectral-gradient); }
+.spectral-aura { fill: none; stroke: currentColor; stroke-width: 16; stroke-linecap: round; opacity: .17; filter: blur(5px); }
+.spectral-1 { animation-delay: -180ms; opacity: .35; }
+.spectral-2 { animation-delay: -360ms; opacity: .13; }
+.preview-compass-ghost, .preview-compass-ghost .spectral-sweep { transform-origin: 50px 50px; }
+.preview-compass-ghost .spectral-aura { stroke-width: 5; filter: blur(2px); }
+.preview-spectral-core { fill: currentColor; }
+@keyframes spectral-drift {
+  0% { transform: rotate(0deg); opacity: .06; }
+  25% { opacity: .65; }
+  75% { opacity: .25; }
+  100% { transform: rotate(var(--ghost-turn, -48deg)); opacity: 0; }
+}
+body[data-state='paused'] #compass-ghost .spectral-sweep { animation-play-state: paused; }
+@media (orientation: landscape) and (max-height: 540px) {
+  .challenge-dock { left: calc(50% + var(--dial-size) / 2 - 24px); top: calc(65% - var(--dial-size) / 2 - 62px); width: 76px; }
+  .count-current { font-size: 52px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .compass-ghost { transition: none; }
+  .spectral-sweep { animation: none; transform: rotate(var(--ghost-turn, -48deg)); opacity: .45; }
+  .spectral-1, .spectral-2 { display: none; }
+}
+
+.spectral-1 .spectral-core, .spectral-1 .preview-spectral-core { opacity: .35; }
+.spectral-2 .spectral-core { opacity: .13; }

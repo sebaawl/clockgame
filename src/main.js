@@ -14,6 +14,7 @@ import './home.css';
 import './market.css';
 import './typography.css';
 import './survival.css';
+import './spectral.css';
 import { createStore } from './store.js';
 import { loadProgress, saveProgress, recordSolve, dailyGoals, equippedBoosts, ITEMS, equipItem, boostSlots, boostLoadout, removeBoost } from './progression.js';
 import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity, nitroDrain, hasBoost } from './game.js';
@@ -103,6 +104,10 @@ document.querySelector('#app').innerHTML = `
         <circle class="clock-face" cx="160" cy="160" r="144" /><rect class="square-face" x="16" y="16" width="288" height="288" rx="48"/><circle class="inner-face" cx="160" cy="160" r="129"/>
         <g class="ticks">${ticks}</g>
         <g id="nitro-trail" class="nitro-trail" aria-hidden="true">${[1, 2, 3].map(i => `<g id="trail-${i}" class="trail-mark"><line x1="160" y1="160" x2="160" y2="103"/></g>`).join('')}</g>
+        <g id="compass-ghost" class="compass-ghost" hidden aria-hidden="true">
+          <defs><linearGradient id="spectral-gradient" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="currentColor" stop-opacity=".05"/><stop offset="1" stop-color="currentColor" stop-opacity=".9"/></linearGradient></defs>
+          ${[2, 1, 0].map(i => `<g class="spectral-sweep spectral-${i}">${i === 0 ? '<path class="spectral-aura" d="M160 157V54"/>' : ''}<path class="spectral-core" d="M160 160 156 76Q160 48 164 76Z"/><circle cx="160" cy="160" r="4" fill="currentColor" opacity=".3"/></g>`).join('')}
+        </g>
         <line class="fixed-hand" x1="160" y1="160" x2="160" y2="76" />
         <g id="active-hand" class="active-hand"><line id="hand-line" class="hand-line" x1="160" y1="171" x2="160" y2="103" /></g>
         <circle class="center" cx="160" cy="160" r="8" />
@@ -117,7 +122,8 @@ document.querySelector('#app').innerHTML = `
       <button id="tap-left" class="tap-zone" aria-label="Girar en sentido antihorario" aria-describedby="instructions"></button>
       <button id="tap-right" class="tap-zone" aria-label="Girar en sentido horario" aria-describedby="instructions"></button>
     </div>
-    <aside id="challenge-panel" class="challenge-panel" hidden aria-label="Desafío de supervivencia"><span id="challenge-title"></span><strong id="challenge-counter"></strong><span id="challenge-hint"></span></aside>
+    <div id="challenge-dock" class="challenge-dock" hidden aria-live="off"><span id="challenge-counter-label">CLICS</span><strong id="challenge-counter"></strong></div>
+    <aside id="challenge-panel" class="challenge-panel" hidden aria-label="Desafío de supervivencia"><span id="challenge-title"></span><span id="challenge-hint"></span></aside>
     <div id="control-guide" class="control-guide" hidden aria-hidden="true">
       <div class="guide-half guide-left"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
       <div class="guide-half guide-right"><div class="guide-control"><span class="guide-arrow"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="24" cy="24" r="20" class="guide-clock-face"/><g class="guide-clock-hand"><path d="M24 27V10"/></g><circle cx="24" cy="24" r="2.8" fill="currentColor" stroke="none"/></svg></span></div></div>
@@ -231,6 +237,8 @@ function updateChallengePanel() {
   const visible = game.format === 'survival' && game.challenge !== 'normal' && ['playing', 'paused', 'cleared'].includes(game.status);
   const panel = $('challenge-panel');
   panel.hidden = !visible;
+  $('challenge-dock').hidden = !visible;
+  $('compass-ghost').toggleAttribute('hidden', true);
   document.body.dataset.challenge = visible ? game.challenge : 'normal';
   document.body.dataset.targetClicks = String(game.targetClicks);
   document.body.dataset.clicks = String(game.attemptSteps);
@@ -241,24 +249,34 @@ function updateChallengePanel() {
   const arrow = direction === 1 ? '↻' : '↺';
   const title = exact ? 'VUELTA EXACTA' : game.challenge === 'chaos' ? 'RELOJ IMPREDECIBLE' : 'DUELO CONTRA EL RELOJ';
   $('challenge-title').textContent = title;
-  $('challenge-counter').textContent = exact ? `${game.attemptSteps} / ${game.targetClicks}` : arrow;
+  $('challenge-counter-label').textContent = exact ? 'CLICS' : 'RUMBO';
+  const counter = exact ? `<span class="count-current">${game.attemptSteps}</span><span class="count-total"> / ${game.targetClicks}</span>` : `<span class="count-current">${arrow}</span>`;
+  if ($('challenge-counter').innerHTML !== counter) $('challenge-counter').innerHTML = counter;
+  $('challenge-counter').setAttribute('aria-label', exact ? `${game.attemptSteps} de ${game.targetClicks} clics` : `Rumbo ${direction === 1 ? 'horario' : 'antihorario'}`);
   $('challenge-hint').textContent = exact ? `${arrow} ${game.challengeRetries ? 'Nueva cuenta · −1 s' : 'Llega a las 12 · Nitro cuenta'}` : game.challenge === 'chaos' ? 'Cambia de dirección. Atrapa las doce.' : 'La manecilla se mueve. Llévala a las doce.';
   const guide = hasBoost(game, 'compass') ? exactGuide(game, positions(game.stage)) : null;
   panel.dataset.guide = guide?.state || 'off';
   if (guide) {
-    const turn = guide.direction === 1 ? '↻' : '↺';
-    $('challenge-hint').textContent = guide.state === 'free' ? 'BRÚJULA · AÚN HAY MARGEN' : guide.state === 'turn' ? `${turn} GIRA AHORA HACIA LAS 12` : guide.state === 'release' ? 'JUSTO · SUELTA EL NITRO' : 'CUENTA PERDIDA · TERMINA PARA REINTENTAR';
+    const ghost = $('compass-ghost');
+    ghost.toggleAttribute('hidden', !['turn', 'release'].includes(guide.state));
+    ghost.dataset.state = guide.state;
+    ghost.dataset.direction = String(guide.direction);
+    ghost.style.transform = `rotate(${game.rotation}deg)`;
+    ghost.style.setProperty('--ghost-turn', `${guide.state === 'release' ? 0 : guide.direction * 48}deg`);
+    ghost.setAttribute('aria-label', guide.state === 'release' ? 'Las doce. Suelta el Nitro.' : `Manecilla fantasma: gira en sentido ${guide.direction === 1 ? 'horario' : 'antihorario'}`);
+    $('challenge-hint').textContent = guide.state === 'turn' ? 'SIGUE LA MANECILLA FANTASMA' : guide.state === 'release' ? 'JUSTO · SUELTA EL NITRO' : guide.state === 'lost' ? 'CUENTA PERDIDA · TERMINA PARA REINTENTAR' : 'Llega a las 12 · Nitro cuenta';
     const cue = `${game.completed}:${game.challengeRetries}:${guide.state}:${guide.direction}`;
     if (cue !== guideKey && guide.state === 'turn' && game.status === 'playing') {
       reveal($('challenge-hint'), [{ scale: '.94' }, { scale: '1.08', offset: .4 }, { scale: '1' }], 320);
       feedback.guide();
-      announce($('challenge-hint').textContent);
+      announce(ghost.getAttribute('aria-label'));
     }
     guideKey = cue;
   } else guideKey = '';
   const key = `${game.completed}:${game.challenge}:${game.challengeRetries}`;
   if (key !== challengeKey) {
     challengeKey = key;
+    reveal($('challenge-dock'), [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], 300);
     reveal(panel, [{ opacity: 0, transform: 'translateX(-50%) translateY(10px)' }, { opacity: 1, transform: 'translateX(-50%) translateY(0)' }], 300);
     announce(`${title}. ${exact ? `${game.targetClicks} movimientos exactos. ${direction === 1 ? 'Horario' : 'Antihorario'}. El Nitro cuenta cada paso.` : $('challenge-hint').textContent}`);
   }

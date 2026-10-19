@@ -32,8 +32,16 @@ test('buy three slots and compass, preserve the loadout, replace slot three and 
     }
   });
   await expect(page.locator('#challenge-panel')).toHaveAttribute('data-guide', 'turn');
-  await expect(page.locator('#challenge-hint')).toContainText('GIRA AHORA');
+  await expect(page.locator('#challenge-hint')).toContainText('MANECILLA FANTASMA');
   expect(await page.evaluate(() => window.__pulses.some(p => JSON.stringify(p) === '[10,20,10]'))).toBe(true);
+  await expect(page.locator('#compass-ghost')).toBeVisible();
+  await expect(page.locator('#compass-ghost')).toHaveAttribute('data-direction', '-1');
+  const motion = await page.locator('#compass-ghost .spectral-0').evaluate(el => ({ name: getComputedStyle(el).animationName, iterations: el.getAnimations()[0].effect.getTiming().iterations }));
+  expect(motion).toEqual({ name: 'spectral-drift', iterations: Infinity });
+  await page.locator('#settings-button').click();
+  await expect(page.locator('#compass-ghost .spectral-0')).toHaveCSS('animation-play-state', 'paused');
+  await page.locator('#continue-game').click(); await page.clock.runFor(300);
+  await expect(page.locator('#compass-ghost .spectral-0')).toHaveCSS('animation-play-state', 'running');
   await solve(page);
   await expect(page.locator('#challenge-panel')).toHaveAttribute('data-guide', 'release');
 });
