@@ -370,6 +370,7 @@ function showMenu() {
   render();
 }
 function startRun(mode = selectedMode) {
+  music.startRun();
   store.close(); menuTab = 'play';
   clearRun();
   needsControlGuide = true;

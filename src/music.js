@@ -6,19 +6,16 @@ import gameTwo from './assets/game-theme-2.ogg?inline';
 // One persistent graph keeps playlist playback and settings transitions smooth.
 export function createMusic(getPreferences) {
   let context, filter, master, active = null;
+  let newGame = false;
   let requested = null, submerged = false, hidden = false, previous = '';
   const tracks = Object.fromEntries(Object.entries({ menu: [menuOne, menuTwo], game: [gameOne, gameTwo] }).map(([name, urls]) => {
     const audio = new Audio();
-    // The playlist loops through random choices rather than repeating one fixed file.
-    audio.loop = false;
+    // Keep the chosen theme throughout this menu visit or game.
+    audio.loop = true;
     audio.preload = 'none';
     audio.dataset.music = name;
     audio.hidden = true;
     document.body.append(audio);
-    audio.addEventListener('ended', () => {
-      if (requested !== name || active !== name || hidden || !getPreferences().sound || getPreferences().musicVolume <= 0) return;
-      chooseTrack(tracks[name]); previous = ''; apply();
-    });
     return [name, { audio, urls, gain: null, timer: null }];
   }));
   function chooseTrack(track) {
@@ -91,11 +88,13 @@ export function createMusic(getPreferences) {
   return {
     sync(state, settingsOpen = false) {
       const next = state === 'menu' ? 'menu' : ['lost', 'won'].includes(state) ? null : 'game';
-      if (next && requested !== next) chooseTrack(tracks[next]);
+      if (next && (requested !== next || (next === 'game' && newGame))) chooseTrack(tracks[next]);
+      if (next === 'game') newGame = false;
       requested = next;
       submerged = settingsOpen && requested === 'game';
       apply();
     },
+    startRun() { newGame = true; },
     refresh() { previous = ''; apply(); },
   };
 }
