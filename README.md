@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.7.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.0.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -102,6 +102,28 @@ Un indicador pequeño bajo el reloj muestra carga y combo. A partir de ×5 apare
 
 Los múltiplos de cinco del combo muestran un contador grande con un destello blanco sobre negro (si está habilitado). Nitro usa celeste sobre negro. En los fondos de color, el destello y los acentos usan un tono complementario con contraste adaptado al modo claro u oscuro. La entrada de game over cubre toda la pantalla en rojo con controles blancos; movimiento reducido evita el desplazamiento.
 
-En 0.2.7 los puntajes se duplican sin cambiar las categorías de tiempo. El récord del formato y dificultad seleccionados aparece en el inicio y en la guía de controles. Los fondos aleatorios incluyen 18 familias cromáticas, sin repetir inmediatamente. El círculo de destello usa composición por diferencia sobre toda la interfaz: reloj, contador, etiquetas, ajustes, puntos y barra de Nitro invierten su color al atravesarlo.
+En 0.3.0 los puntajes se duplican sin cambiar las categorías de tiempo. El récord del formato y dificultad seleccionados aparece en el inicio y en la guía de controles. Los fondos aleatorios incluyen 18 familias cromáticas, sin repetir inmediatamente. El círculo de destello usa composición por diferencia sobre toda la interfaz: reloj, contador, etiquetas, ajustes, puntos y barra de Nitro invierten su color al atravesarlo.
 
 El acierto al llegar a las doce reproduce el archivo aportado `audio/clockadj.wav`, integrado en el HTML como PCM mono. Mantiene su velocidad original y el interruptor «Sonido de acierto»; un nuevo acierto atenúa la cola anterior para evitar acumulación de sonidos.
+
+
+## Tienda y metas diarias (0.3.0)
+
+Las partidas mantienen su puntaje. Las tres metas diarias conceden **puntos de metas** representados por engranajes; deben recogerse en Metas. Estos engranajes se canjean por monedas: 300 → 20 monedas, o 1200 → 90. No hay pagos reales. Las metas se renuevan a medianoche local y alternan objetivos de Clásico/Supervivencia y precisión/relojes completados. Los premios son 600, 450 y 350 puntos. Cada premio se recoge una vez por día; saldos, colección y equipamiento persisten en el dispositivo.
+
+La tienda tiene dos categorías. Cada objeto se compra por monedas **o** se desbloquea gratuitamente con el récord indicado de una sola partida. El récord no se gasta. Se puede equipar un cosmético y un boost a la vez. Los boosts son permanentes y se aplican al iniciar la próxima partida.
+
+| Objeto | Monedas | Récord para desbloquear |
+| --- | ---: | ---: |
+| Órbita | 60 | 3500 |
+| Doble trazo | 100 | 5500 |
+| Cuadrante | 140 | 7500 |
+| Nitro ×2 | 100 | 5000 |
+| Doble depósito | 140 | 7000 |
+| Un respiro | 180 | 9000 |
+
+Nitro ×2 duplica la velocidad, conservando consumo y control por liberación. Doble depósito almacena 200 y divide el indicador en dos barras: empieza con 40 y respeta el techo de precisión de horas. Un respiro añade 1,5 s a cada reloj de Clásico o al tiempo inicial de Supervivencia. No se apilan boosts.
+
+La dificultad se elige independientemente del recorrido Normal/Contraintuitivo. **Fácil conserva el equilibrio anterior**. Media multiplica el tiempo por 0,82 y la recarga por 0,75; Difícil por 0,65 y 0,5. En Supervivencia también cambia el tiempo recuperado. Los récords de fácil usan las claves previas y los de media/difícil se guardan por separado. Las compras no cambian las reglas de una partida ya iniciada.
+
+El progreso usa `clocking:progress:v1` en localStorage. Los tests cubren cobro único, cambio de día, fondos insuficientes, desbloqueo por récord, persistencia, equipamiento y efectos reales de boosts/dificultad. El HTML incluye la tienda, sus iconos y recursos, y funciona sin conexión.

@@ -5,9 +5,9 @@ test('mode selector travels and draws its outline; settings icons animate on an 
   await installClock(page);
   await page.goto('/');
   await page.locator('#mode-hard').click();
-  const selector = await page.locator('#mode-selector').evaluate(el => ({ transform: el.style.transform, animations: el.firstElementChild.getAnimations().map(a => a.effect.getKeyframes()) }));
+  const selector = await page.locator('#mode-selector').evaluate(el => ({ transform: el.style.transform, animation: window.__motions.findLast(motion => Array.isArray(motion.frames) && motion.frames.some(frame => frame.strokeDashoffset === 100)) }));
   expect(selector.transform).not.toBe('translate(0px, 0px)');
-  expect(selector.animations[0][0].strokeDashoffset).toBe('100');
+  expect(selector.animation.frames[0].strokeDashoffset).toBe(100);
   await play(page);
   await page.locator('#settings-button').click();
   await expect(page.locator('#settings')).toHaveCSS('background-color', 'rgb(0, 0, 0)');

@@ -1,7 +1,10 @@
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
 import './style.css';
-import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro } from './game.js';
+import './store.css';
+import { createStore } from './store.js';
+import { loadProgress, saveProgress, recordSolve, dailyGoals } from './progression.js';
+import { createGame, startGame, tickGame, moveGame, advanceGame, pauseGame, resumeGame, positions, STAGES, PHASES, settleGame, consumeNitro, DIFFICULTIES, nitroCapacity } from './game.js';
 import { scoreAdjustment } from './scoring.js';
 import { createFeedback } from './feedback.js';
 import { createNitroControl, NITRO_SPEED } from './nitro.js';
@@ -17,11 +20,19 @@ const SOUND_PRESETS = ['felt', 'wood', 'clock'];
 const preferences = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem('clocking:preferences') || '{}');
-    return { format: saved.format === 'survival' ? 'survival' : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
-  } catch { return { format: 'classic', flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
+    return { difficulty: Object.hasOwn(DIFFICULTIES, saved.difficulty) ? saved.difficulty : 'easy', format: saved.format === 'survival' ? 'survival' : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
+  } catch { return { difficulty: 'easy', format: 'classic', flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
 })();
 const feedback = createFeedback(() => preferences);
 const game = createGame();
+const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
+const progress = loadProgress(storage);
+try {
+  for (const format of ['classic', 'survival']) for (const mode of ['normal', 'hard']) progress.best = Math.max(progress.best, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0);
+} catch {}
+let selectedDifficulty = preferences.difficulty;
+let runCosmetic = progress.cosmetic;
+let paintedCosmetic;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let selectedMode = preferences.mode;
 let selectedFormat = preferences.format;
@@ -61,17 +72,17 @@ let descriptionMotion;
 
 document.querySelector('#app').innerHTML = `
   <main class="game" aria-label="clocking">
-    <p class="sr-only" id="instructions">Lleva el reloj a las doce con las mitades izquierda y derecha de la pantalla. El botón de ajustes pausa la partida. Espacio también pausa. Mantén 0,15 segundos para activar Nitro y suelta en las doce; no se detiene automáticamente. En modo difícil solo cuenta completar el recorrido largo.</p>
+    <p class="sr-only" id="instructions">Lleva el reloj a las doce con las mitades izquierda y derecha de la pantalla. El botón de ajustes pausa la partida. Espacio también pausa. Mantén 0,15 segundos para activar Nitro y suelta en las doce; no se detiene automáticamente. En el recorrido contraintuitivo solo cuenta completar el camino largo.</p>
     <div id="success-glow" class="success-glow" aria-hidden="true"></div>
     <div class="hud" id="hud"><div class="hud-row">
       <div id="cycle-label" class="cycle-label">HORA</div>
       <button id="timer" class="timer" aria-describedby="instructions"><span id="time">15.0</span></button>
       <button id="settings-button" class="settings-trigger" aria-label="Abrir ajustes" type="button">${gear}</button>
     </div></div>
-    <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span>PUNTOS</span></div>
+    <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">${gear} PUNTOS</span></div>
     <div class="clock-wrap" id="clock-wrap">
       <svg id="clock" class="clock" viewBox="0 0 320 320" role="img" aria-label="Reloj analógico. Objetivo: las doce.">
-        <circle class="clock-face" cx="160" cy="160" r="144" />
+        <circle class="clock-face" cx="160" cy="160" r="144" /><rect class="square-face" x="16" y="16" width="288" height="288" rx="48"/><circle class="inner-face" cx="160" cy="160" r="129"/>
         <g class="ticks">${ticks}</g>
         <g id="nitro-trail" class="nitro-trail" aria-hidden="true">${[1, 2, 3].map(i => `<g id="trail-${i}" class="trail-mark"><line x1="160" y1="160" x2="160" y2="103"/></g>`).join('')}</g>
         <line class="fixed-hand" x1="160" y1="160" x2="160" y2="76" />
@@ -97,20 +108,21 @@ document.querySelector('#app').innerHTML = `
       <div class="start-content">
         <p class="menu-kicker">ELIGE EL MODO</p><h1 id="start-title">clocking</h1>
         <div class="format-options" role="group" aria-label="Tipo de partida"><button id="format-classic" class="format-option" aria-pressed="true" type="button">Clásico</button><button id="format-survival" class="format-option" aria-pressed="false" type="button">Supervivencia</button></div>
-        <div class="mode-options" role="group" aria-label="Dificultad">
+        <div class="difficulty-picker" role="group" aria-label="Dificultad"><span class="difficulty-marker"></span>${Object.entries(DIFFICULTIES).map(([id, d]) => `<button data-difficulty="${id}" type="button" aria-pressed="false">${d.name}</button>`).join('')}</div>
+        <div class="mode-options" role="group" aria-label="Recorrido">
           <svg id="mode-selector" class="mode-selector" aria-hidden="true"><rect x="1" y="1" width="calc(100% - 2px)" height="calc(100% - 2px)" rx="12" pathLength="100"/></svg>
           <button id="mode-normal" class="mode-option" type="button" aria-pressed="true"><strong>Normal</strong><span>Gira hasta las doce.</span></button>
-          <button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Difícil</strong><span>Ve por el camino largo.</span></button>
+          <button id="mode-hard" class="mode-option" type="button" aria-pressed="false"><strong>Contraintuitivo</strong><span>Ve por el camino largo.</span></button>
         </div>
         <p id="mode-description" class="mode-description">15 segundos. Encuentra las doce.</p>
-        <div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div><button id="start-game" class="primary-action" type="button">Jugar</button><p class="arcade-future">ARCADE · PRÓXIMAMENTE</p>
+        <div id="menu-best" class="menu-best"><span>RÉCORD</span><strong>0</strong></div><button id="start-game" class="primary-action" type="button">Jugar</button><div class="progress-actions"><button id="open-store" type="button">Tienda <span id="menu-coins">0</span></button><button id="open-daily" type="button">${gear} Metas <span id="daily-ready"></span></button></div><p class="equipped-note" id="equipped-note"></p>
       </div>
     </section>
     <div class="intermission" id="intermission" hidden role="status" aria-live="polite" aria-atomic="true"><div class="break-copy"><p id="break-kicker" class="break-kicker">COMENZAMOS</p><p id="break-title" class="break-title">HORA</p><p id="break-detail" class="break-detail">FASE 1</p></div></div>
     <section id="game-over" class="game-over" hidden aria-label="Fin de la partida"><div id="result-panel" class="result-panel">
       <p class="result-kicker" id="result-kicker">SE ACABÓ EL TIEMPO</p><h2 id="result-title">Se te pasó<br>la hora.</h2>
-      <output id="final-score" class="final-score" aria-label="Puntaje final">0</output><p class="result-unit">PUNTOS</p><p id="result-mode" class="result-mode">NORMAL</p><p id="best-score" class="best-score"></p>
-      <button id="restart-game" class="primary-action" type="button">Reintentar</button><button id="change-mode" class="text-action" type="button">Cambiar modo</button>
+      <output id="final-score" class="final-score" aria-label="Puntaje final">0</output><p class="result-unit">${gear} PUNTOS</p><p id="result-mode" class="result-mode">NORMAL</p><p id="best-score" class="best-score"></p>
+      <button id="restart-game" class="primary-action" type="button">Reintentar</button><button id="result-daily" class="text-action" type="button">Metas diarias</button><button id="change-mode" class="text-action" type="button">Cambiar modo</button>
     </div></section>
     <div id="combo-celebration" class="combo-celebration" hidden aria-hidden="true"><span>COMBO</span><strong id="combo-big">5×</strong></div>
     <p class="sr-only" id="announcer" role="status" aria-live="polite" aria-atomic="true"></p>
@@ -145,10 +157,27 @@ const handLine = $('hand-line');
 const glow = $('success-glow');
 const settings = $('settings');
 const score = $('score');
+const store = createStore({ progress, storage, gear, changed: updateProgressMenu, reducedMotion, feedback });
+function updateProgressMenu() {
+  $('menu-coins').textContent = progress.coins.toLocaleString('es-CL');
+  const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
+  $('daily-ready').textContent = ready ? String(ready) : '';
+  $('result-daily').textContent = ready ? `Metas diarias · ${ready} por recoger` : 'Metas diarias';
+  $('equipped-note').textContent = progress.boost ? `BOOST · ${{ speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO' }[progress.boost]}` : '';
+  document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
+}
+function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocking:best:${format}:${mode}${difficulty === 'easy' ? '' : ':' + difficulty}`; }
+function chooseDifficulty(difficulty) {
+  selectedDifficulty = Object.hasOwn(DIFFICULTIES, difficulty) ? difficulty : 'easy';
+  preferences.difficulty = selectedDifficulty;
+  document.querySelectorAll('button[data-difficulty]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.difficulty === selectedDifficulty)));
+  document.querySelector('.difficulty-marker').style.transform = `translateX(${Object.keys(DIFFICULTIES).indexOf(selectedDifficulty) * 100}%)`;
+  savePreferences(); chooseMode(selectedMode);
+}
 const input = createNitroControl({
   now: () => performance.now(), schedule: (fn, ms) => setTimeout(fn, ms), unschedule: clearTimeout,
   canPlay: () => game.status === 'playing' && !settings.open && !document.hidden,
-  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), speed: () => NITRO_SPEED[game.stage],
+  charge: () => game.nitro, spend: amount => consumeNitro(game, amount), speed: () => NITRO_SPEED[game.stage] * (game.boost === 'speed' ? 2 : 1),
   step: direction => tap(direction, { accelerated: true }), shortTap: direction => tap(direction),
   released: exact => { if (settleGame(game, performance.now(), { perfectNitro: exact })) finishAdjustment(); else render(); },
   activeChanged: (value, direction) => {
@@ -159,14 +188,16 @@ const input = createNitroControl({
   }, updated: () => updateResources(),
 });
 function updateResources() {
-  const value = Math.max(0, Math.min(100, game.nitro));
-  $('nitro-value').textContent = `${Math.ceil(value - 1e-7)}%`;
+  const value = Math.max(0, Math.min(nitroCapacity(game), game.nitro));
+  $('nitro-value').textContent = nitroCapacity(game) === 200 ? `${Math.ceil(value - 1e-7)}/200` : `${Math.ceil(value - 1e-7)}%`;
+  $('nitro-meter').setAttribute('aria-valuemax', String(nitroCapacity(game)));
+  $('nitro-meter').dataset.double = String(nitroCapacity(game) === 200);
   $('nitro-meter').setAttribute('aria-valuenow', value.toFixed(1));
-  $('nitro-fill').style.transform = `scaleX(${value / 100})`;
+  $('nitro-fill').style.transform = `scaleX(${value / nitroCapacity(game)})`;
   $('combo').textContent = `×${game.combo}`;
   $('combo').setAttribute('aria-label', `Combo: ${game.combo}`);
   document.body.dataset.hot = String(game.combo >= 5);
-  let message = game.status === 'cleared' ? game.perfectNitro ? 'PERFECT NITRO · +5%' : game.perfect ? 'PERFECTO' : '' : nitroRunning ? 'NITRO' : value <= 0 ? 'SIN CARGA' : '';
+  let message = game.status === 'cleared' ? game.perfectNitro ? 'PERFECT NITRO' : game.perfect ? 'PERFECTO' : '' : nitroRunning ? 'NITRO' : value <= 0 ? 'SIN CARGA' : '';
   if (game.status === 'cleared' && game.format === 'survival') message += `${message ? ' · ' : ''}+${game.lastTimeGain.toFixed(1)} S`;
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
@@ -218,12 +249,12 @@ function updateBest() {
   const mode = game.status === 'menu' ? selectedMode : game.mode;
   const format = game.status === 'menu' ? selectedFormat : game.format;
   let best = 0;
-  try { best = Math.max(0, Number(localStorage.getItem(`clocking:best:${format}:${mode}`)) || 0); } catch {}
+  try { best = Math.max(0, Number(localStorage.getItem(bestKey(format, mode, game.status === 'menu' ? selectedDifficulty : game.difficulty))) || 0); } catch {}
   for (const id of ['menu-best', 'guide-best']) $(id).querySelector('strong').textContent = best.toLocaleString('es-CL');
 }
 function render() {
-  updateBest();
-  Object.assign(document.body.dataset, { state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
+  updateBest(); updateProgressMenu();
+  Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
   applyTheme();
   const inMenu = game.status === 'menu';
   const inBreak = game.status === 'break' || (game.status === 'paused' && game.resumeStatus === 'break');
@@ -250,9 +281,13 @@ function render() {
     $('trail-' + i).querySelector('line').setAttribute('y2', [103, 83, 65][game.stage]);
   });
   updateResources();
+  if (paintedCosmetic !== runCosmetic) {
+    clock.querySelectorAll('.tick').forEach((tick, i) => tick.setAttribute('y2', runCosmetic === 'dots' ? '35' : String(i % 3 === 0 ? 48 : 42)));
+    paintedCosmetic = runCosmetic;
+  }
   handLine.setAttribute('y2', [103, 83, 65][game.stage]);
   handLine.style.strokeWidth = [9, 7, 5][game.stage];
-  clock.setAttribute('aria-label', `Manecilla en ${['hora', 'minuto', 'segundo'][game.stage]} ${game.position}. Objetivo: las doce. ${game.mode === 'hard' ? 'Modo difícil: completa el recorrido largo.' : ''}`);
+  clock.setAttribute('aria-label', `Manecilla en ${['hora', 'minuto', 'segundo'][game.stage]} ${game.position}. Objetivo: las doce. ${game.mode === 'hard' ? 'Recorrido contraintuitivo: completa el camino largo.' : ''}`);
   displayTime();
   const screen = inMenu ? 'menu' : inBreak ? 'break' : ended ? 'result' : 'game';
   if (screen !== lastScreen) {
@@ -291,8 +326,8 @@ function chooseMode(mode) {
   $('mode-normal').setAttribute('aria-pressed', String(selectedMode === 'normal'));
   $('mode-hard').setAttribute('aria-pressed', String(selectedMode === 'hard'));
   $('mode-description').textContent = selectedFormat === 'survival' ? 'Gana tiempo. Supera tu récord.' : selectedMode === 'hard'
-    ? 'Menos tiempo, en contra de tu intuición.'
-    : '15 segundos. Encuentra las doce.';
+    ? 'En contra de tu intuición.'
+    : `${Number((15 * DIFFICULTIES[selectedDifficulty].time).toFixed(2)).toLocaleString('es-CL')} segundos. Encuentra las doce.`;
   updateBest();
   syncSelector(changed);
   if (changed && !reducedMotion.matches) {
@@ -317,7 +352,8 @@ function showMenu() {
 function startRun(mode = selectedMode) {
   clearRun();
   needsControlGuide = true;
-  startGame(game, performance.now(), Math.random, mode, selectedFormat);
+  runCosmetic = progress.cosmetic;
+  startGame(game, performance.now(), Math.random, mode, selectedFormat, { difficulty: selectedDifficulty, boost: progress.boost });
   prepareAttempt();
   feedback.unlock();
   startBreak('first');
@@ -395,7 +431,7 @@ function startBreak(reason) {
   $('break-kicker').textContent = reason === 'first' ? 'COMENZAMOS' : reason === 'phase' ? 'NUEVA FASE' : 'SIGUIENTE CICLO';
   $('break-title').textContent = CYCLE_NAMES[game.stage];
   render();
-  announce(`Fase ${game.round + 1}. ${CYCLE_NAMES[game.stage]}. ${game.mode === 'hard' ? 'Modo difícil. ' : ''}Comenzamos en tres segundos.`);
+  announce(`Fase ${game.round + 1}. ${CYCLE_NAMES[game.stage]}. ${game.mode === 'hard' ? 'Recorrido contraintuitivo. ' : ''}Comenzamos en tres segundos.`);
   scheduleBreakEnd();
 }
 function scheduleBreakEnd() {
@@ -459,8 +495,8 @@ function showResult(won) {
   $('result-title').innerHTML = won ? 'Justo a<br>tiempo.' : 'Se te pasó<br>la hora.';
   $('final-score').textContent = points.toLocaleString('es-CL');
   $('final-score').setAttribute('aria-label', `Puntaje final: ${points}`);
-  $('result-mode').textContent = `${game.format === 'survival' ? 'SUPERVIVENCIA' : 'CLÁSICO'} · ${game.mode === 'hard' ? 'DIFÍCIL' : 'NORMAL'}`;
-  const key = `clocking:best:${game.format}:${game.mode}`;
+  $('result-mode').textContent = `${game.format === 'survival' ? 'SUPERVIVENCIA' : 'CLÁSICO'} · ${game.mode === 'hard' ? 'CONTRAINTUITIVO' : 'NORMAL'} · ${DIFFICULTIES[game.difficulty].name.toUpperCase()}`;
+  const key = bestKey(game.format, game.mode, game.difficulty);
   let best = points;
   try { best = Math.max(points, Number(localStorage.getItem(key)) || 0); localStorage.setItem(key, String(best)); } catch {}
   $('best-score').textContent = `RÉCORD ${best.toLocaleString('es-CL')}`;
@@ -504,6 +540,8 @@ function finishAdjustment() {
   input.cancel();
   streak = game.combo;
   points += scoreAdjustment({ remaining: game.solveRemaining, budget: game.solveBudget, optimalSteps: game.optimalSteps, taps: game.attemptSteps, stage: game.stage, round: game.round, streak, mode: game.mode });
+  recordSolve(progress, { score: points, format: game.format, perfect: game.perfect });
+  saveProgress(progress, storage);
   if (!reducedMotion.matches) score.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.13)' }, { transform: 'scale(1)' }], { duration: 240, easing: 'ease-out' });
   render();
   announce(game.perfectNitro ? 'Perfect Nitro. Las doce.' : 'Las doce.');
@@ -589,6 +627,10 @@ document.querySelectorAll('[data-sound]').forEach(button => button.addEventListe
   syncSoundOptions();
   feedback.preview();
 }));
+$('open-store').addEventListener('click', () => store.open());
+$('open-daily').addEventListener('click', () => store.open(true));
+$('result-daily').addEventListener('click', () => store.open(true));
+document.querySelectorAll('button[data-difficulty]').forEach(button => button.addEventListener('click', () => chooseDifficulty(button.dataset.difficulty)));
 $('format-classic').addEventListener('click', () => chooseFormat('classic'));
 $('format-survival').addEventListener('click', () => chooseFormat('survival'));
 $('mode-normal').addEventListener('click', () => chooseMode('normal'));
@@ -688,6 +730,7 @@ function pauseForBackground() {
 document.addEventListener('visibilitychange', () => { if (document.hidden) pauseForBackground(); });
 window.addEventListener('clocking:pause', pauseForBackground);
 window.addEventListener('clocking:back', () => {
+  if (store.dialog.open) { store.close(); return; }
   if (settings.open) closeSettings();
   else if (['lost', 'won'].includes(game.status)) showMenu();
   else openSettings();
@@ -727,7 +770,7 @@ function frame() {
 document.addEventListener('click', event => {
   const button = event.target.closest('button');
   if (!button || button.matches('.tap-zone')) return;
-  if (button.matches('.mode-option, .format-option')) {
+  if (button.matches('.mode-option, .format-option, [data-difficulty], [data-action=tab]')) {
     if (button.getAttribute('aria-pressed') !== 'true') feedback.ui('slide');
   } else if (!button.matches('[data-sound], #settings-button, #continue-game, #menu-settings, #restart-settings, #timer')) {
     feedback.ui(button.matches('#change-mode') ? 'transition' : button.matches('#start-game, #restart-game') ? 'start' : 'press');
@@ -749,5 +792,6 @@ document.addEventListener('click', event => {
 document.querySelectorAll('.setting-row input').forEach(input => input.addEventListener('change', () => {
   reveal(input.closest('.setting-row').querySelector('strong'), [{ transform: 'translateX(0)' }, { transform: 'translateX(3px)', offset: .4 }, { transform: 'translateX(0)' }], 280);
 }));
+chooseDifficulty(selectedDifficulty);
 showMenu();
 requestAnimationFrame(frame);
