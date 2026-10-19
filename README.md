@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.2.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.3.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -94,7 +94,7 @@ Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus senti
 
 Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **150 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **40 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
 
-Resolver recarga 4%; el recorrido perfecto añade 4%; los múltiplos de cinco dan 6% extra y los de diez 10% extra (en diez se concede solo el bono de diez). El máximo es 100%. Usar Nitro no resta precisión: se cuentan pasos, no gestos. Normal considera perfecto el camino más corto (ambos en un empate); difícil, el recorrido largo obligatorio. Desviarse del recorrido o pasarse de las doce rompe el combo y la perfección, aunque se puede corregir y resolver el reloj.
+Resolver recarga 4%; el recorrido perfecto añade 4%; los múltiplos de cinco dan 6% extra y los de diez 10% extra (en diez se concede solo el bono de diez). El máximo es 100%. En horas, la racha perfecta desbloquea un techo de carga de `40 + 6 × racha` (hasta 100%): hacen falta diez soluciones perfectas consecutivas para llenar la barra desde el 40% inicial sin gastarla. Los bonos de combo y Perfect Nitro respetan ese techo. Los movimientos extra reinician la racha sin quitar carga acumulada; cambia de ciclo y la racha se reinicia. Usar Nitro no resta precisión: se cuentan pasos, no gestos. Normal considera perfecto el camino más corto (ambos en un empate); difícil, el recorrido largo obligatorio. Desviarse del recorrido o pasarse de las doce rompe el combo y la perfección, aunque se puede corregir y resolver el reloj.
 
 **No se detiene al pasar por las doce.** Mientras el dedo sigue pulsando, no se resuelve el objetivo. Soltar con Nitro todavía activo exactamente en las doce añade **Perfect Nitro: +5%**, además de los otros bonos. Agotar el depósito, cancelar el toque o abrir ajustes no concede ese bono. Si se agota la carga en las doce, se puede completar al soltar, sin Perfect Nitro. Los cambios de aplicación y la pausa cancelan la aceleración.
 

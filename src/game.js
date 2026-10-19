@@ -18,7 +18,7 @@ export function createGame() {
     completed: 0, taps: 0, position: 0, rotation: 0,
     budget: 15, remaining: 15, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
-    nitro: NITRO_INITIAL, combo: 0, attemptSteps: 0, optimalSteps: 0,
+    nitro: NITRO_INITIAL, combo: 0, hourPerfectStreak: 0, attemptSteps: 0, optimalSteps: 0,
     optimalDirection: 0, perfectRoute: true, perfect: false, perfectNitro: false,
     lastNitroGain: 0, lastTimeGain: 0, solveRemaining: 15, solveBudget: 15,
   };
@@ -75,7 +75,14 @@ export function settleGame(game, now, { perfectNitro = false } = {}) {
   game.combo += 1;
   const milestone = game.combo % 10 === 0 ? 10 : game.combo % 5 === 0 ? 6 : 0;
   game.lastNitroGain = 4 + (game.perfect ? 4 : 0) + milestone + (game.perfectNitro ? 5 : 0);
-  game.nitro = clamp(game.nitro + game.lastNitroGain, 0, 100);
+  const previousNitro = game.nitro;
+  if (game.stage === 0) {
+    game.hourPerfectStreak = game.perfect ? game.hourPerfectStreak + 1 : 0;
+    // Unlock six percentage points per consecutive perfect hour, without deleting earned charge.
+    const ceiling = Math.max(previousNitro, Math.min(100, NITRO_INITIAL + 6 * game.hourPerfectStreak));
+    game.nitro = clamp(previousNitro + game.lastNitroGain, 0, ceiling);
+  } else game.nitro = clamp(previousNitro + game.lastNitroGain, 0, 100);
+  game.lastNitroGain = game.nitro - previousNitro;
   game.completed += 1;
   if (game.format === 'survival') {
     const gain = Math.max(1.3, 3.1 - game.completed * .015) + (game.perfect ? .6 : 0);
@@ -94,6 +101,7 @@ export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   if (!game.optimalDirection) game.optimalDirection = direction;
   if (direction !== game.optimalDirection || game.position === 0 || game.attemptSteps >= game.optimalSteps) {
     game.perfectRoute = false;
+    game.hourPerfectStreak = 0;
     game.combo = 0;
   }
   game.position = (game.position + direction + count) % count;
@@ -111,6 +119,7 @@ export function consumeNitro(game, amount) {
 }
 export function advanceGame(game, now, random = Math.random) {
   if (game.status !== 'cleared') return game;
+  const previousStage = game.stage;
   if (game.format === 'survival') {
     tickGame(game, now);
     if (game.status === 'lost') return game;
@@ -121,6 +130,7 @@ export function advanceGame(game, now, random = Math.random) {
   else if (game.stage < 2) { game.stage += 1; game.phase = 1; }
   else if (game.round < 2) { game.round += 1; game.stage = 0; game.phase = 1; }
   else { game.status = 'won'; return game; }
+  if (game.stage !== previousStage) game.hourPerfectStreak = 0;
   return preparePhase(game, now, random);
 }
 export function pauseGame(game, now) {

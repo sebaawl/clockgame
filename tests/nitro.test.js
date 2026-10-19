@@ -77,7 +77,7 @@ test('Nitro crosses twelve without solving; overshoot breaks precision and combo
   moveGame(game, 1, 350, { deferSolve: true });
   assert.equal(game.position, 1); assert.equal(game.combo, 0); assert.equal(game.perfectRoute, false);
   moveGame(game, -1, 400);
-  assert.equal(game.status, 'cleared'); assert.equal(game.perfect, false); assert.equal(game.lastNitroGain, 4);
+  assert.equal(game.status, 'cleared'); assert.equal(game.perfect, false); assert.equal(game.lastNitroGain, 0);
 });
 
 test('release at twelve grants path-perfect and Perfect Nitro bonuses without penalizing acceleration', () => {
@@ -157,4 +157,37 @@ test('a throttled tab cannot replay a delayed burst or award a canceled release'
   time = 5250; latest();
   assert.equal(control.holding, false); assert.equal(stepCount, 0); assert.equal(charge, 40);
   control.release(1);
+});
+
+test('hours require ten consecutive perfect solves to fill initial Nitro, including Perfect Nitro bonuses', () => {
+  for (const mode of ['normal', 'hard']) {
+    const game = startGame(createGame(), 0, atEleven, mode);
+    for (let i = 1; i <= 10; i++) {
+      solve(game, i, true);
+      settleGame(game, i, { perfectNitro: true });
+      assert.equal(game.hourPerfectStreak, i);
+      assert.equal(game.nitro, 40 + 6 * i);
+      if (i < 10) advanceGame(game, i, atEleven);
+    }
+    advanceGame(game, 11, atEleven);
+    assert.equal(game.stage, 1);
+    assert.equal(game.hourPerfectStreak, 0);
+  }
+});
+
+test('an extra movement resets the perfect hours streak without confiscating stored Nitro', () => {
+  const game = startGame(createGame(), 0, atEleven);
+  for (let i = 1; i <= 5; i++) { solve(game, i); advanceGame(game, i, atEleven); }
+  assert.equal(game.nitro, 70);
+  moveGame(game, -1, 10);
+  assert.equal(game.hourPerfectStreak, 0);
+  moveGame(game, 1, 11);
+  moveGame(game, 1, 12);
+  assert.equal(game.perfect, false);
+  assert.equal(game.nitro, 70);
+  advanceGame(game, 13, atEleven);
+  consumeNitro(game, 40);
+  solve(game, 14);
+  assert.equal(game.hourPerfectStreak, 1);
+  assert.ok(game.nitro < 100);
 });

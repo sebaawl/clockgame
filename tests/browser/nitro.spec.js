@@ -90,3 +90,12 @@ test('survival recovers time, keeps counting through celebrations and crosses cy
   await expect(page.locator('#combo')).toHaveText('×10');
   await expect(page.locator('body')).toHaveAttribute('data-hot', 'true');
 });
+
+test('hours fill Nitro only at the tenth perfect solve', async ({ page }) => {
+  await installClock(page); await page.goto('/'); await play(page);
+  for (let i = 1; i <= 10; i++) {
+    await solve(page);
+    await expect(page.locator('#nitro-value')).toHaveText(`${40 + 6 * i}%`);
+    if (i < 10) await page.clock.runFor(1000);
+  }
+});
