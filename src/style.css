@@ -206,3 +206,63 @@ body[data-state='launching'] .control-guide { animation: guide-dismiss 180ms eas
 
 /* Difference blending inverts the score over the actual expanding disk in either theme. */
 .score-panel { color: #fff; mix-blend-mode: difference; }
+
+:root { --accent: #ff9147; }
+:root[data-theme='light'] { --accent: #c64c00; }
+.format-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+.format-option { min-height: 42px; padding: 10px 8px; color: var(--foreground); background: var(--background); border: 1px solid var(--line); border-radius: 999px; font-size: 11px; cursor: pointer; }
+.format-option[aria-pressed='true'] { border-color: var(--foreground); }
+.arcade-future { margin: 18px 0 0; font-size: 8px; font-weight: 300; letter-spacing: .16em; opacity: .55; }
+.resources { position: absolute; z-index: 4; top: calc(54% + var(--dial-size) / 2 + 25px); left: 50%; width: min(42vw, 170px); transform: translateX(-50%); color: #fff; mix-blend-mode: difference; pointer-events: none; }
+.resource-labels { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; font-size: 8px; font-weight: 300; letter-spacing: .1em; }
+.combo-count { font-size: 15px; font-weight: 700; letter-spacing: -.02em; }
+.nitro-meter { width: 100%; height: 3px; border-radius: 3px; background: rgb(128 128 128 / 30%); overflow: hidden; }
+#nitro-fill { display: block; width: 100%; height: 100%; background: currentColor; transform-origin: left center; transition: transform 70ms linear; }
+.nitro-message { display: block; min-height: 14px; margin-top: 9px; text-align: center; font-size: 8px; font-weight: 300; letter-spacing: .12em; }
+body[data-hot='true'] .combo-count { color: #ff9147; }
+body[data-hot='true'] .tick:nth-child(3n) { stroke: var(--accent); }
+body[data-hot='true'] .clock-face { animation: combo-breathe 1.6s ease-in-out infinite; }
+.nitro-trail { opacity: 0; transition: opacity 100ms ease; }
+.trail-mark { transform-origin: 160px 160px; }
+.trail-mark line { stroke: var(--accent); stroke-width: 7; stroke-linecap: round; }
+.trail-mark:nth-child(1) { opacity: .24; }
+.trail-mark:nth-child(2) { opacity: .13; }
+.trail-mark:nth-child(3) { opacity: .06; }
+body[data-nitro='true'] .active-hand { transition: transform 18ms linear; }
+body[data-nitro='true'] .hand-line, body[data-nitro='true'] .center { stroke: var(--accent); }
+body[data-nitro='true'] .center { fill: var(--accent); }
+body[data-nitro='true'] .nitro-trail { opacity: 1; }
+body[data-nitro='true'] #nitro-fill { background: #ff9147; }
+body[data-danger='true'] .timer { animation: timer-urgency 650ms ease-in-out infinite; }
+.best-score { margin: -10px 0 20px; font-size: 9px; font-weight: 300; letter-spacing: .12em; }
+.guide-nitro { position: absolute; bottom: max(8svh, 45px); width: 100%; margin: 0; text-align: center; font-size: 8px; line-height: 1.8; font-weight: 300; letter-spacing: .06em; }
+.guide-control { bottom: max(17svh, 105px); }
+@keyframes combo-breathe { 50% { stroke-opacity: .7; } }
+@keyframes timer-urgency { 50% { scale: 1.045; } }
+@media (orientation: landscape) and (max-height: 500px) {
+  .format-options { margin-bottom: 10px; }
+  .format-option { min-height: 36px; }
+  .arcade-future { margin-top: 10px; }
+  .resources { top: auto; bottom: 20px; left: 15%; width: 110px; }
+  .guide-nitro { bottom: 30px; }
+  .guide-control { bottom: 15svh; }
+  .best-score { grid-column: 2; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nitro-trail { display: none; }
+  body[data-danger='true'] .timer, body[data-hot='true'] .clock-face { animation: none; }
+}
+.combo-count::before { content: 'COMBO '; font-size: 7px; font-weight: 300; letter-spacing: .05em; vertical-align: middle; }
+/* Compensate difference blending so accents remain orange on the light background. */
+:root[data-theme='light'] body[data-hot='true'] .combo-count,
+:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { color: #39b3ff; }
+:root[data-theme='light'] body[data-nitro='true'] #nitro-fill { background: #39b3ff; }
+@media (orientation: portrait) and (max-height: 700px) {
+  .guide-control { bottom: 76px; gap: 5px; }
+  .guide-arrow { width: 30px; height: 30px; }
+  .guide-control strong, .guide-control > span:last-child { font-size: 8px; }
+  .guide-nitro { bottom: 38px; font-size: 7px; }
+  .guide-start { bottom: 12px; font-size: 8px; }
+  body[data-state='ready'] .clock-wrap, body[data-state='launching'] .clock-wrap { top: 51%; }
+  body[data-state='ready'] .score-panel { visibility: hidden; }
+}

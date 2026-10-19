@@ -7,6 +7,8 @@ export function createFeedback(getPreferences) {
   let master;
   let recording;
   let successBuffer;
+  let lastNitroSound = -Infinity;
+  const nitroVoices = [];
   const uiBuffers = new Map();
   const media = new Map();
   let lastUI = -Infinity;
@@ -79,6 +81,7 @@ export function createFeedback(getPreferences) {
       voices.push({ source, gain, end: start + duration });
       source.onended = () => { source.disconnect(); highpass.disconnect(); lowpass.disconnect(); soften.disconnect(); gain.disconnect(); };
       source.start(start, 0, duration * rate);
+      return { source, gain, end: start + duration };
     } catch { /* Optional audio never blocks play. */ }
   }
   function recordedWebAudio(name, delay = 0) {
@@ -200,10 +203,30 @@ export function createFeedback(getPreferences) {
       if (['open', 'close', 'transition'].includes(kind)) recorded('transition', .025);
     }
   }
+  function nitroStop() {
+    for (const voice of nitroVoices.splice(0)) {
+      try { if (context && voice.end > context.currentTime) { voice.gain.gain.cancelScheduledValues(context.currentTime); voice.gain.gain.setTargetAtTime(0, context.currentTime, .004); voice.source.stop(context.currentTime + .015); } } catch {}
+    }
+  }
   return {
-    tap() { vibrate(8); tick(); },
+    nitroStart() { vibrate(12); lastNitroSound = -Infinity; },
+    nitroStep(combo = 0) {
+      if (performance.now() - lastNitroSound < 55) return;
+      lastNitroSound = performance.now();
+      const voice = foley({ rate: combo >= 5 ? .95 : .8, cutoff: 1500, volume: .13, length: .045 });
+      if (voice) { nitroVoices.push(voice); if (nitroVoices.length > 6) nitroVoices.shift(); }
+    },
+    nitroStop,
+    warning(haptic) { if (haptic) vibrate(18); foley({ rate: .7, cutoff: 950, volume: .17, length: .04 }); },
+    tap(combo = 0) {
+      vibrate(8);
+      if (combo >= 5) {
+        const profile = profiles[getPreferences().soundPreset] || profiles.felt;
+        foley({ ...profile, volume: profile.volume * 1.1, rate: profile.rate * 1.05 });
+      } else tick();
+    },
     interrupt() { vibrate([24, 30, 58]); },
     unlock, ui, success, preview: tick,
-    mute() { for (const player of media.values()) { player.pause(); player.currentTime = 0; } if (context?.state === 'running') context.suspend().catch(() => {}); },
+    mute() { nitroStop(); for (const player of media.values()) { player.pause(); player.currentTime = 0; } if (context?.state === 'running') context.suspend().catch(() => {}); },
   };
 }

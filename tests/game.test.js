@@ -84,7 +84,7 @@ test('both modes execute exactly 90 adjustments, resetting each cycle and reachi
       assert.equal(game.phase, i % 10 + 1);
       const factor = mode === 'hard' ? 0.8 : 1;
       if (game.phase === 1) assert.equal(game.budget, 15 * factor);
-      if (game.phase === 10) assert.ok(Math.abs(game.budget - [7, 5, 3][game.round] * factor) < 1e-9);
+      if (game.phase === 10) assert.equal(game.budget, Math.max(phaseBudget(game.round, 10, mode, game.stage), game.optimalSteps / 9 + .75));
       solve(game, 1 + i * 2);
       advanceGame(game, 2 + i * 2, random);
     }

@@ -3,94 +3,134 @@ export const FLOORS = [7, 5, 3];
 export const PHASES = 10;
 export const TOTAL_PHASES = PHASES * STAGES.length * FLOORS.length;
 export const HARD_TIME_FACTOR = 0.8;
-
+export const NITRO_INITIAL = 40;
+export const NITRO_DRAIN = 40;
+export const SURVIVAL_CAP = 25;
+const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
-export const phaseBudget = (round, phase, mode = 'normal') => (
-  15 - (15 - FLOORS[round]) * (phase - 1) / (PHASES - 1)
-) * (mode === 'hard' ? HARD_TIME_FACTOR : 1);
-
+export const phaseBudget = (round, phase, mode = 'normal', stage = 0) => {
+  const floor = [[7, 5, 3], [9, 7, 6], [12, 10, 9]][stage][clamp(round, 0, 2)];
+  return (15 - (15 - floor) * (phase - 1) / (PHASES - 1)) * (mode === 'hard' ? HARD_TIME_FACTOR : 1);
+};
 export function createGame() {
   return {
-    status: 'menu', mode: 'normal', round: 0, stage: 0, phase: 1,
+    status: 'menu', mode: 'normal', format: 'classic', round: 0, stage: 0, phase: 1,
     completed: 0, taps: 0, position: 0, rotation: 0,
     budget: 15, remaining: 15, deadline: 0, resumeStatus: null,
     requiredDirection: 0, requiredSteps: 0, hardProgress: 0,
+    nitro: NITRO_INITIAL, combo: 0, attemptSteps: 0, optimalSteps: 0,
+    optimalDirection: 0, perfectRoute: true, perfect: false, perfectNitro: false,
+    lastNitroGain: 0, lastTimeGain: 0, solveRemaining: 15, solveBudget: 15,
   };
 }
-
 export function randomPosition(stage, mode = 'normal', random = Math.random) {
   const count = positions(stage);
-  // Every unsolved position can appear. Hard mode avoids an ambiguous 180° tie.
   const choices = Array.from({ length: count - 1 }, (_, i) => i + 1)
     .filter(position => mode !== 'hard' || position !== count / 2);
-  return choices[Math.min(choices.length - 1, Math.max(0, Math.floor(random() * choices.length)))];
+  return choices[clamp(Math.floor(random() * choices.length), 0, choices.length - 1)];
 }
-
 function preparePhase(game, now, random) {
   const count = positions(game.stage);
   game.position = randomPosition(game.stage, game.mode, random);
-  // Preserve the solved revolution, then depart from twelve by the shortest arc.
   const twelve = Math.round(game.rotation / 360) * 360;
   const offset = game.position > count / 2 ? game.position - count : game.position;
   game.rotation = twelve + offset * 360 / count;
   game.requiredDirection = game.position < count / 2 ? 1 : -1;
   game.requiredSteps = game.requiredDirection === 1 ? count - game.position : game.position;
+  game.optimalSteps = game.mode === 'hard' ? game.requiredSteps : Math.min(game.position, count - game.position);
+  game.optimalDirection = game.mode === 'hard' ? game.requiredDirection : game.position === count / 2 ? 0 : game.position < count / 2 ? -1 : 1;
+  game.attemptSteps = 0;
+  game.perfectRoute = true;
+  game.perfect = game.perfectNitro = false;
+  game.lastTimeGain = game.lastNitroGain = 0;
   game.hardProgress = 0;
-  game.budget = phaseBudget(game.round, game.phase, game.mode);
-  game.remaining = game.budget;
-  game.deadline = now + game.budget * 1000;
+  if (game.format === 'classic') {
+    // Nine deliberate taps per second remains a viable route without spending Nitro.
+    game.budget = Math.max(phaseBudget(game.round, game.phase, game.mode, game.stage), game.optimalSteps / 9 + .75);
+    game.remaining = game.budget;
+  } else game.budget = game.remaining;
+  game.deadline = now + game.remaining * 1000;
   game.status = 'playing';
   return game;
 }
-
-export function startGame(game, now, random = Math.random, mode = 'normal') {
-  Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal' });
+export function startGame(game, now, random = Math.random, mode = 'normal', format = 'classic') {
+  Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: format === 'survival' ? 'survival' : 'classic' });
   return preparePhase(game, now, random);
 }
-
 export function tickGame(game, now) {
-  if (game.status !== 'playing') return game;
+  if (game.status !== 'playing' && !(game.format === 'survival' && game.status === 'cleared')) return game;
   game.remaining = Math.max(0, (game.deadline - now) / 1000);
-  if (game.remaining === 0) game.status = 'lost';
+  if (game.remaining === 0) { game.status = 'lost'; game.combo = 0; }
   return game;
 }
-
-export function moveGame(game, direction, now) {
+export function settleGame(game, now, { perfectNitro = false } = {}) {
+  if (game.status !== 'playing') return false;
+  tickGame(game, now);
+  if (game.status !== 'playing' || game.position !== 0 || game.attemptSteps === 0
+      || (game.mode === 'hard' && game.hardProgress < game.requiredSteps)) return false;
+  game.solveBudget = game.budget;
+  game.solveRemaining = game.remaining;
+  game.perfect = game.perfectRoute && game.attemptSteps === game.optimalSteps;
+  game.perfectNitro = perfectNitro;
+  game.combo += 1;
+  const milestone = game.combo % 10 === 0 ? 10 : game.combo % 5 === 0 ? 6 : 0;
+  game.lastNitroGain = 4 + (game.perfect ? 4 : 0) + milestone + (game.perfectNitro ? 5 : 0);
+  game.nitro = clamp(game.nitro + game.lastNitroGain, 0, 100);
+  game.completed += 1;
+  if (game.format === 'survival') {
+    const gain = Math.max(1.3, 3.1 - game.completed * .015) + (game.perfect ? .6 : 0);
+    game.lastTimeGain = Math.min(gain, SURVIVAL_CAP - game.remaining);
+    game.remaining += game.lastTimeGain;
+    game.deadline = now + game.remaining * 1000;
+  }
+  game.status = 'cleared';
+  return true;
+}
+export function moveGame(game, direction, now, { deferSolve = false } = {}) {
   if (game.status !== 'playing' || ![-1, 1].includes(direction)) return false;
   tickGame(game, now);
   if (game.status !== 'playing') return false;
   const count = positions(game.stage);
+  if (!game.optimalDirection) game.optimalDirection = direction;
+  if (direction !== game.optimalDirection || game.position === 0 || game.attemptSteps >= game.optimalSteps) {
+    game.perfectRoute = false;
+    game.combo = 0;
+  }
   game.position = (game.position + direction + count) % count;
   game.rotation += direction * 360 / count;
   game.taps += 1;
-  // Net signed travel prevents a short-path solve or a last-tap reversal bypass.
+  game.attemptSteps += 1;
   game.hardProgress += direction * game.requiredDirection;
-  const validRoute = game.mode !== 'hard' || game.hardProgress >= game.requiredSteps;
-  if (game.position === 0 && validRoute) {
-    game.status = 'cleared';
-    game.completed += 1;
-  }
+  if (!deferSolve) settleGame(game, now);
   return true;
 }
-
+export function consumeNitro(game, amount) {
+  const spent = Math.min(game.nitro, Math.max(0, amount));
+  game.nitro = Math.max(0, game.nitro - spent);
+  return spent;
+}
 export function advanceGame(game, now, random = Math.random) {
   if (game.status !== 'cleared') return game;
-  if (game.phase < PHASES) game.phase += 1;
+  if (game.format === 'survival') {
+    tickGame(game, now);
+    if (game.status === 'lost') return game;
+    game.phase = game.completed % PHASES + 1;
+    game.stage = Math.floor(game.completed / PHASES) % 3;
+    game.round = Math.floor(game.completed / (PHASES * 3));
+  } else if (game.phase < PHASES) game.phase += 1;
   else if (game.stage < 2) { game.stage += 1; game.phase = 1; }
   else if (game.round < 2) { game.round += 1; game.stage = 0; game.phase = 1; }
   else { game.status = 'won'; return game; }
   return preparePhase(game, now, random);
 }
-
 export function pauseGame(game, now) {
   if (!['playing', 'cleared', 'break'].includes(game.status)) return game;
-  if (game.status === 'playing') tickGame(game, now);
+  tickGame(game, now);
   if (game.status === 'lost') return game;
   game.resumeStatus = game.status;
   game.status = 'paused';
   return game;
 }
-
 export function resumeGame(game, now) {
   if (game.status !== 'paused') return game;
   game.deadline = now + game.remaining * 1000;

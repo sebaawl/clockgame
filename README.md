@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.1.1.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.2.0.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -36,7 +36,7 @@ El clic usa un recorte de 90 ms del audio proporcionado por el usuario, integrad
 
 Cada acierto dispara un círculo sólido que alcanza los bordes y se desvanece en un segundo: blanco en modo oscuro, negro en modo claro. Durante el efecto se bloquean giros accidentales.
 
-Hay tres fases; cada una tiene los ciclos HORA → MINUTO → SEGUNDO, con 10 ajustes por ciclo: 90 ajustes en total. El límite de cada ajuste disminuye de 15 segundos hasta 7, 5 o 3 según la fase. El modo difícil aplica el factor 0,8 a todos esos límites. Cambiar de ciclo o fase muestra su nombre durante tres segundos, sin consumir tiempo de juego.
+Hay tres fases; cada una tiene los ciclos HORA → MINUTO → SEGUNDO, con 10 ajustes por ciclo: 90 ajustes en total. Los límites bajan durante cada fase, con mínimos distintos por ciclo y margen para completar el recorrido manualmente; ver el equilibrio de Nitro más abajo. Difícil reduce el presupuesto base con un factor de 0,8. Cambiar de ciclo o fase muestra su nombre durante tres segundos, sin consumir tiempo de juego.
 
 El fondo se mantiene negro puro; el modo claro usa blanco puro. Si ambos cambian a la vez, fase y ciclo se anuncian en un único descanso.
 
@@ -85,3 +85,17 @@ El audio actual usa exclusivamente el recorte mecánico real del usuario: Amorti
 Los botones usan ahora el archivo real `emilianodleon-select-button-ui-395763.mp3`. Iniciar, abrir/cerrar ajustes y regresar al menú combinan ese clic con `dishantbabariya-chalk-slide-short-516557.mp3`, con una separación de 25 ms y volumen más bajo para el deslizamiento. Ambos recortes están integrados como PCM en el HTML. Se conserva el sonido previamente aprobado del selector de modo.
 
 Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus sentidos de giro. El tiempo permanece congelado hasta el primer toque. Este inicia un salto con giro completo; al aterrizar, el reloj emite un resplandor y arranca el temporizador. El toque inicial no altera la posición ni suma puntos. La guía vuelve a mostrarse al reiniciar; el movimiento reducido sustituye el salto por un fundido breve.
+
+## Nitro, combos y formatos (0.2.0)
+
+- **Clásico:** mantiene las tres fases de HORA → MINUTO → SEGUNDO. Los límites avanzados se revisaron: minutos tienen mínimos de 9/7/6 segundos; segundos 12/10/9; horas conservan 7/5/3. Difícil aplica su factor de 0,8, con un margen mínimo adicional según el recorrido (pasos/9 + 0,75 s), para poder completarlo con nueve pulsaciones manuales por segundo sin Nitro.
+- **Supervivencia:** empieza con 15 s en un único cronómetro, hasta un máximo de 25 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(1,3; 3,1 − aciertos × 0,015)` segundos y una solución perfecta añade 0,6 s. Cambia de ciclo cada diez relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
+- **Arcade:** solo aparece como próximo modo. Todavía no cambia direcciones ni introduce movimientos automáticos.
+
+Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **250 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **40 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
+
+Resolver recarga 4%; el recorrido perfecto añade 4%; los múltiplos de cinco dan 6% extra y los de diez 10% extra (en diez se concede solo el bono de diez). El máximo es 100%. Usar Nitro no resta precisión: se cuentan pasos, no gestos. Normal considera perfecto el camino más corto (ambos en un empate); difícil, el recorrido largo obligatorio. Desviarse del recorrido o pasarse de las doce rompe el combo y la perfección, aunque se puede corregir y resolver el reloj.
+
+**No se detiene al pasar por las doce.** Mientras el dedo sigue pulsando, no se resuelve el objetivo. Soltar con Nitro todavía activo exactamente en las doce añade **Perfect Nitro: +5%**, además de los otros bonos. Agotar el depósito, cancelar el toque o abrir ajustes no concede ese bono. Si se agota la carga en las doce, se puede completar al soltar, sin Perfect Nitro. Los cambios de aplicación y la pausa cancelan la aceleración.
+
+Un indicador pequeño bajo el reloj muestra carga y combo. A partir de ×5 aparecen acentos naranja y un pulso suave; Nitro colorea la manecilla, deja una estela corta y usa un sonido mecánico atenuado. Los últimos tres segundos activan un pulso del contador, tics discretos y una sola advertencia háptica por reloj. Sonido y vibración respetan los ajustes; movimiento reducido elimina la estela y los pulsos. No se añaden botones de Nitro ni sacudidas de pantalla.
