@@ -116,13 +116,13 @@ test('hard-mode shortcut still fails during Nitro and late releases never win', 
 test('survival keeps one clock, adds bounded time and charges time during celebrations', () => {
   const game = startGame(createGame(), 0, atEleven, 'normal', 'survival');
   solve(game, 1000);
-  assert.equal(game.solveRemaining, 11); assert.ok(game.remaining > 12 && game.remaining < 13);
+  assert.equal(game.solveRemaining, 13); assert.ok(game.remaining > 14 && game.remaining < 15);
   const afterClear = game.remaining;
   advanceGame(game, 2000, atEleven);
   assert.ok(Math.abs(game.remaining - (afterClear - 1)) < 1e-9);
   assert.equal(game.budget, game.remaining);
-  game.remaining = 14.9; game.deadline = 16900;
-  solve(game, 2000); assert.equal(game.remaining, 15);
+  game.remaining = 16.9; game.deadline = 18900;
+  solve(game, 2000); assert.equal(game.remaining, 17);
 });
 
 test('survival continues beyond 90 and pause preserves its single timer', () => {
@@ -137,7 +137,7 @@ test('survival continues beyond 90 and pause preserves its single timer', () => 
 test('advanced classic clocks remain possible without Nitro at nine manual taps per second', () => {
   for (const mode of ['normal', 'hard']) {
     const game = startGame(createGame(), 0, atEleven, mode);
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 66; i++) {
       assert.ok(game.budget >= game.optimalSteps / 9 + .75 - 1e-9);
       solve(game, i); advanceGame(game, i, () => i % 2 ? .01 : .99);
     }
@@ -170,6 +170,8 @@ test('hours require ten consecutive perfect solves to fill initial Nitro, includ
       if (i < 10) advanceGame(game, i, atEleven);
     }
     advanceGame(game, 11, atEleven);
+    assert.equal(game.stage, 0);
+    for (let i = 11; i <= 12; i++) { solve(game, i); advanceGame(game, i, atEleven); }
     assert.equal(game.stage, 1);
     assert.equal(game.hourPerfectStreak, 0);
   }

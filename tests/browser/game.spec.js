@@ -78,12 +78,12 @@ test('success remains a solid one-second circle and cannot be skipped', async ({
 test('cycle changes and a full phase still pause, reset the timer and keep the background pure black', async ({ page }) => {
   test.setTimeout(100_000);
   await play(page);
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 22; i++) {
     await solve(page);
     await page.clock.runFor(1000);
-    if (i === 9 || i === 19) {
+    if (i === 11 || i === 17) {
       await expect(page.locator('body')).toHaveAttribute('data-state', 'break');
-      await expect(page.locator('#break-title')).toHaveText(i === 9 ? 'MINUTO' : 'SEGUNDO');
+      await expect(page.locator('#break-title')).toHaveText(i === 11 ? 'MINUTO' : 'SEGUNDO');
       await page.clock.runFor(3000);
       await expect(page.locator('#time')).toHaveText('12.0');
     }

@@ -1,10 +1,11 @@
+import { exactGuide } from '../src/survival.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createGame, startGame, advanceGame, moveGame, tickGame, pauseGame, resumeGame, settleGame } from '../src/game.js';
 
 function challenge(completed, { stage = 0, mode = 'normal', boosts = [] } = {}) {
   const g = startGame(createGame(), 0, () => .4, mode, 'survival', { boosts });
-  Object.assign(g, { completed: completed + stage * 10, status: 'cleared' });
+  Object.assign(g, { completed: completed + [0, 12, 18][stage], status: 'cleared' });
   advanceGame(g, 0, () => .4);
   return g;
 }
@@ -95,15 +96,15 @@ test('pausing freezes autonomous steps and direction changes without catching up
   assert.equal(g.driftDirection, -snapshot[2]);
 });
 
-test('classic stays unchanged; later survival cycles use duels with stage-appropriate speeds', () => {
+test('classic has no special clocks; shorter minute and second cycles retain both duels', () => {
   for (const stage of [0, 1, 2]) {
-    for (const slot of [2, 5, 8]) {
+    const schedule = stage === 0 ? [[2, 'exact'], [5, 'duel'], [8, 'chaos']] : stage === 1 ? [[2, 'duel'], [5, 'chaos']] : [[1, 'duel'], [3, 'chaos']];
+    for (const [slot, kind] of schedule) {
       const classic = startGame(createGame(), 0, () => .4);
       Object.assign(classic, { completed: slot, stage, status: 'cleared' });
       advanceGame(classic, 0, () => .4);
       assert.equal(classic.challenge, 'normal');
-      const survival = challenge(slot, { stage });
-      assert.equal(survival.challenge, slot === 2 && stage === 0 ? 'exact' : slot === 8 ? 'chaos' : 'duel');
+      assert.equal(challenge(slot, { stage }).challenge, kind);
     }
   }
 });
@@ -122,4 +123,44 @@ test('exact targets vary between one and two additional turns and remain solvabl
     assert.equal(g.perfect, true);
   }
   assert.deepEqual([...observed].sort(), [1, 2]);
+});
+
+test('compass waits through spare clicks, then guides a wasted route to a valid exact finish', () => {
+  const g = challenge(2, { boosts: ['compass'] });
+  assert.equal(exactGuide(g).state, 'free');
+  while (exactGuide(g).state === 'free') moveGame(g, -g.challengeDirection, 1);
+  assert.equal(exactGuide(g).state, 'turn');
+  while (g.status === 'playing') moveGame(g, exactGuide(g).direction, 1);
+  assert.equal(g.position, 0);
+  assert.equal(g.attemptSteps, g.targetClicks);
+  assert.equal(exactGuide(g).state, 'release');
+});
+
+test('compass advice preserves reachability across every valid hour and remaining click count', () => {
+  const can = (p, n) => n >= Math.min(p, 12 - p) && (n - Math.min(p, 12 - p)) % 2 === 0;
+  for (let p = 0; p < 12; p++) for (let left = 0; left <= 35; left++) {
+    const g = { format: 'survival', challenge: 'exact', position: p, targetClicks: left, attemptSteps: 0, challengeDirection: -1 };
+    const before = JSON.stringify(g), guide = exactGuide(g);
+    assert.equal(JSON.stringify(g), before);
+    if (!can(p, left)) assert.equal(guide.state, 'lost');
+    else if (!left) assert.equal(guide.state, 'release');
+    else {
+      assert.ok(can((p + guide.direction + 12) % 12, left - 1));
+      if (guide.state === 'free') for (const dir of [-1, 1]) assert.ok(can((p + dir + 12) % 12, left - 1));
+    }
+  }
+  assert.equal(exactGuide({ format: 'classic', challenge: 'exact' }), null);
+});
+
+test('survival repeats 12 hours, 6 minutes and 4 seconds without ending the run', () => {
+  const g = startGame(createGame(), 0, () => .4, 'normal', 'survival');
+  const observed = [0, 0, 0];
+  for (let i = 0; i < 66; i++) {
+    observed[g.stage]++;
+    const count = g.optimalSteps;
+    for (let j = 0; j < count; j++) moveGame(g, g.optimalDirection, i);
+    assert.equal(g.status, 'cleared'); advanceGame(g, i, () => .4);
+  }
+  assert.deepEqual(observed, [36, 18, 12]);
+  assert.equal(g.status, 'playing'); assert.equal(g.round, 3); assert.equal(g.phase, 1);
 });

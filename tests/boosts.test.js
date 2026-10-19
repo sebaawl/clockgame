@@ -52,12 +52,12 @@ test('Lock does not validate the counterintuitive shortcut; no boost still passe
 });
 
 test('paired boosts apply together and survive cycle changes without duplication', () => {
-  const g = startGame(createGame(), 0, near, 'normal', 'classic', { boosts: ['recharge', 'lock', 'time'] });
-  assert.deepEqual(g.boosts, ['recharge', 'lock']);
+  const g = startGame(createGame(), 0, near, 'normal', 'classic', { boosts: ['recharge', 'lock', 'time', 'precision'] });
+  assert.deepEqual(g.boosts, ['recharge', 'lock', 'time']);
   solve(g, true); assert.equal(g.nitroLocked, true); assert.equal(g.nitro, 50); assert.equal(g.lockUses, 2);
-  advanceGame(g, 1, near); assert.deepEqual(g.boosts, ['recharge', 'lock']);
+  advanceGame(g, 1, near); assert.deepEqual(g.boosts, ['recharge', 'lock', 'time']);
   const tank = startGame(createGame(), 0, near, 'normal', 'survival', { boosts: ['tank', 'time', 'tank'] });
-  assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 13.5);
+  assert.deepEqual(tank.boosts, ['tank', 'time']); assert.equal(tank.remaining, 15.5);
 });
 
 test('new boosts preserve hours precision limits and reward only perfect routes', () => {
@@ -65,8 +65,8 @@ test('new boosts preserve hours precision limits and reward only perfect routes'
   assert.equal(nitroDrain(start(null)), 32);
   const plain = start(null), precision = start('precision'); solve(plain); solve(precision);
   assert.ok(precision.nitro > plain.nitro); assert.ok(precision.nitro <= 46);
-  const later = start('precision'); later.phase = 10; later.status = 'cleared'; advanceGame(later, 1, near); later.nitro = 0; later.perfectRoute = false; solve(later);
+  const later = start('precision'); later.phase = 12; later.status = 'cleared'; advanceGame(later, 1, near); later.nitro = 0; later.perfectRoute = false; solve(later);
   assert.equal(later.lastNitroGain, 2);
-  const perfect = start('precision'); perfect.phase = 10; perfect.status = 'cleared'; advanceGame(perfect, 1, near); perfect.nitro = 0; solve(perfect);
+  const perfect = start('precision'); perfect.phase = 12; perfect.status = 'cleared'; advanceGame(perfect, 1, near); perfect.nitro = 0; solve(perfect);
   assert.equal(perfect.lastNitroGain, 8);
 });

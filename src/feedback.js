@@ -259,6 +259,7 @@ export function createFeedback(getPreferences) {
       vibrate(8);
       tick(getPreferences().soundPreset, combo >= 5);
     },
+    guide() { vibrate([10, 20, 10]); },
     interrupt() { vibrate([24, 30, 58]); },
     unlock, ui, success, preview: tick,
     mute() { nitroStop(); for (const player of media.values()) { player.pause(); player.currentTime = 0; } if (context?.state === 'running') context.suspend().catch(() => {}); },

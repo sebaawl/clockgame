@@ -16,7 +16,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
   const scrollPositions = { shop: 0, daily: 0 };
   const format = n => n.toLocaleString('es-CL');
   const miniClock = skin => `<svg class="shop-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="20" transform="rotate(${i * 30} 50 50)"/>`).join('')}<path class="shop-hand" d="M50 23V50L68 62"/><circle cx="50" cy="50" r="3" fill="currentColor"/></svg>`;
-  const compactDetail = { eclipse: 'Aro limpio y grueso', pulse: 'Trazo discontinuo', diamond: 'Cuatro puntos cardinales', efficient: 'Consumo −25%', precision: 'Perfectos +3 Nitro', 'sound-paper': 'Roce seco y ligero', 'sound-latch': 'Encaje compacto', 'sound-velvet': 'Cálido y apagado', 'sound-pocket': 'Doble clic delicado', 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', dual: 'Dos boosts a la vez' };
+  const compactDetail = { eclipse: 'Aro limpio y grueso', pulse: 'Trazo discontinuo', diamond: 'Cuatro puntos cardinales', efficient: 'Consumo −25%', precision: 'Perfectos +3 Nitro', 'sound-paper': 'Roce seco y ligero', 'sound-latch': 'Encaje compacto', 'sound-velvet': 'Cálido y apagado', 'sound-pocket': 'Doble clic delicado', 'sound-felt': 'Suave · incluido', 'sound-wood': 'Profundo y discreto', 'sound-clock': 'Clic metálico', original: 'Clásico', dots: 'Doce puntos', rail: 'Dos aros', square: 'Esfera cuadrada', speed: 'Velocidad ×2', recharge: 'Recarga ×2', lock: '3 usos · 3 ajustes de espera', tank: 'Capacidad 200', time: '+1,5 segundos', compass: 'Avisa cuándo cambiar de dirección', triple: 'Tres boosts a la vez', dual: 'Dos boosts a la vez' };
   function purchaseActions(item, owned, equipped = false) {
     if (item.kind === 'upgrade' && owned) return `<span class="upgrade-owned">${symbols.check} Permanente</span>`;
     if (owned) {
@@ -29,10 +29,10 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
     if (item.kind === 'cosmetic') return miniClock(item.id);
     if (item.id === 'lock') return svg('<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>');
     if (item.id === 'tank') return svg('<rect x="3" y="4" width="6" height="16" rx="2"/><rect x="15" y="4" width="6" height="16" rx="2"/><path d="M3 12h6m6 0h6"/>');
-    return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', efficient: '−25%', precision: '+3', dual: '2' })[item.id]}</span>`;
+    return `<span class="boost-symbol">${({ speed: '×2', recharge: '+×2', time: '+1,5', efficient: '−25%', precision: '+3', compass: '↺', triple: '3', dual: '2' })[item.id]}</span>`;
   }
   function itemCard(item) {
-    const owned = progress.owned.includes(item.id), equipped = item.kind === 'sound' ? progress.soundPreset === item.id.slice(6) : item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
+    const owned = progress.owned.includes(item.id) || (item.id === 'dual' && progress.owned.includes('triple')), equipped = item.kind === 'sound' ? progress.soundPreset === item.id.slice(6) : item.kind === 'cosmetic' ? progress.cosmetic === item.id : equippedBoosts(progress).includes(item.id);
     return `<article class="shop-item ${item.kind === 'upgrade' ? 'general-upgrade' : ''}" data-item="${item.id}"><div class="item-art">${art(item)}</div><div class="item-copy"><div class="item-title"><h3>${item.name}</h3><details class="item-details"><summary aria-label="Detalles de ${item.name}">${symbols.info}</summary><p>${item.detail}</p></details></div><p>${compactDetail[item.id]}</p></div><div class="item-actions">${item.kind === 'sound' ? `<button class="sound-preview" data-action="preview" data-id="${item.id}" aria-label="Escuchar ${item.name}">${svg('<path d="m9 5 10 7-10 7V5Z"/>')}</button>` : ''}${purchaseActions(item, owned, equipped)}</div></article>`;
   }
   function render() {
@@ -62,7 +62,7 @@ export function createStore({ progress, storage, gear, changed, reducedMotion, f
       return;
     }
     content.innerHTML = nav + `<div class="store-tabs" role="group" aria-label="Secciones de la tienda"><span class="store-tab-line" style="transform:translateX(${tab === 'cosmetic' ? 0 : 100}%)"></span><button data-action="tab" data-id="cosmetic" aria-pressed="${tab === 'cosmetic'}">${symbols.clock} Cosméticos</button><button data-action="tab" data-id="boost" aria-pressed="${tab === 'boost'}">${svg('<path d="m14 2-8 12h6l-2 8 8-12h-6l2-8Z"/>')} Boosts</button></div>
-      ${tab === 'boost' ? `${boostSlotsView(progress, selectedBoostSlot)}<div class="general-label">MEJORA GENERAL</div>${itemCard(ITEMS.find(item => item.id === 'dual'))}<div class="general-label">BOOSTS</div>` : ''}
+      ${tab === 'boost' ? `${boostSlotsView(progress, selectedBoostSlot)}<div class="general-label">MEJORA GENERAL</div>${ITEMS.filter(item => item.kind === 'upgrade').map(itemCard).join('')}<div class="general-label">BOOSTS</div>` : ''}
       <div class="catalog">${ITEMS.filter(item => item.kind === tab).map(itemCard).join('')}</div>${tab === 'cosmetic' ? `<div class="general-label">SONIDOS</div><div class="catalog">${ITEMS.filter(item => item.kind === 'sound').map(itemCard).join('')}</div>` : ''}<p class="store-best">${symbols.trophy} TU RÉCORD <strong>${format(progress.best)}</strong></p>`;
   }
   function celebrate(type, amount, origin) {

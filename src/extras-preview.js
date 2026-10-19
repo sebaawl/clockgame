@@ -4,11 +4,11 @@ const descriptions = {
   'sound-paper': 'Roce ligero', 'sound-latch': 'Encaje compacto', 'sound-velvet': 'Golpe cálido', 'sound-pocket': 'Doble encaje', 'sound-felt': 'Clic suave', 'sound-wood': 'Encaje grave', 'sound-clock': 'Ajuste metálico',
   speed: 'Velocidad ×2', tank: 'Capacidad 200', recharge: 'Recarga ×2',
   lock: 'Frena en las doce · 3 usos', time: '+1,5 segundos', efficient: 'Consumo −25%',
-  precision: '+3 Nitro por perfecto', none: 'Sin ventajas activas',
+  compass: '↺ GIRA AHORA · Cuenta exacta', precision: '+3 Nitro por perfecto', none: 'Sin ventajas activas',
 };
 export function extrasPreview(item, skin) {
   const boost = item.kind === 'boost', sound = item.kind === 'sound';
-  const meter = boost && !['time', 'none'].includes(item.id);
+  const meter = boost && !['time', 'none', 'compass'].includes(item.id);
   const ticks = Array.from({ length: 12 }, (_, i) => `<line class="shop-tick" x1="50" y1="15" x2="50" y2="${skin === 'dots' ? 15.1 : 20}" transform="rotate(${i * 30} 50 50)"/>`).join('');
   return `<div class="extras-preview" data-preview="${item.id}" data-kind="${item.kind}" aria-label="Vista previa de ${item.name}">
     <svg class="shop-clock extras-clock" data-skin="${skin}" viewBox="0 0 100 100" aria-hidden="true"><circle class="shop-ring" cx="50" cy="50" r="41"/><rect class="shop-square" x="9" y="9" width="82" height="82" rx="15"/><circle class="shop-inner" cx="50" cy="50" r="34"/>${ticks}<path class="shop-hand" d="M50 25V50"/><g class="demo-hand"><path class="shop-hand" d="M50 54V30"/></g><circle cx="50" cy="50" r="2.5" fill="currentColor" stroke="none"/></svg>

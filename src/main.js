@@ -1,3 +1,4 @@
+import { exactGuide } from './survival.js';
 import { boostSlotsView } from './boost-slots.js';
 import { extrasPreview, animateExtrasPreview } from './extras-preview.js';
 import { playIntro } from './intro.js';
@@ -186,7 +187,7 @@ function updateProgressMenu() {
   $('menu-coins').textContent = progress.coins ? progress.coins.toLocaleString('es-CL') : '';
   const ready = dailyGoals(progress).filter(goal => !goal.claimed && goal.value >= goal.target).length;
   $('daily-ready').textContent = ready ? String(ready) : '';
-  $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ efficient: 'AHORRO', precision: 'PULSO PERFECTO', speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
+  $('equipped-note').textContent = equippedBoosts(progress).map(id => ({ efficient: 'AHORRO', compass: 'BRÚJULA', precision: 'PULSO PERFECTO', speed: 'NITRO ×2', tank: 'DOBLE DEPÓSITO', time: 'UN RESPIRO', recharge: 'RECARGA ×2', lock: 'NITRO LOCK' })[id]).join(' + ');
   document.body.dataset.skin = game.status === 'menu' ? progress.cosmetic : runCosmetic;
 }
 function bestKey(format, mode, difficulty = selectedDifficulty) { return `clocking:best:${format}:${mode}${difficulty === 'easy' ? '' : ':' + difficulty}`; }
@@ -225,7 +226,7 @@ function updateResources() {
   if ($('nitro-message').textContent !== message) $('nitro-message').textContent = message;
 }
 
-let challengeKey = '';
+let challengeKey = '', guideKey = '';
 function updateChallengePanel() {
   const visible = game.format === 'survival' && game.challenge !== 'normal' && ['playing', 'paused', 'cleared'].includes(game.status);
   const panel = $('challenge-panel');
@@ -242,6 +243,19 @@ function updateChallengePanel() {
   $('challenge-title').textContent = title;
   $('challenge-counter').textContent = exact ? `${game.attemptSteps} / ${game.targetClicks}` : arrow;
   $('challenge-hint').textContent = exact ? `${arrow} ${game.challengeRetries ? 'Nueva cuenta · −1 s' : 'Llega a las 12 · Nitro cuenta'}` : game.challenge === 'chaos' ? 'Cambia de dirección. Atrapa las doce.' : 'La manecilla se mueve. Llévala a las doce.';
+  const guide = hasBoost(game, 'compass') ? exactGuide(game, positions(game.stage)) : null;
+  panel.dataset.guide = guide?.state || 'off';
+  if (guide) {
+    const turn = guide.direction === 1 ? '↻' : '↺';
+    $('challenge-hint').textContent = guide.state === 'free' ? 'BRÚJULA · AÚN HAY MARGEN' : guide.state === 'turn' ? `${turn} GIRA AHORA HACIA LAS 12` : guide.state === 'release' ? 'JUSTO · SUELTA EL NITRO' : 'CUENTA PERDIDA · TERMINA PARA REINTENTAR';
+    const cue = `${game.completed}:${game.challengeRetries}:${guide.state}:${guide.direction}`;
+    if (cue !== guideKey && guide.state === 'turn' && game.status === 'playing') {
+      reveal($('challenge-hint'), [{ scale: '.94' }, { scale: '1.08', offset: .4 }, { scale: '1' }], 320);
+      feedback.guide();
+      announce($('challenge-hint').textContent);
+    }
+    guideKey = cue;
+  } else guideKey = '';
   const key = `${game.completed}:${game.challenge}:${game.challengeRetries}`;
   if (key !== challengeKey) {
     challengeKey = key;
@@ -473,7 +487,7 @@ function scheduleAdvance() {
     if (game.status === 'won') { showResult(true); return; }
     if (game.format === 'classic' && (oldStage !== game.stage || oldRound !== game.round)) { startBreak(oldRound !== game.round ? 'phase' : 'cycle'); return; }
     render();
-    announce(`Ajuste ${game.phase} de ${PHASES}. ${game.budget.toFixed(1)} segundos.`);
+    announce(`Ajuste ${game.phase} de ${PHASES[game.stage]}. ${game.budget.toFixed(1)} segundos.`);
   }, transitionRemaining);
 }
 function startBreak(reason) {

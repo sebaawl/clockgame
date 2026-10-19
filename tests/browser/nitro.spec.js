@@ -78,17 +78,17 @@ test('survival recovers time, keeps counting through celebrations and crosses cy
   await expect(page.locator('body')).toHaveAttribute('data-format', 'survival');
   await page.clock.runFor(2000);
   await solve(page);
-  expect(Number(await page.locator('#time').textContent())).toBeGreaterThan(11);
-  expect(Number(await page.locator('#time').textContent())).toBeLessThan(12);
+  expect(Number(await page.locator('#time').textContent())).toBeGreaterThan(13);
+  expect(Number(await page.locator('#time').textContent())).toBeLessThan(14);
   await expect(page.locator('#nitro-message')).toContainText('S');
   const recovered = Number(await page.locator('#time').textContent());
   await page.clock.runFor(1020);
   expect(Number(await page.locator('#time').textContent())).toBeLessThan(recovered);
-  for (let i = 1; i < 10; i++) { await solve(page); await page.clock.runFor(1000); }
+  for (let i = 1; i < 12; i++) { await solve(page); await page.clock.runFor(1000); }
   await expect(page.locator('body')).toHaveAttribute('data-stage', 'minutos');
   await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
   await expect(page.locator('#intermission')).not.toBeVisible();
-  await expect(page.locator('#combo')).toHaveText('×10');
+  await expect(page.locator('#combo')).toHaveText('×12');
   await expect(page.locator('body')).toHaveAttribute('data-hot', 'true');
 });
 

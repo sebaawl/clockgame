@@ -85,21 +85,22 @@ test('hard mode cannot be bypassed by reversing the last tap or walking the wron
   assert.equal(direct.status, 'cleared');
 });
 
-test('both modes execute exactly 90 adjustments, resetting each cycle and reaching the correct floors', () => {
+test('both modes execute exactly 66 adjustments in 12/6/4 cycles, resetting each cycle and reaching the correct floors', () => {
   for (const mode of ['normal', 'hard']) {
     const game = startGame(createGame(), 0, random, mode);
-    for (let i = 0; i < 90; i++) {
-      assert.equal(game.round, Math.floor(i / 30));
-      assert.equal(game.stage, Math.floor(i / 10) % 3);
-      assert.equal(game.phase, i % 10 + 1);
+    for (let i = 0; i < 66; i++) {
+      assert.equal(game.round, Math.floor(i / 22));
+      const within = i % 22, stage = within < 12 ? 0 : within < 18 ? 1 : 2;
+      assert.equal(game.stage, stage);
+      assert.equal(game.phase, within - [0, 12, 18][stage] + 1);
       const factor = mode === 'hard' ? 0.75 : 1;
       if (game.phase === 1) assert.equal(game.budget, 12 * factor);
-      if (game.phase === 10) assert.equal(game.budget, Math.max(phaseBudget(game.round, 10, mode, game.stage), game.optimalSteps / 9 + .75));
+      if (game.phase === [12, 6, 4][game.stage]) assert.equal(game.budget, Math.max(phaseBudget(game.round, game.phase, mode, game.stage), game.optimalSteps / 9 + .75));
       solve(game, 1 + i * 2);
       advanceGame(game, 2 + i * 2, random);
     }
     assert.equal(game.status, 'won');
-    assert.equal(game.completed, 90);
+    assert.equal(game.completed, 66);
   }
 });
 
@@ -133,7 +134,7 @@ test('pausing preserves the remaining time, signed hard progress and cycle break
 test('time limits decrease monotonically and hard mode always has twenty-five percent less time', () => {
   for (let round = 0; round < 3; round++) {
     let previous = 15;
-    for (let phase = 1; phase <= 10; phase++) {
+    for (let phase = 1; phase <= 12; phase++) {
       const normal = phaseBudget(round, phase);
       assert.ok(normal <= previous);
       assert.ok(Math.abs(phaseBudget(round, phase, 'hard') - normal * 0.75) < 1e-9);

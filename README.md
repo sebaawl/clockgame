@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.19.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.20.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -36,7 +36,7 @@ El clic usa un recorte de 90 ms del audio proporcionado por el usuario, integrad
 
 Cada acierto dispara un círculo sólido que alcanza los bordes y se desvanece en un segundo: blanco en modo oscuro, negro en modo claro. Durante el efecto se bloquean giros accidentales.
 
-Hay tres fases; cada una tiene los ciclos HORA → MINUTO → SEGUNDO, con 10 ajustes por ciclo: 90 ajustes en total. Los límites bajan durante cada fase, con mínimos distintos por ciclo y margen para completar el recorrido manualmente; ver el equilibrio de Nitro más abajo. Difícil reduce el presupuesto base con un factor de 0,8. Cambiar de ciclo o fase muestra su nombre durante tres segundos, sin consumir tiempo de juego.
+Hay tres fases; cada una tiene los ciclos HORA → MINUTO → SEGUNDO, con 12 ajustes de horas, 6 de minutos y 4 de segundos: 66 ajustes en total. Los límites bajan durante cada fase, con mínimos distintos por ciclo y margen para completar el recorrido manualmente; ver el equilibrio de Nitro más abajo. El recorrido contraintuitivo reduce el presupuesto base con un factor de 0,75. Cambiar de ciclo o fase muestra su nombre durante tres segundos, sin consumir tiempo de juego.
 
 Durante la partida el fondo cambia aleatoriamente cada diez segundos de juego activo, con paletas oscuras o claras. Menús y ajustes mantienen superficies negras o blancas sólidas. Si ambos cambian a la vez, fase y ciclo se anuncian en un único descanso.
 
@@ -70,7 +70,7 @@ npm run test:e2e
 
 Con Chromium del sistema: `CHROMIUM_PATH=/usr/bin/chromium npm run test:e2e`.
 
-Los tests recorren los 90 ajustes en ambos modos, comprueban el bloqueo de atajos en difícil, límites, pausas, aleatoriedad, puntaje y flujo de inicio. Las pruebas de navegador cubren móvil y escritorio, audio y vibración, ajustes animados, temas, game over inmediato y HTML autónomo sin red ni almacenamiento. La prueba adicional de file:// se omite si la política del navegador administrado impide abrir archivos locales; las pruebas del contenido autónomo se ejecutan igualmente.
+Los tests recorren los 66 ajustes en ambos modos, comprueban el bloqueo de atajos en difícil, límites, pausas, aleatoriedad, puntaje y flujo de inicio. Las pruebas de navegador cubren móvil y escritorio, audio y vibración, ajustes animados, temas, game over inmediato y HTML autónomo sin red ni almacenamiento. La prueba adicional de file:// se omite si la política del navegador administrado impide abrir archivos locales; las pruebas del contenido autónomo se ejecutan igualmente.
 
 Prototipo web; no incluye paquetes nativos de iOS/Android.
 
@@ -89,7 +89,7 @@ Tras FASE 1 · HORA aparece una guía transparente con ambas mitades y sus senti
 ## Nitro, combos y formatos (0.2.0)
 
 - **Clásico:** mantiene las tres fases de HORA → MINUTO → SEGUNDO. Los límites avanzados se revisaron: minutos tienen mínimos de 7/5,5/4,5 segundos; segundos 9/7/5,5; horas 6/4/2,5. El recorrido contraintuitivo aplica su factor de 0,75, con un margen mínimo adicional según el recorrido (pasos/9 + 0,75 s), para poder completarlo con nueve pulsaciones manuales por segundo sin Nitro.
-- **Supervivencia:** empieza con 12 s en un único cronómetro, hasta un máximo de 15 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(0,55; 1,4 − aciertos × 0,008)` segundos y una solución perfecta añade 0,25 s; ambos se reducen según la dificultad. Cambia de ciclo cada diez relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
+- **Supervivencia:** empieza con 14 s en un único cronómetro, hasta un máximo de 17 s. Sigue contando durante el segundo de celebración. Cada reloj añade `max(0,7; 1,6 − aciertos × 0,008)` segundos y una solución perfecta añade 0,3 s; ambos se reducen según la dificultad. Repite los ciclos de 12/6/4 relojes sin interrumpir la partida; continúa indefinidamente y guarda el récord local por formato y dificultad.
 - **Arcade:** solo aparece como próximo modo. Todavía no cambia direcciones ni introduce movimientos automáticos.
 
 Cada partida empieza con **40% de Nitro**. Un toque corto mueve un paso al soltar. Mantener **150 ms** activa la aceleración, sin sumar una pulsación inicial adicional. En 100 ms alcanza 10/28/42 pasos por segundo (horas/minutos/segundos). Se consumen **32 puntos porcentuales por segundo**, solo mientras acelera; sin carga, mantener no repite movimientos. Al soltar se detiene. No hay recarga pasiva ni avance automático entre relojes.
@@ -229,3 +229,13 @@ Entre relojes normales aparecen desafíos en los ajustes 3, 6 y 9 de cada ciclo:
 - **Reloj impredecible**: la manecilla invierte regularmente su dirección, obligando a corregir el recorrido. En minutos y segundos sustituye Vuelta exacta un duelo adicional para evitar exigir vueltas de 60/120 clics.
 
 El movimiento autónomo no gasta Nitro, no suma pulsaciones y nunca resuelve por sí solo. Pausar y abrir ajustes congelan tanto los pasos como los cambios de dirección. Los retos de cuenta conceden una pequeña reserva inicial de tiempo y mayor recuperación al completarse; los duelos añaden 0,45 s a la recompensa base antes de aplicar dificultad. Clásico conserva sus reglas.
+
+### Ritmo 12/6/4, Brújula y tercera ranura (0.3.20)
+
+Cada tanda tiene 12 relojes de horas, 6 de minutos y 4 de segundos. Clásico completa tres tandas (66 relojes); Supervivencia repite esa distribución sin límite. Los tiempos de Clásico alcanzan sus mínimos al final de cada ciclo, proporcionalmente a su nueva duración. En Supervivencia los retos aparecen en horas 3/6/9 (cuenta/duelo/cambiante), minutos 3/6 (duelo/cambiante) y segundos 2/4 (duelo/cambiante).
+
+Supervivencia comienza con 14 s antes del factor de dificultad y permite acumular 17 s. La recuperación base es `max(0,7; 1,6 − aciertos × 0,008)` más 0,3 s por perfecto, además de las bonificaciones de retos, antes del factor de dificultad.
+
+Brújula cuesta 130 monedas o se desbloquea con un récord de 7500. Equipada, indica cuándo quedan movimientos libres y cuándo es necesario girar hacia las doce para cumplir la cuenta exacta. Un aviso visual y una vibración breve señalan ese momento; al llegar pide soltar el Nitro. No mueve la manecilla ni altera el contador.
+
+Triple ranura cuesta 1000 monedas o un récord de 30000. Es una mejora permanente que permite equipar tres boosts distintos, incluye la capacidad de dos ranuras y conserva compras anteriores. La tercera ranura se puede seleccionar, vaciar y sustituir desde tienda o Extras durante la partida.

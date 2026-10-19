@@ -1,8 +1,9 @@
 import { prepareChallenge, tickChallenge, retryExact } from './survival.js';
 export const STAGES = ['horas', 'minutos', 'segundos'];
 export const FLOORS = [7, 5, 3];
-export const PHASES = 10;
-export const TOTAL_PHASES = PHASES * STAGES.length * FLOORS.length;
+export const PHASES = [12, 6, 4];
+export const CYCLE_PHASES = PHASES.reduce((sum, n) => sum + n, 0);
+export const TOTAL_PHASES = CYCLE_PHASES * FLOORS.length;
 export const HARD_TIME_FACTOR = 0.75;
 export const NITRO_INITIAL = 40;
 export const NITRO_DRAIN = 32;
@@ -10,12 +11,12 @@ export const DIFFICULTIES = { easy: { name: 'Fácil', time: 1, recharge: 1 }, me
 export const hasBoost = (game, id) => game.boosts?.includes(id) || game.boost === id;
 export const nitroDrain = game => NITRO_DRAIN * (hasBoost(game, 'efficient') ? .75 : 1);
 export const nitroCapacity = game => hasBoost(game, 'tank') ? 200 : 100;
-export const SURVIVAL_CAP = 15;
+export const SURVIVAL_CAP = 17;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 export const positions = stage => [12, 60, 120][stage];
 export const phaseBudget = (round, phase, mode = 'normal', stage = 0, difficulty = 'easy') => {
   const floor = [[6, 4, 2.5], [7, 5.5, 4.5], [9, 7, 5.5]][stage][clamp(round, 0, 2)];
-  return (12 - (12 - floor) * (phase - 1) / (PHASES - 1)) * (mode === 'hard' ? HARD_TIME_FACTOR : 1) * (DIFFICULTIES[difficulty]?.time ?? 1);
+  return (12 - (12 - floor) * (phase - 1) / (PHASES[stage] - 1)) * (mode === 'hard' ? HARD_TIME_FACTOR : 1) * (DIFFICULTIES[difficulty]?.time ?? 1);
 };
 export function createGame() {
   return {
@@ -71,9 +72,9 @@ function preparePhase(game, now, random) {
 export function startGame(game, now, random = Math.random, mode = 'normal', format = 'classic', options = {}) {
   Object.assign(game, createGame(), { mode: mode === 'hard' ? 'hard' : 'normal', format: format === 'survival' ? 'survival' : 'classic' });
   game.difficulty = Object.hasOwn(DIFFICULTIES, options.difficulty) ? options.difficulty : 'easy';
-  game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock', 'efficient', 'precision'].includes(id)).slice(0, 2);
+  game.boosts = [...new Set(options.boosts?.length ? options.boosts : [options.boost])].filter(id => ['speed', 'tank', 'time', 'recharge', 'lock', 'efficient', 'precision', 'compass'].includes(id)).slice(0, 3);
   game.boost = game.boosts[0] || null;
-  if (game.format === 'survival') game.remaining = 12 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
+  if (game.format === 'survival') game.remaining = 14 * DIFFICULTIES[game.difficulty].time + (hasBoost(game, 'time') ? 1.5 : 0);
   return preparePhase(game, now, random);
 }
 export function tickGame(game, now) {
@@ -117,7 +118,7 @@ export function settleGame(game, now, { perfectNitro = false, nitroLock = false 
   game.lastNitroGain = game.nitro - previousNitro;
   game.completed += 1;
   if (game.format === 'survival') {
-    const gain = (Math.max(.55, 1.4 - game.completed * .008) + (game.perfect ? .25 : 0) + (game.challenge === 'exact' ? 1.25 * game.extraTurns : game.driftInterval ? .45 : 0)) * DIFFICULTIES[game.difficulty].time;
+    const gain = (Math.max(.7, 1.6 - game.completed * .008) + (game.perfect ? .3 : 0) + (game.challenge === 'exact' ? 1.25 * game.extraTurns : game.driftInterval ? .45 : 0)) * DIFFICULTIES[game.difficulty].time;
     game.lastTimeGain = Math.min(gain, SURVIVAL_CAP - game.remaining);
     game.remaining += game.lastTimeGain;
     game.deadline = now + game.remaining * 1000;
@@ -157,10 +158,11 @@ export function advanceGame(game, now, random = Math.random) {
   if (game.format === 'survival') {
     tickGame(game, now);
     if (game.status === 'lost') return game;
-    game.phase = game.completed % PHASES + 1;
-    game.stage = Math.floor(game.completed / PHASES) % 3;
-    game.round = Math.floor(game.completed / (PHASES * 3));
-  } else if (game.phase < PHASES) game.phase += 1;
+    const within = game.completed % CYCLE_PHASES;
+    game.stage = within < PHASES[0] ? 0 : within < PHASES[0] + PHASES[1] ? 1 : 2;
+    game.phase = within - PHASES.slice(0, game.stage).reduce((sum, n) => sum + n, 0) + 1;
+    game.round = Math.floor(game.completed / CYCLE_PHASES);
+  } else if (game.phase < PHASES[game.stage]) game.phase += 1;
   else if (game.stage < 2) { game.stage += 1; game.phase = 1; }
   else if (game.round < 2) { game.round += 1; game.stage = 0; game.phase = 1; }
   else { game.status = 'won'; return game; }

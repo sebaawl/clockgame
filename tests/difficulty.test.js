@@ -10,7 +10,7 @@ test('easy starts with twelve seconds and harder difficulties decrease time and 
   assert.ok(games[1].budget < games[0].budget && games[2].budget < games[1].budget);
   games.forEach(g => { g.nitro = 0; solve(g); });
   assert.deepEqual(games.map(g => g.nitro), [5, 3.75, 2.5]);
-  for (const d of ['easy', 'medium', 'hard']) assert.equal(start(d, null, 'survival').remaining, start(d).budget);
+  for (const d of ['easy', 'medium', 'hard']) assert.equal(start(d, null, 'survival').remaining, 14 * ({ easy: 1, medium: .82, hard: .65 }[d]));
 });
 test('boosts are isolated, persist through phases and double tank holds 200', () => {
   const g = start('medium', 'time');

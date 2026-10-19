@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createProgress, localDay, dailyGoals, recordSolve, claimGoal, exchangeCoins, buyItem, equipItem, refreshDaily, loadProgress, saveProgress, missionPeriod, nextMissionAt, boostLoadout, removeBoost } from '../src/progression.js';
+import { createProgress, localDay, dailyGoals, recordSolve, claimGoal, exchangeCoins, buyItem, equipItem, refreshDaily, loadProgress, saveProgress, missionPeriod, nextMissionAt, boostLoadout, removeBoost, boostSlots } from '../src/progression.js';
 const today = new Date(2026, 9, 19, 12);
 const tomorrow = new Date(2026, 9, 20, 12);
 const memory = () => { const entries = new Map(); return { getItem: k => entries.get(k), setItem: (k, v) => entries.set(k, v) }; };
@@ -105,4 +105,22 @@ test('boost slots retain their positions and support explicit replacement, remov
   equipItem(loaded, 'speed', 1); assert.deepEqual(boostLoadout(loaded), ['tank', 'speed']);
   equipItem(loaded, 'tank', 1); assert.deepEqual(boostLoadout(loaded), ['speed', 'tank']);
   assert.equal(equipItem(loaded, 'lock', 2), false);
+});
+
+test('triple upgrade includes all three slots, persists loadout and prevents a fourth boost', () => {
+  const p = createProgress(today), storage = memory();
+  p.coins = 1000;
+  assert.equal(buyItem(p, 'triple'), true);
+  assert.equal(p.coins, 0); assert.equal(boostSlots(p), 3);
+  p.owned.push('compass', 'recharge', 'lock', 'speed');
+  for (const id of ['compass', 'recharge', 'lock']) assert.equal(equipItem(p, id), true);
+  assert.equal(equipItem(p, 'speed'), false);
+  assert.equal(removeBoost(p, 'compass'), true);
+  assert.deepEqual(boostLoadout(p), [null, 'recharge', 'lock']);
+  assert.equal(equipItem(p, 'compass', 2), true);
+  saveProgress(p, storage);
+  const loaded = loadProgress(storage, today);
+  assert.equal(boostSlots(loaded), 3);
+  assert.deepEqual(boostLoadout(loaded), [null, 'recharge', 'compass']);
+  assert.equal(loaded.owned.includes('dual'), false);
 });

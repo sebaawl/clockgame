@@ -22,3 +22,10 @@ body[data-challenge='duel'] #challenge-counter, body[data-challenge='chaos'] #ch
 body[data-nitro='true'] .active-hand { transition: transform 18ms linear; }
 
 body:not([data-challenge='normal']) .resource-labels > span { white-space: nowrap; }
+
+.challenge-panel[data-guide='turn'] #challenge-hint, .challenge-panel[data-guide='release'] #challenge-hint { color: var(--accent); font-weight: 700; }
+.boost-slot:nth-child(3) { grid-column: 1 / -1; }
+.boost-slot:nth-child(3) .slot-select, .boost-slot.locked:nth-child(3) { display: grid; grid-template-columns: 28px 1fr; min-height: 112px; gap: 4px 12px; }
+.boost-slot:nth-child(3) .slot-label { grid-column: 1 / -1; }
+.boost-slot:nth-child(3) .slot-select > svg, .boost-slot:nth-child(3) .slot-plus, .boost-slot.locked:nth-child(3) > svg { grid-column: 1; grid-row: 2 / 4; }
+.boost-slot:nth-child(3) strong, .boost-slot:nth-child(3) small { grid-column: 2; }

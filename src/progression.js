@@ -7,6 +7,8 @@ export const ITEMS = [
   { id: 'sound-latch', kind: 'sound', name: 'Broche', detail: 'Dos piezas que encajan con un clic compacto.', price: 95, target: 5500 },
   { id: 'sound-velvet', kind: 'sound', name: 'Terciopelo', detail: 'Un golpecito cálido, redondo y muy amortiguado.', price: 120, target: 6500 },
   { id: 'sound-pocket', kind: 'sound', name: 'De bolsillo', detail: 'Un doble encaje corto, como un mecanismo pequeño.', price: 150, target: 8000 },
+  { id: 'triple', kind: 'upgrade', name: 'Triple ranura', detail: 'Mejora permanente: hasta tres boosts distintos a la vez. Incluye la capacidad de dos ranuras.', price: 1000, target: 30000 },
+  { id: 'compass', kind: 'boost', name: 'Brújula', detail: 'En Supervivencia, avisa cuándo dejar de gastar movimientos y girar hacia las doce en los retos de cuenta exacta.', price: 130, target: 7500 },
   { id: 'dual', kind: 'upgrade', name: 'Doble ranura', detail: 'Mejora permanente: equipa dos boosts distintos a la vez.', price: 600, target: 20000 },
   { id: 'original', kind: 'cosmetic', name: 'Original', detail: 'El reloj de siempre.', price: 0, target: 0 },
   { id: 'dots', kind: 'cosmetic', name: 'Órbita', detail: 'Doce puntos. Un círculo limpio.', price: 60, target: 3500 },
@@ -109,7 +111,7 @@ export function buyItem(state, id, method = 'coins') {
   state.owned.push(id);
   return true;
 }
-export const boostSlots = state => state.owned.includes('dual') ? 2 : 1;
+export const boostSlots = state => state.owned.includes('triple') ? 3 : state.owned.includes('dual') ? 2 : 1;
 export function boostLoadout(state) {
   const source = state.boosts?.length ? state.boosts : state.boost ? [state.boost] : [];
   return Array.from({ length: boostSlots(state) }, (_, i) => source[i] || null);

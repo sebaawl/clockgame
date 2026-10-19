@@ -3,8 +3,8 @@ export function prepareChallenge(game, now, count, random) {
   Object.assign(game, { challenge: 'normal', targetClicks: 0, challengeDirection: 0, challengeRetries: 0, extraTurns: 0,
     driftDirection: 0, driftNext: 0, flipNext: Infinity, driftInterval: 0, flipInterval: 0 });
   if (game.format !== 'survival') return;
-  const slot = game.completed % 10;
-  game.challenge = slot === 2 && game.stage === 0 ? 'exact' : slot === 5 || (slot === 2 && game.stage !== 0) ? 'duel' : slot === 8 ? 'chaos' : 'normal';
+  const phase = game.phase;
+  game.challenge = game.stage === 0 && phase === 3 ? 'exact' : phase === [6, 3, 2][game.stage] ? 'duel' : phase === [9, 6, 4][game.stage] ? 'chaos' : 'normal';
   if (game.challenge === 'exact') {
     const direction = game.mode === 'hard' ? game.requiredDirection : random() < .5 ? -1 : 1;
     game.challengeDirection = direction;
@@ -12,7 +12,7 @@ export function prepareChallenge(game, now, count, random) {
     game.targetClicks = count * game.extraTurns + (direction === 1 ? count - game.position : game.position);
     game.optimalSteps = game.targetClicks;
     game.optimalDirection = direction;
-    game.remaining = Math.min(15, game.remaining + (1 + game.extraTurns) * ({ easy: 1, medium: .82, hard: .65 }[game.difficulty]));
+    game.remaining = Math.min(17, game.remaining + (1 + game.extraTurns) * ({ easy: 1, medium: .82, hard: .65 }[game.difficulty]));
   } else if (game.challenge !== 'normal') {
     game.driftDirection = random() < .5 ? -1 : 1;
     game.driftInterval = [900, 210, 120][game.stage] * ({ easy: 1, medium: .88, hard: .76 }[game.difficulty]);
@@ -52,4 +52,21 @@ export function retryExact(game, now, count) {
   game.remaining = Math.max(0, game.remaining - 1);
   game.deadline = now + game.remaining * 1000;
   if (!game.remaining) game.status = 'lost';
+}
+
+// Reachability includes parity: unused moves can be spent in opposite pairs.
+export function exactGuide(game, count = 12) {
+  if (game.format !== 'survival' || game.challenge !== 'exact') return null;
+  const left = game.targetClicks - game.attemptSteps;
+  const reachable = (position, steps) => {
+    const distance = Math.min(position, count - position);
+    return steps >= distance && (steps - distance) % 2 === 0;
+  };
+  if (left === 0 && game.position === 0) return { state: 'release', direction: 0 };
+  if (!reachable(game.position, left)) return { state: 'lost', direction: 0 };
+  const directions = [-1, 1].filter(dir => reachable((game.position + dir + count) % count, left - 1));
+  const distance = Math.min(game.position, count - game.position);
+  const forced = directions.length === 1 || left === distance;
+  const direction = directions.includes(game.challengeDirection) ? game.challengeDirection : directions[0];
+  return { state: forced ? 'turn' : 'free', direction };
 }
