@@ -1,3 +1,4 @@
+import { createMusic } from './music.js';
 import '@fontsource/poppins/latin-300.css';
 import '@fontsource/poppins/latin-700.css';
 import '@fontsource/poppins/latin-900.css';
@@ -25,10 +26,11 @@ const SOUND_PRESETS = ['felt', 'wood', 'clock'];
 const preferences = (() => {
   try {
     const saved = JSON.parse(localStorage.getItem('clocking:preferences') || '{}');
-    return { difficulty: Object.hasOwn(DIFFICULTIES, saved.difficulty) ? saved.difficulty : 'easy', format: saved.format === 'survival' ? 'survival' : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
-  } catch { return { difficulty: 'easy', format: 'classic', flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
+    return { musicVolume: Number.isFinite(saved.musicVolume) ? Math.max(0, Math.min(1, saved.musicVolume)) : .4, difficulty: Object.hasOwn(DIFFICULTIES, saved.difficulty) ? saved.difficulty : 'easy', format: saved.format === 'survival' ? 'survival' : 'classic', flash: saved.flash !== false, successSound: saved.successSound !== false, soundPreset: SOUND_PRESETS.includes(saved.soundPreset) ? saved.soundPreset : 'felt', sound: saved.sound !== false, vibration: saved.vibration !== false, theme: saved.theme === 'light' ? 'light' : 'dark', mode: saved.mode === 'hard' ? 'hard' : 'normal' };
+  } catch { return { musicVolume: .4, difficulty: 'easy', format: 'classic', flash: true, successSound: true, soundPreset: 'felt', sound: true, vibration: true, theme: 'dark', mode: 'normal' }; }
 })();
 const feedback = createFeedback(() => preferences);
+const music = createMusic(() => preferences);
 const game = createGame();
 const storage = { getItem: key => localStorage.getItem(key), setItem: (key, value) => localStorage.setItem(key, value) };
 const progress = loadProgress(storage);
@@ -133,6 +135,7 @@ document.querySelector('#app').innerHTML = `
     <div class="settings-heading"><h2 id="settings-title">Ajustes</h2></div>
     <p class="settings-note">Tu tiempo está en pausa.</p>
     <label class="setting-row" for="setting-sound"><span><strong>Sonido</strong></span><input id="setting-sound" type="checkbox" role="switch"></label>
+    <div class="music-setting"><label for="setting-music">Música</label><output id="music-volume-value" for="setting-music">40%</output><input id="setting-music" type="range" min="0" max="100" step="1" aria-label="Volumen de música"></div>
     <label class="setting-row" for="setting-success"><span><strong>Sonido de acierto</strong></span><input id="setting-success" type="checkbox" role="switch"></label>
     <label class="setting-row" for="setting-flash"><span><strong>Destello de acierto</strong></span><input id="setting-flash" type="checkbox" role="switch"></label>
     <fieldset class="sound-picker"><legend>Sonido del reloj</legend><div class="sound-options" role="group" aria-label="Sonido del reloj">
@@ -261,6 +264,7 @@ function updateBest() {
   for (const id of ['menu-best', 'guide-best']) $(id).querySelector('strong').textContent = best.toLocaleString('es-CL');
 }
 function render() {
+  music.sync(game.status, settings.open);
   updateBest(); updateProgressMenu();
   Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', boosts: game.boosts.join(' '), state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
   applyTheme();
@@ -582,6 +586,8 @@ function openSettings() {
   $('restart-settings').hidden = game.status === 'menu';
   $('menu-settings').hidden = game.status === 'menu';
   $('setting-sound').checked = preferences.sound;
+  $('setting-music').value = Math.round(preferences.musicVolume * 100);
+  $('music-volume-value').textContent = `${Math.round(preferences.musicVolume * 100)}%`;
   $('setting-success').checked = preferences.successSound;
   $('setting-flash').checked = preferences.flash;
   const canVibrate = typeof navigator.vibrate === 'function';
@@ -596,8 +602,9 @@ function openSettings() {
   syncSoundOptions();
   delete settings.dataset.closing;
   settings.showModal();
+  music.sync(game.status, true);
   if (!reducedMotion.matches) {
-    settings.querySelectorAll('.settings-heading, .settings-note, .setting-row, .sound-picker, .settings-actions, .continue-game').forEach((element, i) => {
+    settings.querySelectorAll('.settings-heading, .settings-note, .setting-row, .music-setting, .sound-picker, .settings-actions, .continue-game').forEach((element, i) => {
       element.animate([{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 280, delay: 55 + i * 28, fill: 'backwards', easing: 'cubic-bezier(.2,.8,.3,1)' });
     });
   }
@@ -672,6 +679,7 @@ settings.addEventListener('close', () => {
   }
   if (resumeAfterSettings && game.status === 'paused' && !document.hidden) resume();
   resumeAfterSettings = false;
+  music.sync(game.status, false);
 });
 settings.addEventListener('click', event => {
   if (event.target !== settings) return;
@@ -681,7 +689,14 @@ settings.addEventListener('click', event => {
 $('setting-sound').addEventListener('change', event => {
   preferences.sound = event.target.checked;
   if (preferences.sound) { feedback.unlock(); feedback.ui('toggle'); } else feedback.mute();
+  music.refresh();
   syncSoundOptions();
+  savePreferences();
+});
+$('setting-music').addEventListener('input', event => {
+  preferences.musicVolume = Number(event.target.value) / 100;
+  $('music-volume-value').textContent = `${event.target.value}%`;
+  music.refresh();
   savePreferences();
 });
 $('setting-flash').addEventListener('change', event => {

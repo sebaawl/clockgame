@@ -308,3 +308,9 @@ body[data-state='cleared'] #success-glow[data-combo='true'] ~ .clock-wrap { opac
   .result-points { grid-column: 2; margin: 0 0 8px; }
   .result-panel #restart-game, .result-panel #change-mode { grid-column: 2; margin: 0; }
 }
+
+.music-setting { display: grid; grid-template-columns: 1fr auto; gap: 15px; padding: 18px 0; border-top: 1px solid var(--line); align-items: center; }
+.music-setting label { font-size: 13px; font-weight: 700; }
+.music-setting output { font-size: 11px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.music-setting input { grid-column: 1 / -1; width: 100%; margin: 0; height: 24px; accent-color: var(--foreground); cursor: pointer; }
+.music-setting input:focus-visible { outline: 1px solid var(--foreground); outline-offset: 4px; border-radius: 999px; }

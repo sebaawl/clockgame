@@ -1,0 +1,52 @@
+import { test, expect } from '@playwright/test';
+import { installClock, play } from './helpers.js';
+
+test('recorded loops follow menu and game, settings muffle music, and volume persists', async ({ page }) => {
+  await installClock(page, { feedback: true });
+  await page.addInitScript(() => {
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    const original = Audio.prototype.createBiquadFilter;
+    Audio.prototype.createBiquadFilter = function (...args) {
+      const filter = original.apply(this, args);
+      window.__musicFilter ||= filter;
+      return filter;
+    };
+  });
+  await page.goto('/');
+  const menu = page.locator('audio[data-music="menu"]');
+  const game = page.locator('audio[data-music="game"]');
+  await expect(menu).toHaveJSProperty('paused', true);
+  await page.locator('#settings-button').click();
+  await expect(menu).toHaveJSProperty('paused', false);
+  await expect(menu).toHaveJSProperty('loop', true);
+  await expect.poll(() => menu.evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+  await expect.poll(() => page.evaluate(() => window.__musicFilter.frequency.value)).toBeGreaterThan(18000);
+  await page.locator('#setting-music').fill('25');
+  await expect(page.locator('#music-volume-value')).toHaveText('25%');
+  await page.locator('#continue-game').click();
+  await page.clock.runFor(300);
+  await play(page);
+  await page.clock.runFor(500);
+  await expect(menu).toHaveJSProperty('paused', true);
+  await expect(game).toHaveJSProperty('paused', false);
+  await expect.poll(() => game.evaluate(audio => audio.currentTime)).toBeGreaterThan(0);
+  await page.locator('#settings-button').click();
+  await expect.poll(() => page.evaluate(() => window.__musicFilter.frequency.value)).toBeLessThan(600);
+  await expect(game).toHaveJSProperty('paused', false);
+  await page.locator('#continue-game').click();
+  await page.clock.runFor(300);
+  await expect.poll(() => page.evaluate(() => window.__musicFilter.frequency.value)).toBeGreaterThan(18000);
+  await page.locator('#settings-button').click();
+  await page.getByRole('switch', { name: 'Sonido', exact: true }).uncheck();
+  await page.clock.runFor(500);
+  await expect(game).toHaveJSProperty('paused', true);
+  await page.reload();
+  await page.locator('#settings-button').click();
+  await expect(page.locator('#setting-music')).toHaveValue('25');
+  await expect(menu).toHaveJSProperty('paused', true);
+  await page.getByRole('switch', { name: 'Sonido', exact: true }).check();
+  await expect(menu).toHaveJSProperty('paused', false);
+  await page.locator('#setting-music').fill('0');
+  await page.clock.runFor(500);
+  await expect(menu).toHaveJSProperty('paused', true);
+});

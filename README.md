@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.5.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.6.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -160,3 +160,7 @@ Inicio reorganizado en tres zonas: título y récord, configuración de partida 
 ### Selectores y tienda (0.3.4)
 
 Selección por bloques con flechas y descripción breve. Jugar en blanco. Tienda con secciones Comprar y Canjear; misiones con objetivos, recompensas y acciones visuales. Tipografía con más contraste de tamaños y grosores.
+
+### Música (0.3.6)
+
+Pistas originales del menú y la partida integradas sin conexión, en bucle y con transición suave. Volumen de música persistente en ajustes; filtro de paso bajo a 440 Hz al abrirlos durante una partida. La música empieza con la primera interacción y se silencia con Sonido o al dejar la app en segundo plano.
