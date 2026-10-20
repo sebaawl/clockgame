@@ -1,10 +1,11 @@
+import { prepareDuel } from './duel.js';
 import { prepareRhythm } from './rhythm.js';
 // Special clocks are spaced between ordinary solves; classic never uses them.
 export function prepareChallenge(game, now, count, random) {
   Object.assign(game, { challenge: 'normal', targetClicks: 0, challengeDirection: 0, challengeRetries: 0, extraTurns: 0,
     driftDirection: 0, driftNext: 0, flipNext: Infinity, driftInterval: 0, flipInterval: 0 });
   if (game.format === 'rhythm') game.challenge = 'rhythm';
-  else if (game.format === 'duel') game.challenge = game.completed % 2 ? 'chaos' : 'duel';
+  else if (game.format === 'duel') { game.challenge = 'tug'; prepareDuel(game, now, random); return; }
   else if (game.format !== 'survival') return;
   const phase = game.phase;
   if (game.format === 'survival') game.challenge = game.stage === 0 && phase === 3 ? 'exact' : phase === [6, 3, 2][game.stage] ? 'duel' : phase === [9, 6, 4][game.stage] ? 'chaos' : 'normal';

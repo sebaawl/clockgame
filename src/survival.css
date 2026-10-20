@@ -44,3 +44,19 @@ body[data-format='rhythm'] .timer::after { content: 'SIN TIEMPO'; }
 /* A stable circular timing rim, even when another cosmetic is equipped. */
 body[data-challenge='rhythm'] #clock .clock-face { display: block; animation: none; }
 body[data-challenge='rhythm'] #clock .square-face { display: none; }
+.life-hearts { display: flex; align-items: center; gap: 7px; padding: 9px 0; }
+.life-hearts svg { width: 22px; height: 24px; overflow: visible; fill: currentColor; stroke: currentColor; stroke-width: 1.4; transition: fill 180ms, opacity 180ms; }
+.life-hearts svg[data-lost='true'] { fill: none; opacity: .23; }
+.timer[data-lives='true']::after { display: none; }
+body[data-format='duel'] .active-hand { transition: transform 95ms cubic-bezier(.2,1.25,.4,1); }
+.duel-force { color: var(--accent); opacity: var(--force-opacity, .5); }
+.duel-force-flow { transform-origin: 160px 160px; transform: scaleX(var(--force-direction, 1)); }
+.duel-force-flow path { fill: none; stroke: currentColor; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; animation: duel-push 650ms ease-in-out infinite; transform-origin: 160px 160px; }
+.duel-escape-mark { fill: currentColor; }
+.duel-ghost { transform-origin: 160px 160px; color: var(--accent); opacity: .3; transition: transform 100ms; }
+.duel-ghost line { stroke: currentColor; stroke-width: 10; stroke-linecap: round; }
+@keyframes duel-push { 0%,100% { transform: rotate(-5deg); opacity: .35; } 65% { transform: rotate(6deg); opacity: 1; } }
+body[data-state='paused'] .duel-force-flow path { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .duel-force-flow path { animation: none; } .duel-ghost, body[data-format='duel'] .active-hand { transition: none; } }
+
+body[data-format='duel'][data-nitro='true'] .active-hand { transition: transform 18ms linear; }

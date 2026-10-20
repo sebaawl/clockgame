@@ -55,6 +55,7 @@ let selectedMode = preferences.mode;
 let selectedFormat = preferences.format;
 let nitroRunning = false;
 let nitroDirection = 1;
+let lastEscapeNotice = 0;
 let lastWarning = -Infinity;
 let dangerAnnounced = false;
 let advanceTimer;
@@ -96,7 +97,7 @@ document.querySelector('#app').innerHTML = `
     <div id="success-glow" class="success-glow" aria-hidden="true"></div>
     <div class="hud" id="hud"><div class="hud-row">
       <div id="cycle-label" class="cycle-label">HORA</div>
-      <button id="timer" class="timer" aria-describedby="instructions"><span id="time">15.0</span></button>
+      <button id="timer" class="timer" aria-describedby="instructions"><span id="time">15.0</span><span id="life-hearts" class="life-hearts" hidden aria-hidden="true"><svg viewBox="0 0 24 24" data-heart="0"><path d="M12 21 3.2 12.6C-2 7.4 5.2.2 12 7c6.8-6.8 14 .4 8.8 5.6Z"/></svg><svg viewBox="0 0 24 24" data-heart="1"><path d="M12 21 3.2 12.6C-2 7.4 5.2.2 12 7c6.8-6.8 14 .4 8.8 5.6Z"/></svg><svg viewBox="0 0 24 24" data-heart="2"><path d="M12 21 3.2 12.6C-2 7.4 5.2.2 12 7c6.8-6.8 14 .4 8.8 5.6Z"/></svg></span></button>
       <button id="settings-button" class="settings-trigger" aria-label="Abrir ajustes" type="button">${settingsGear}</button>
     </div></div>
     <div class="score-panel" id="score-panel"><output id="score" aria-label="Puntaje: 0">0</output><span class="points-label">PUNTOS</span></div>
@@ -105,6 +106,8 @@ document.querySelector('#app').innerHTML = `
       <svg id="clock" class="clock" viewBox="0 0 320 320" role="img" aria-label="Reloj analógico. Objetivo: las doce.">
         <circle class="clock-face" cx="160" cy="160" r="144" /><rect class="square-face" x="16" y="16" width="288" height="288" rx="48"/><circle class="inner-face" cx="160" cy="160" r="129"/>
         <g class="ticks">${ticks}</g>
+        <g id="duel-force" class="duel-force" hidden aria-hidden="true"><g class="duel-force-flow"><path d="M210 43A128 128 0 0 1 283 194m-10-14 10 14 15-8"/></g><circle cx="160" cy="304" r="5" class="duel-escape-mark"/></g>
+        <g id="duel-ghost" class="duel-ghost" hidden aria-hidden="true"><line x1="160" y1="160" x2="160" y2="83"/></g>
         <g id="nitro-trail" class="nitro-trail" aria-hidden="true">${[1, 2, 3].map(i => `<g id="trail-${i}" class="trail-mark"><line x1="160" y1="160" x2="160" y2="103"/></g>`).join('')}</g>
         <g id="compass-ghost" class="compass-ghost" hidden aria-hidden="true">
           <defs><linearGradient id="spectral-gradient" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="currentColor" stop-opacity=".05"/><stop offset="1" stop-color="currentColor" stop-opacity=".9"/></linearGradient></defs>
@@ -246,20 +249,35 @@ function updateChallengePanel() {
   document.body.dataset.clicks = String(game.attemptSteps);
   document.body.dataset.challengeDirection = String(game.challengeDirection);
   $('rhythm-ring').toggleAttribute('hidden', !visible || game.challenge !== 'rhythm' || game.status === 'cleared');
+  $('duel-force').toggleAttribute('hidden', !visible || game.format !== 'duel');
+  $('duel-ghost').toggleAttribute('hidden', !visible || game.format !== 'duel');
+  if (game.format === 'duel') {
+    document.body.dataset.force = String(game.driftDirection);
+    $('duel-force').style.setProperty('--force-direction', game.driftDirection);
+    $('duel-force').style.setProperty('--force-opacity', String(.25 + Math.abs(game.duelOffset) / 30 * .6));
+    $('duel-ghost').style.transform = `rotate(${game.rotation + game.driftDirection * 12}deg)`;
+    $('challenge-title').textContent = 'PULSO CONTRA EL RELOJ';
+    $('challenge-counter-label').textContent = 'EMPUJE';
+    $('challenge-counter').innerHTML = `<span class="count-current">${game.driftDirection > 0 ? '↻' : '↺'}</span>`;
+    $('challenge-hint').textContent = 'Llévala a las doce. Que no escape por las seis.';
+    return;
+  }
   if (!visible) { challengeKey = ''; return; }
   if (game.challenge === 'rhythm') {
     $('rhythm-ring').dataset.next = String(game.rhythmNext);
     $('rhythm-ring').dataset.period = String(game.rhythmPeriod);
     updateRhythmRing();
+    const continuous = game.format === 'rhythm';
     $('challenge-title').textContent = game.status === 'cleared' ? 'VUELTA COMPLETA' : 'SIGUE EL PULSO';
     $('challenge-counter-label').textContent = 'PULSOS';
-    $('challenge-counter').innerHTML = `<span class="count-current">${game.rhythmHits}</span><span class="count-total"> / 4</span>`;
-    $('challenge-counter').setAttribute('aria-label', `${game.rhythmHits} de 4 pulsos, ${3 - game.rhythmMisses} intentos restantes`);
-    $('challenge-hint').textContent = `${game.rhythmGrade || 'Toca cuando el aro llegue al borde'} · ${3 - game.rhythmMisses} ${3 - game.rhythmMisses === 1 ? 'vida' : 'vidas'}`;
+    $('challenge-counter').innerHTML = `<span class="count-current">${game.rhythmHits}</span>${continuous ? '' : '<span class="count-total"> / 4</span>'}`;
+    $('challenge-counter').setAttribute('aria-label', `${game.rhythmHits} pulsos, ${3 - game.rhythmMisses} vidas restantes`);
+    $('challenge-hint').textContent = continuous ? (game.rhythmGrade || 'Toca cuando el aro llegue al borde') : `${game.rhythmGrade || 'Toca al borde'} · ${3 - game.rhythmMisses} vidas`;
     if (game.status === 'cleared') $('challenge-hint').textContent = `+${game.rhythmScore} PUNTOS${game.format === 'survival' ? ` · +${game.lastTimeGain.toFixed(1)} S` : ''}`;
     panel.dataset.guide = 'off';
-    if (challengeKey !== `${game.completed}:rhythm`) announce('Sigue el pulso. Toca cualquiera de los lados cuando el aro toque el borde. Cuatro aciertos completan la vuelta. Tres fallos terminan la partida.');
-    challengeKey = `${game.completed}:rhythm`;
+    const key = continuous ? 'continuous-rhythm' : `${game.completed}:rhythm`;
+    if (challengeKey !== key) announce(continuous ? 'Sigue los aros. Cada acierto acelera el pulso. Tienes tres corazones.' : 'Cuatro pulsos completan el reto. El tiempo está detenido.');
+    challengeKey = key;
     return;
   }
   const exact = game.challenge === 'exact';
@@ -322,6 +340,22 @@ function prepareAttempt() {
   optimalSteps = game.mode === 'hard' ? game.requiredSteps : Math.min(game.position, count - game.position);
 }
 function displayTime() {
+  const lifeMode = ['rhythm', 'duel'].includes(game.format);
+  $('life-hearts').hidden = !lifeMode;
+  time.hidden = lifeMode;
+  timer.dataset.lives = String(lifeMode);
+  if (lifeMode) {
+    const lives = game.format === 'duel' ? game.lives : Math.max(0, 3 - game.rhythmMisses);
+    const previous = Number($('life-hearts').dataset.count ?? lives);
+    $('life-hearts').dataset.count = String(lives);
+    $('life-hearts').querySelectorAll('svg').forEach((heart, i) => {
+      heart.dataset.lost = String(i >= lives);
+      if (i >= lives && i < previous) reveal(heart, [{ transform: 'scale(1)' }, { transform: 'translateY(5px) scale(1.4)', offset: .4 }, { transform: 'scale(.85)' }], 330);
+    });
+    timer.dataset.frozen = 'false'; document.body.dataset.danger = 'false';
+    timer.setAttribute('aria-label', `${lives} vidas. Toca para ${game.status === 'paused' ? 'continuar' : 'pausar'}.`);
+    return;
+  }
   if (game.format === 'rhythm' || (game.challenge === 'rhythm' && game.status !== 'cleared')) {
     time.textContent = game.format === 'rhythm' ? '∞' : game.remaining.toFixed(1);
     document.body.dataset.danger = 'false';
@@ -338,17 +372,17 @@ function reveal(element, frames, duration = 380) {
   if (!reducedMotion.matches) element.animate(frames, { duration, easing: 'cubic-bezier(.2,.85,.3,1)' });
 }
 const HOME_OPTIONS = {
-  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Duelos, cuentas y ritmo. Cada acierto recupera tiempo.'], ['duel', '1 vs 1', 'La manecilla juega en tu contra. Atrapa las doce y gana tiempo.'], ['rhythm', 'Ritmo', 'Cuatro pulsos, una vuelta. Más precisión, más puntos. Tres fallos y termina.']],
+  format: [['classic', 'Clásico', 'Ciclos de horas, minutos y segundos.'], ['survival', 'Supervivencia', 'Duelos, cuentas y ritmo. Cada acierto recupera tiempo.'], ['duel', '1 vs 1', 'Minutos contra el reloj. Te empuja hacia las seis. Tres corazones.'], ['rhythm', 'Ritmo', 'Aros cada vez más rápidos. Toca al borde. Tres corazones.']],
   difficulty: [['easy', 'Fácil', 'Más margen para practicar.'], ['medium', 'Media', '18% menos tiempo. 25% menos recarga.'], ['hard', 'Difícil', '35% menos tiempo. La mitad de recarga.']],
   route: [['normal', 'Normal', 'Elige el camino que prefieras.'], ['hard', 'Contraintuitivo', 'Llega a las doce por el camino largo.']],
 };
 function syncSelector(animate = false) {
-  document.querySelector('[data-choice=route]').hidden = selectedFormat === 'rhythm';
+  document.querySelector('[data-choice=route]').hidden = ['rhythm', 'duel'].includes(selectedFormat);
   const selected = { format: selectedFormat, difficulty: selectedDifficulty, route: selectedMode };
   for (const [kind, options] of Object.entries(HOME_OPTIONS)) {
     const index = options.findIndex(option => option[0] === selected[kind]);
     const [, title, baseDescription] = options[index];
-    const description = kind === 'difficulty' && selectedFormat === 'rhythm' ? ({ easy: 'Un pulso cada 1,1 segundos.', medium: 'Un pulso cada 0,95 segundos.', hard: 'Un pulso cada 0,8 segundos.' }[selectedDifficulty]) : baseDescription;
+    const description = kind === 'difficulty' && selectedFormat === 'rhythm' ? ({ easy: 'Empieza lento y acelera poco a poco.', medium: 'Un arranque más rápido. Menos respiro.', hard: 'Más velocidad desde el principio.' }[selectedDifficulty]) : kind === 'difficulty' && selectedFormat === 'duel' ? ({ easy: 'Empuje suave para entrar en la batalla.', medium: 'Más fuerza y menos recarga de Nitro.', hard: 'Máxima resistencia. Nitro más difícil de ganar.' }[selectedDifficulty]) : baseDescription;
     const changed = $(kind + '-current').textContent !== title;
     $(kind + '-current').textContent = title;
     $(kind + '-description').textContent = description;
@@ -366,6 +400,13 @@ function updateBest() {
   for (const id of ['menu-best', 'guide-best']) $(id).querySelector('strong').textContent = best.toLocaleString('es-CL');
 }
 function render() {
+  if (game.format === 'duel' && game.duelEscapes > lastEscapeNotice) {
+    lastEscapeNotice = game.duelEscapes;
+    input.cancel();
+    backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
+    if (game.lives) feedback.interrupt();
+    announce(`Se escapó. Quedan ${game.lives} corazones.`);
+  }
   music.sync(game.status, settings.open, menuTab === 'shop');
   updateBest(); updateProgressMenu();
   Object.assign(document.body.dataset, { difficulty: game.difficulty, boost: game.boost || 'none', boosts: game.boosts.join(' '), state: game.status, stage: STAGES[game.stage], phase: String(game.phase), round: String(game.round + 1), mode: game.mode, format: game.format, nitro: String(nitroRunning) });
@@ -391,7 +432,7 @@ function render() {
   $('cycle-label').textContent = game.challenge === 'rhythm' ? 'RITMO' : CYCLE_NAMES[game.stage];
   score.textContent = points.toLocaleString('es-CL');
   score.setAttribute('aria-label', `Puntaje: ${points}`);
-  if (inBreak) $('break-detail').textContent = game.status === 'paused' ? 'TOCA PARA CONTINUAR' : `FASE ${game.round + 1}`;
+  if (inBreak) $('break-detail').textContent = game.status === 'paused' ? 'TOCA PARA CONTINUAR' : game.format === 'duel' ? '3 VIDAS · SOLO MINUTOS' : game.format === 'rhythm' ? '3 VIDAS · PULSO CONTINUO' : `FASE ${game.round + 1}`;
   hand.style.transform = `rotate(${game.rotation}deg)`;
   [1, 2, 3].forEach(i => {
     $('trail-' + i).style.transform = `rotate(${game.rotation - nitroDirection * i * Math.min(8, 360 / positions(game.stage))}deg)`;
@@ -435,7 +476,7 @@ function clearRun() {
   backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = null;
   points = 0;
   streak = 0;
-  lossStarted = false;
+  lossStarted = false; lastEscapeNotice = 0;
   transitionRemaining = SUCCESS_MS;
 }
 function chooseMode(mode) {
@@ -450,7 +491,7 @@ function chooseFormat(format) {
   selectedFormat = FORMATS.includes(format) ? format : 'classic';
   preferences.format = selectedFormat;
 
-  chooseMode(selectedFormat === 'rhythm' ? 'normal' : selectedMode);
+  chooseMode(['rhythm', 'duel'].includes(selectedFormat) ? 'normal' : selectedMode);
 }
 function showMenu() {
   clearRun();
@@ -534,7 +575,7 @@ function scheduleAdvance() {
     if (game.status === 'won') { showResult(true); return; }
     if (game.format === 'classic' && (oldStage !== game.stage || oldRound !== game.round)) { startBreak(oldRound !== game.round ? 'phase' : 'cycle'); return; }
     render();
-    announce(`Ajuste ${game.phase} de ${PHASES[game.stage]}. ${game.budget.toFixed(1)} segundos.`);
+    announce(game.format === 'duel' ? 'Otro forcejeo. Atrapa las doce.' : `Ajuste ${game.phase} de ${PHASES[game.stage]}. ${game.budget.toFixed(1)} segundos.`);
   }, transitionRemaining);
 }
 function startBreak(reason) {
@@ -543,7 +584,7 @@ function startBreak(reason) {
   $('break-kicker').textContent = reason === 'first' ? 'COMENZAMOS' : reason === 'phase' ? 'NUEVA FASE' : 'SIGUIENTE CICLO';
   $('break-title').textContent = game.format === 'rhythm' ? 'RITMO' : game.format === 'duel' ? '1 VS 1' : CYCLE_NAMES[game.stage];
   render();
-  announce(`Fase ${game.round + 1}. ${CYCLE_NAMES[game.stage]}. ${game.mode === 'hard' ? 'Recorrido contraintuitivo. ' : ''}Comenzamos en tres segundos.`);
+  announce(['duel', 'rhythm'].includes(game.format) ? `${game.format === 'duel' ? 'Uno contra uno. Solo minutos.' : 'Ritmo continuo.'} Tres corazones. Comenzamos en tres segundos.` : `Fase ${game.round + 1}. ${CYCLE_NAMES[game.stage]}. ${game.mode === 'hard' ? 'Recorrido contraintuitivo. ' : ''}Comenzamos en tres segundos.`);
   scheduleBreakEnd();
 }
 function scheduleBreakEnd() {
@@ -662,6 +703,16 @@ function finishAdjustment() {
   announce(game.nitroLocked ? 'Nitro Lock. Las doce.' : game.perfectNitro ? 'Perfect Nitro. Las doce.' : 'Las doce.');
   celebrate();
 }
+function perfectPulseFlash() {
+  feedback.ui('success');
+  positionGlow();
+  animateGlow(reducedMotion.matches ? [{ opacity: .12 }, { opacity: 0 }] : [
+    { opacity: .85, transform: 'translate(-50%, -50%) scale(0)' },
+    { opacity: .65, transform: 'translate(-50%, -50%) scale(1)', offset: .5 },
+    { opacity: 0, transform: 'translate(-50%, -50%) scale(1)' },
+  ], { duration: Math.min(330, game.rhythmPeriod * .55), easing: 'ease-out' }, backdropIndex ? 'var(--combo-overlay)' : '#ffffff');
+  if (!reducedMotion.matches) reveal(score, [{ scale: '1' }, { scale: '1.1', offset: .35 }, { scale: '1' }], 200);
+}
 function tap(direction, { accelerated = false } = {}) {
   if (settings.open) return;
   if (game.status === 'ready') { launchRun(direction); return; }
@@ -669,10 +720,17 @@ function tap(direction, { accelerated = false } = {}) {
   if (game.status !== 'playing') return;
   const previousCombo = game.combo;
   const beforeRhythmMisses = game.rhythmMisses;
+  const beforeEscapes = game.duelEscapes;
+  const beforeRhythmHits = game.rhythmHits;
   const beforeRhythmScore = game.rhythmScore || 0;
   if (!moveGame(game, direction, performance.now(), { deferSolve: accelerated })) { if (game.status === 'lost') lose(); return; }
   if (game.challenge === 'rhythm') points += game.rhythmScore - beforeRhythmScore;
   if (game.status === 'lost') { lose(); return; }
+  if (game.duelEscapes !== beforeEscapes) { input.cancel(); render(); return; }
+  if (game.format === 'rhythm' && game.rhythmHits > beforeRhythmHits) {
+    recordSolve(progress, { score: points, format: game.format, perfect: game.perfect }); saveProgress(progress, storage);
+    if (game.perfect) perfectPulseFlash();
+  }
   if (previousCombo > 0 && (game.challenge === 'rhythm' ? game.rhythmMisses > beforeRhythmMisses : !game.perfectRoute)) {
     backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
     applyTheme();
@@ -993,12 +1051,13 @@ function updateRhythmRing() {
 function frame() {
   updateAmbience(performance.now());
   if (game.status === 'playing' || (continuousTime(game) && game.status === 'cleared')) {
-    const previousRotation = game.rotation, previousDirection = game.driftDirection, previousMisses = game.rhythmMisses;
+    const previousRotation = game.rotation, previousDirection = game.driftDirection, previousMisses = game.rhythmMisses, previousEscapes = game.duelEscapes;
     tickGame(game, performance.now());
-    if (previousMisses !== game.rhythmMisses && game.combo === 0) {
+    if (previousEscapes !== game.duelEscapes) input.cancel();
+    if ((previousMisses !== game.rhythmMisses || previousEscapes !== game.duelEscapes) && game.combo === 0) {
       backdropIndex = 0; backdropElapsed = 0; lastBackdropAt = performance.now();
     }
-    if (game.rotation !== previousRotation || game.driftDirection !== previousDirection || previousMisses !== game.rhythmMisses) render();
+    if (game.rotation !== previousRotation || game.driftDirection !== previousDirection || previousMisses !== game.rhythmMisses || previousEscapes !== game.duelEscapes) render();
     if (game.status === 'lost') lose();
     else {
       displayTime();

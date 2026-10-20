@@ -12,18 +12,23 @@ async function pulse(page, error = 0, side = 'right') {
 }
 test('standalone rhythm evaluates pointerdown, advances a full turn, awards precision points and carries on without a timer', async ({ page }) => {
   await begin(page, 'rhythm');
-  await expect(page.locator('#time')).toHaveText('∞');
+  await expect(page.locator('#life-hearts')).toBeVisible();
+  await expect(page.locator('#life-hearts svg[data-lost=false]')).toHaveCount(3);
   await expect(page.locator('#resources')).not.toBeVisible();
   await expect(page.locator('#rhythm-ring')).toBeVisible();
+  const period = Number(await page.locator('#rhythm-ring').getAttribute('data-period'));
   for (let i = 0; i < 4; i++) await pulse(page, 0, i % 2 ? 'left' : 'right');
-  await expect(page.locator('body')).toHaveAttribute('data-state', 'cleared');
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  expect(Number(await page.locator('#rhythm-ring').getAttribute('data-period'))).toBeLessThan(period);
+  await expect(page.locator('#success-glow')).toHaveJSProperty('hidden', false);
+  expect(await page.locator('#success-glow').evaluate(el=>el.getAnimations().length)).toBe(1);
   await expect(page.locator('#score')).toHaveText('192');
-  await page.clock.runFor(1000);
+  await page.clock.runFor(350);
   await expect(page.locator('body')).toHaveAttribute('data-challenge', 'rhythm');
   await pulse(page, 150);
   await expect(page.locator('#score')).toHaveText('204');
   await expect(page.locator('#challenge-hint')).toContainText('JUSTO');
-  await page.clock.runFor(4000);
+  await page.clock.runFor(6000);
   await expect(page.locator('body')).toHaveAttribute('data-state', 'lost');
   await expect(page.locator('#final-score')).toHaveText('204');
 });
@@ -35,8 +40,8 @@ test('settings freeze the incoming ring and resume without missing beats', async
   await expect(page.locator('#rhythm-ring')).toHaveAttribute('style', ring);
   await page.locator('#continue-game').click(); await page.clock.runFor(300);
   await pulse(page);
-  await expect(page.locator('#challenge-counter')).toHaveText('1 / 4');
-  await expect(page.locator('#challenge-hint')).toContainText('3 vidas');
+  await expect(page.locator('#challenge-counter')).toHaveText('1');
+  await expect(page.locator('#life-hearts svg[data-lost=false]')).toHaveCount(3);
 });
 test('survival includes timed rings, freezes the single countdown and resumes its normal clocks afterwards', async ({ page }) => {
   await begin(page, 'survival');
@@ -53,12 +58,38 @@ test('survival includes timed rings, freezes the single countdown and resumes it
   await page.clock.runFor(500);
   expect(Number(await page.locator('#time').textContent())).toBeLessThan(next);
 });
-test('1 vs 1 is selectable, has a moving hand and switches to the reversing variant on the next clock', async ({ page }) => {
+test('1 vs 1 stays in minutes, pushes against progress and repositions after losing a heart', async ({ page }) => {
   await begin(page, 'duel');
-  await expect(page.locator('body')).toHaveAttribute('data-challenge', 'duel');
+  await expect(page.locator('body')).toHaveAttribute('data-challenge', 'tug');
+  await expect(page.locator('body')).toHaveAttribute('data-stage', 'minutos');
+  await expect(page.locator('#life-hearts svg[data-lost=false]')).toHaveCount(3);
+  await expect(page.locator('#duel-force')).toBeVisible();
   const hand = await page.locator('#active-hand').getAttribute('style');
-  await page.clock.runFor(950);
+  await page.clock.runFor(320);
   await expect(page.locator('#active-hand')).not.toHaveAttribute('style', hand);
   await solve(page); await page.clock.runFor(1000);
-  await expect(page.locator('body')).toHaveAttribute('data-challenge', 'chaos');
+  await expect(page.locator('body')).toHaveAttribute('data-challenge', 'tug');
+  await expect(page.locator('body')).toHaveAttribute('data-stage', 'minutos');
+  await page.clock.runFor(4300);
+  await expect(page.locator('#life-hearts svg[data-lost=false]')).toHaveCount(2);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  await expect(page.locator('#score')).not.toHaveText('0');
+  await page.clock.runFor(12000);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'lost');
+});
+
+test('only exact rhythm pulses trigger a flash and a missed ring empties one heart without stopping play', async ({ page }) => {
+  await begin(page, 'rhythm');
+  const flashes = () => page.evaluate(() => window.__motions.filter(m => m.id === 'success-glow').length);
+  const before = await flashes();
+  await pulse(page);
+  expect(await flashes()).toBe(before + 1);
+  await pulse(page, 80);
+  expect(await flashes()).toBe(before + 1);
+  await expect(page.locator('#challenge-hint')).toHaveText('BIEN');
+  const untilMiss = await page.locator('#rhythm-ring').evaluate(el => Number(el.dataset.next) - performance.now() + 220);
+  await page.clock.runFor(untilMiss);
+  await expect(page.locator('#life-hearts svg[data-lost=false]')).toHaveCount(2);
+  await expect(page.locator('body')).toHaveAttribute('data-state', 'playing');
+  expect(await flashes()).toBe(before + 1);
 });

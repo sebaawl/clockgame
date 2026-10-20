@@ -1,6 +1,6 @@
 # clocking · Android y HTML
 
-**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.24.apk)** · Android 8.0 o posterior · sin conexión.
+**[Descargar APK firmado para Android](https://github.com/sebaawl/clockgame/raw/refs/heads/main/downloads/clocking-0.3.25.apk)** · Android 8.0 o posterior · sin conexión.
 
 [Compilar y firmar sin Android Studio](android/README.md). La clave privada de firma no está en el repositorio.
 
@@ -271,3 +271,13 @@ La introducción ya no se cancela cuando Android oculta las barras del sistema y
 El juego alterna quince paletas con saturaciones y luminosidades diferenciadas, además del blanco/negro inicial. Cambian cada 7,5 segundos activos mediante el fundido existente, en orden aleatorio sin repetir ninguna hasta recorrer las quince. Los colores de Nitro y destellos complementan cada fondo y cuentan con versiones claras y oscuras. Perder la racha sigue restableciendo el fondo monocromático.
 
 El control de tema transforma una luna en un sol al activar el modo claro, y a la inversa al volver al oscuro, con máscara vectorial y rayos progresivos. Comprobación: 77 pruebas de lógica; 32 casos únicos de navegador en escritorio y móvil, incluyendo arranque nativo simulado, documento oculto, reaperturas, cambios de altura, partida conservada y controles de tema.
+
+### Ritmo continuo y forcejeo con corazones (0.3.25)
+
+Los modos independientes Ritmo y 1 vs 1 usan tres corazones en lugar del cronómetro. Sus presentaciones ya no muestran fases ni ciclos. Clásico y los retos integrados en Supervivencia conservan sus reglas.
+
+**Ritmo** no se detiene cada cuatro aciertos. Cada pulso avanza la manecilla y suma puntos; los aros se aceleran un 1,4% por acierto hasta un límite jugable (1,6 → 0,5 s en fácil; 1,4 → 0,44 s en media; 1,2 → 0,38 s en difícil). La velocidad se conserva al perder un corazón. Solo un pulso exacto, a ±45 ms del borde, dispara un destello breve; no interrumpe el aro siguiente y respeta la opción de desactivar destellos. Fallar un aro resta un corazón.
+
+**1 vs 1** siempre ajusta minutos, sin cuenta atrás ni transición de ciclos. La manecilla comienza a 12–24 minutos de las doce y el reloj empuja en sentido contrario al avance hacia el objetivo, representado por una flecha curva y una manecilla fantasma. Si se sobrepasan las doce, la fuerza se adapta al nuevo lado. Alcanzar las seis es un escape: se pierde un corazón y se recoloca la manecilla, con un breve respiro de 850 ms para la nueva batalla. Los aciertos mantienen los corazones y aumentan progresivamente la fuerza rival. El Nitro y sus boosts siguen funcionando. Al perder una vida se restablece el fondo monocromático.
+
+Verificación: 80 pruebas de lógica y 16 casos de navegador en escritorio y móvil, incluyendo aceleración continua, destellos exactos, corazones, forcejeos, pausas y supervivencia anterior.

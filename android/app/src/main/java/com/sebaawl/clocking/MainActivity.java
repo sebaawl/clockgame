@@ -42,7 +42,7 @@ public final class MainActivity extends Activity {
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setSupportMultipleWindows(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.24");
+        settings.setUserAgentString(settings.getUserAgentString() + " clocking/0.3.25");
         game.setWebViewClient(new WebViewClient() {
             @Override public void onPageCommitVisible(WebView view, String url) {
                 // Signal a visible cold launch, not merely an HTML load behind

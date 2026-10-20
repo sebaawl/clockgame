@@ -12,14 +12,14 @@ function survivalRhythm() {
 }
 function solve(g, error = 0) {
   for (let i = 0; i < 4; i++) moveGame(g, i % 2 ? -1 : 1, g.rhythmNext + error);
-  assert.equal(g.status, 'cleared');
+  assert.equal(g.status, g.format === 'rhythm' ? 'playing' : 'cleared');
 }
 test('four timed pulses complete a full turn; hard route and Nitro cannot settle it early', () => {
   const g = start('rhythm', 'hard'), initial = g.rotation;
   assert.equal(settleGame(g, 0, { nitroLock: true }), false);
   solve(g);
   assert.equal(g.rotation - initial, 360);
-  assert.equal(g.completed, 1);
+  assert.equal(g.completed, 4);
   assert.equal(g.rhythmScore, 192);
   assert.equal(g.lastTimeGain, 0);
   assert.equal(g.perfect, true);
@@ -61,26 +61,25 @@ test('pause preserves ring distance; standalone rhythm keeps strikes between clo
   tickGame(g, 100000);
   assert.equal(g.rhythmMisses, 0);
   resumeGame(g, 100000);
-  assert.equal(g.rhythmNext, 100700);
-  moveGame(g, 1, 100700); moveGame(g, 1, g.rhythmNext - 200);
+  assert.equal(g.rhythmNext, 101200);
+  moveGame(g, 1, 101200); moveGame(g, 1, g.rhythmNext - 200);
   assert.equal(g.rhythmMisses, 1);
   for (let i = 0; i < 3; i++) moveGame(g, 1, g.rhythmNext);
-  assert.equal(g.status, 'cleared'); assert.equal(g.lastTimeGain, 0);
-  advanceGame(g, g.rhythmNext + 5000, () => .4);
+  assert.equal(g.status, 'playing'); assert.equal(g.lastTimeGain, 0);
+  const next = g.rhythmNext; advanceGame(g, next + 5000, () => .4);
+  assert.equal(g.rhythmNext, next);
   assert.equal(g.rhythmMisses, 1); assert.equal(g.challenge, 'rhythm');
 });
-test('standalone duels alternate fixed and reversing direction, retain countdowns and never include other challenges', () => {
+test('standalone duels always use minutes and keep lives instead of a countdown', () => {
   const g = start('duel');
-  for (let i = 0; i < 8; i++) {
-    assert.equal(g.challenge, i % 2 ? 'chaos' : 'duel');
-    assert.ok(g.driftInterval > 0);
-    const steps = g.optimalSteps;
-    for (let j = 0; j < steps; j++) moveGame(g, g.optimalDirection, 0);
-    assert.equal(g.status, 'cleared'); assert.ok(g.lastTimeGain >= 0);
-    if (i === 0) assert.ok(g.lastTimeGain > 0);
+  for (let i = 0; i < 30; i++) {
+    assert.equal(g.challenge, 'tug'); assert.equal(g.stage, 1); assert.equal(g.phase, 1); assert.equal(g.round, 0);
+    const steps = Math.abs(g.duelOffset), direction = -Math.sign(g.duelOffset);
+    for (let j = 0; j < steps; j++) moveGame(g, direction, 0);
+    assert.equal(g.status, 'cleared'); assert.equal(g.lastTimeGain, 0);
     advanceGame(g, 0, () => .4);
   }
-  const before = g.remaining; tickGame(g, 1000); assert.equal(g.remaining, before - 1);
+  assert.equal(g.lives, 3);
 });
 
 test('restarting clears strikes and presentation never advances the first duel or rhythm beat', () => {
@@ -90,11 +89,11 @@ test('restarting clears strikes and presentation never advances the first duel o
   assert.equal(g.rhythmMisses, 0);
   beginPlay(g, 90000);
   tickGame(g, 90000); assert.equal(g.rhythmMisses, 0);
-  assert.equal(g.rhythmNext, 91100);
+  assert.equal(g.rhythmNext, 91600);
   const duel = start('duel'), position = duel.position;
-  beginPlay(duel, 90000); tickGame(duel, 90899);
+  beginPlay(duel, 90000); tickGame(duel, 90299);
   assert.equal(duel.position, position);
-  tickGame(duel, 90900); assert.notEqual(duel.position, position);
+  tickGame(duel, 90300); assert.notEqual(duel.position, position);
 });
 
 test('a press just beyond the late margin loses one life, never two', () => {
@@ -102,9 +101,50 @@ test('a press just beyond the late margin loses one life, never two', () => {
   moveGame(g, 1, g.rhythmNext + 171);
   assert.equal(g.rhythmMisses, 1); assert.equal(g.rhythmHits, 0);
   assert.equal(g.status, 'playing');
-  pauseGame(g, 1280); resumeGame(g, 100000);
+  pauseGame(g, g.rhythmNext - g.rhythmPeriod + 180); resumeGame(g, 100000);
   moveGame(g, 1, 100000);
   assert.equal(g.rhythmMisses, 1);
   moveGame(g, 1, g.rhythmNext);
   assert.equal(g.rhythmMisses, 1); assert.equal(g.rhythmHits, 1);
+});
+
+test('rhythm accelerates monotonically without cycles or pauses, with a playable speed floor', () => {
+  for (const difficulty of ['easy', 'medium', 'hard']) {
+    const g = startGame(createGame(), 0, () => .4, 'normal', 'rhythm', { difficulty });
+    const initial = g.rhythmPeriod;
+    for (let i = 0; i < 250; i++) {
+      const period = g.rhythmPeriod;
+      moveGame(g, 1, g.rhythmNext);
+      assert.equal(g.status, 'playing'); assert.ok(g.rhythmPeriod <= period);
+      assert.equal(g.stage, 0); assert.equal(g.phase, 1); assert.equal(g.round, 0);
+    }
+    assert.ok(g.rhythmPeriod < initial / 2); assert.ok(g.rhythmPeriod >= 380);
+    assert.equal(g.rhythmMisses, 0); assert.equal(g.rhythmHits, 250);
+  }
+});
+test('duel pushes away from twelve on either side and a slip costs one life before repositioning', () => {
+  for (const roll of [.4, .8]) {
+    const g = startGame(createGame(), 0, () => roll, 'normal', 'duel');
+    const side = Math.sign(g.duelOffset), before = Math.abs(g.duelOffset);
+    moveGame(g, -side, 1); assert.equal(Math.abs(g.duelOffset), before - 1);
+    tickGame(g, g.driftNext); assert.equal(Math.abs(g.duelOffset), before);
+    assert.equal(g.driftDirection, side);
+    const life = g.lives;
+    while (g.lives === life) tickGame(g, g.driftNext);
+    assert.equal(g.lives, 2); assert.equal(g.status, 'playing');
+    assert.ok(Math.abs(g.duelOffset) >= 12 && Math.abs(g.duelOffset) <= 24);
+    assert.equal(g.attemptSteps, 0); assert.equal(g.duelEscapes, 1);
+    pauseGame(g, g.driftNext - 100); const position = g.position;
+    tickGame(g, 100000); assert.equal(g.position, position); assert.equal(g.lives, 2);
+    resumeGame(g, 100000); tickGame(g, 100099); assert.equal(g.position, position);
+    tickGame(g, 100100); assert.notEqual(g.position, position);
+    tickGame(g, 200000); assert.equal(g.lives, 0); assert.equal(g.status, 'lost');
+  }
+});
+test('duel outcome is independent of frame rate and never wins through autonomous movement', () => {
+  const a = start('duel'), b = start('duel');
+  tickGame(a, 5000);
+  for (let now = 0; now <= 5000; now += 10) tickGame(b, now);
+  assert.deepEqual([a.position,a.lives,a.driftNext,a.duelEscapes], [b.position,b.lives,b.driftNext,b.duelEscapes]);
+  assert.equal(a.completed, 0); assert.notEqual(a.status, 'cleared');
 });
